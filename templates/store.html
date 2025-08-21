@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="max-w-7xl mx-auto px-4 py-10" x-data="storePage()" x-init="init()">
+  <h1 class="text-2xl font-bold">Магазин</h1>
+
+  <!-- состояние -->
+  <div class="mt-4 text-slate-400" x-show="loading">Загрузка…</div>
+  <div class="mt-4 text-rose-300" x-show="error" x-text="error"></div>
+
+  <!-- товары -->
+  <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4" x-show="!loading && items.length">
+    <template x-for="it in items" :key="it.id">
+      <div class="rounded-2xl border border-white/10 bg-slate-900/70 p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <div class="font-semibold" x-text="it.title"></div>
+            <span class="text-xs px-2 py-0.5 rounded-full border border-white/10" x-text="badge(it)"></span>
+          </div>
+          <div class="text-sm text-slate-400 mt-1" x-text="desc(it)"></div>
+          <div class="mt-3 text-amber-300 font-semibold">🪙 <span x-text="it.cost_coins"></span></div>
+          <div class="text-xs text-slate-500 mt-1" x-show="it.locked" x-text="it.lock_reason"></div>
+          <div class="text-xs text-slate-500 mt-1" x-show="it.stock !== null">Остаток: <span x-text="it.stock"></span></div>
+        </div>
+
+        <button
+          class="mt-4 px-4 py-2 rounded-xl font-semibold transition
+                 disabled:opacity-50 disabled:cursor-not-allowed
+                 border border-white/10"
+          :class="it.locked ? 'bg-white/5 text-slate-400' : 'bg-indigo-600 hover:bg-indigo-500'"
+          :disabled="it.locked || buyingId===it.id"
+          @click="buy(it)">
+          <span x-show="buyingId!==it.id">Купить</span>
+          <span x-show="buyingId===it.id">Покупка…</span>
+        </button>
+      </div>
+    </template>
+  </div>
+
+  <div class="mt-10 text-slate-400" x-show="!loading && !items.length">Пока пусто.</div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.storePage = function(){
+  return {
+    items: [],
+    loading: false,
+    error: null,
+    buyingId: null,
+
+    async init(){
+      this.loading = true;
+      this.error = null;
+      try{
+        const r = await fetch('/api/store');
+        const data = await r.json();
+        this.items = (data.items || []);
+      }catch(e){
+        this.error = 'Не удалось загрузить магазин';
+      }finally{
+        this.loading = false;
+      }
+    },
+
+    badge(it){
+      if(it.type === 'coupon') return 'Купон';
+      if(it.type === 'skin')   return 'Косметика';
+      return it.type || 'Товар';
+    },
+
+    desc(it){
+      // короткое описание по payload (слот/ключ)
+      const p = it.payload || {};
+      if(it.type==='skin' && p.slot && p.key){
+        const slot = {frame:'Рамка', outfit:'Одежда', hair:'Прическа'}[p.slot] || p.slot;
+        return `${slot}: ${p.key}`;
+      }
+      return '';
+    },
+
+    async buy(it){
+      if(it.locked) return;
+      this.buyingId = it.id;
+      this.error = null;
+      try{
+        const r = await fetch(`/api/store/buy/${it.id}`, {method:'POST', headers:{'Content-Type':'application/json'}});
+        if(!r.ok){
+          const msg = await r.text();
+          throw new Error(msg || 'Ошибка покупки');
+        }
+        const data = await r.json();
+
+        // уменьшить остаток локально
+        if(it.stock !== null && typeof it.stock === 'number') it.stock = Math.max(0, it.stock - 1);
+
+        // если это косметика — вероятно автоэкипировали; обновим аватар в navbar (кэш-бастинг)
+        const navImg = document.querySelector('img[data-avatar]');
+        if(navImg){
+          const url = new URL(navImg.src, window.location.origin);
+          url.searchParams.set('t', Date.now().toString());
+          navImg.src = url.toString();
+        }
+
+        // покажем тост (если у тебя есть $store.toasts)
+        if(window.Alpine && Alpine.store && Alpine.store('toasts')){
+          Alpine.store('toasts').push({
+            emoji:'🎉',
+            title:'Покупка успешна',
+            text:`${it.title} куплен${it.type==='skin' ? ' и экипирован' : ''}!`
+          });
+        }
+      }catch(e){
+        this.error = 'Не удалось купить: ' + (e.message || e);
+      }finally{
+        this.buyingId = null;
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

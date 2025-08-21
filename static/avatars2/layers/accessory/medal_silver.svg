@@ -1,0 +1,8 @@
+<defs>
+  <linearGradient id="silverMed" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#E5E7EB"/>
+    <stop offset="100%" stop-color="#9CA3AF"/>
+  </linearGradient>
+</defs>
+<path d="M154 204 l-16 26 h14 l8 -12 l8 12 h14 l-16 -26 z" fill="#7C3AED"/>
+<circle cx="160" cy="246" r="12" fill="url(#silverMed)" stroke="#6B7280" stroke-width="2"/>

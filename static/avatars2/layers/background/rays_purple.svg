@@ -1,0 +1,13 @@
+<defs>
+  <radialGradient id="purpleBg" cx="50%" cy="45%">
+    <stop offset="0%" stop-color="#1f1b2e"/>
+    <stop offset="100%" stop-color="#0b1220"/>
+  </radialGradient>
+</defs>
+<rect width="320" height="320" fill="url(#purpleBg)"/>
+<g opacity="0.35" stroke-width="2" stroke="#A78BFA">
+  <path d="M160 0 v320"/>
+  <path d="M0 160 h320"/>
+  <path d="M-40 -40 l400 400"/>
+  <path d="M360 -40 l-400 400"/>
+</g>

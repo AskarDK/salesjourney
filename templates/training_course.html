@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% set title = "Курс — тренинг" %}
+{% block content %}
+
+<section class="max-w-5xl mx-auto px-4 py-10"
+         x-data="trainingCourse({{ course_id }})"
+         x-init="load(); loadProgress(); restoreLock()">
+
+  <!-- Заголовок + мета -->
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-extrabold" x-text="course?.title || 'Курс'"></h1>
+    <div class="text-sm text-slate-400" x-show="course">
+      Порог: <span x-text="course.pass_score"></span>% • XP: <span x-text="course.xp_reward"></span>
+    </div>
+  </div>
+
+  <!-- Ступени -->
+  <div class="mt-6">
+    <div class="inline-flex rounded-2xl border border-white/10 bg-slate-900/60 p-1">
+      <button type="button"
+              class="px-4 py-2 rounded-xl text-sm font-semibold"
+              :class="stage===1 ? 'bg-white/10' : 'hover:bg-white/5'"
+              @click="go(1)">
+        1. Материал
+      </button>
+      <button type="button"
+              class="px-4 py-2 rounded-xl text-sm font-semibold"
+              :class="stage===2 ? 'bg-white/10' : 'hover:bg-white/5'"
+              @click="go(2)">
+        2. Квиз
+      </button>
+    </div>
+    <template x-if="locked && stage===2">
+      <div class="mt-2 text-xs text-amber-300">Во время прохождения квиза возврат к материалу недоступен.</template>
+  </div>
+
+  <!-- Этап 1: Материал -->
+  <div x-show="stage===1" x-transition>
+    <div class="mt-6 rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+      <div class="prose prose-invert max-w-none" x-html="renderMd(course?.content_md || 'Материал скоро будет…')"></div>
+
+      <div class="mt-4" x-show="course?.youtube_url">
+        <div class="rounded-xl overflow-hidden border border-white/10">
+          <iframe
+            class="w-full aspect-video"
+            :src="youtubeEmbed(course.youtube_url)"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-xs text-slate-400">
+          Лучший результат: <span x-text="progress"></span>%
+        </div>
+        <button type="button"
+                class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold"
+                @click="beginQuiz()">
+          Перейти к квизу
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Этап 2: Квиз -->
+  <div x-show="stage===2" x-transition>
+    <div class="mt-6 rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+      <div class="flex items-center justify-between">
+        <div class="text-xl font-semibold">Квиз по материалу</div>
+        <div class="text-sm text-slate-400" x-show="limits">
+          Попыток: <span x-text="limits.left"></span> / <span x-text="limits.total"></span>
+        </div>
+      </div>
+
+      <template x-if="!questions.length">
+        <div class="text-sm text-slate-400 mt-2">Загрузка…</div>
+      </template>
+
+      <form class="mt-4 space-y-4" @submit.prevent="submit()">
+        <template x-for="q in questions" :key="q.id">
+          <div class="rounded-xl border border-white/10 bg-black/30 p-3">
+            <div class="font-semibold" x-text="q.text"></div>
+            <div class="mt-2 grid gap-2">
+              <template x-for="o in q.options" :key="o.id">
+                <label class="flex items-center gap-2">
+                  <input type="radio" :name="'q_'+q.id" :value="o.id"
+                         @change="answers[q.id]=Number($event.target.value)">
+                  <span x-text="o.text"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <div class="pt-2 flex items-center gap-3">
+          <button type="submit"
+                  class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold">
+            Сдать
+          </button>
+          <div class="text-sm" :class="passed ? 'text-emerald-400' : 'text-slate-300'"
+               x-show="resultText" x-text="resultText"></div>
+        </div>
+      </form>
+
+      <div class="mt-4">
+        <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-indigo-500 to-emerald-400" :style="`width:${progress}%`"></div>
+        </div>
+        <div class="text-xs text-slate-400 mt-1">Лучший результат: <span x-text="progress"></span>%</div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function trainingCourse(id){
+  return {
+    // --- state ---
+    courseId: id,
+    stage: 1,                 // 1 — материал, 2 — квиз
+    canSwitchTabs: true,      // запрет возврата к материалу во время попытки
+    course: null,
+    questions: [],
+    answers: {},
+    limits: null,             // { left, total }
+    progress: 0,              // лучший % пользователя по курсу
+    resultText: '',
+    passed: false,            // результат текущей попытки
+    hasPassed: false,         // уже есть успешная попытка в прошлом
+    bestScore: 0,
+
+    // --- безопасный доступ к Alpine stores (no-op, если их нет) ---
+    fx(){
+      try { return (window.Alpine && Alpine.store && Alpine.store('fx')) || { confetti(){}, coins(){} }; }
+      catch(_) { return { confetti(){}, coins(){} }; }
+    },
+    toast(){
+      try { return (window.Alpine && Alpine.store && Alpine.store('toasts')) || { push(){}, dismiss(){} }; }
+      catch(_) { return { push(){}, dismiss(){} }; }
+    },
+
+    // --- helpers ---
+    renderMd(md){
+      if(!md) return '';
+      let h = md
+        .replace(/^### (.*)$/gim, '<h3>$1</h3>')
+        .replace(/^## (.*)$/gim, '<h2>$1</h2>')
+        .replace(/^# (.*)$/gim, '<h1>$1</h1>')
+        .replace(/^\> (.*)$/gim, '<blockquote>$1</blockquote>')
+        .replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
+        .replace(/\*(.*?)\*/gim, '<i>$1</i>')
+        .replace(/`([^`]+)`/gim, '<code>$1</code>')
+        .replace(/\n$/gim, '<br/>');
+      h = h.replace(/^- (.*)$/gim, '<li>$1</li>');
+      h = h.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
+      return h;
+    },
+    youtubeEmbed(url){
+      try{
+        const u = new URL(url);
+        const id = (u.searchParams.get('v') || '').trim();
+        if(id) return `https://www.youtube.com/embed/${id}`;
+      }catch(_){}
+      if((url||'').includes('youtu.be/')){
+        const id = url.split('youtu.be/')[1].split(/[?&]/)[0];
+        return `https://www.youtube.com/embed/${id}`;
+      }
+      return url;
+    },
+
+    // --- lifecycle ---
+    async init(){
+      await this.load();
+      await this.loadProgress();
+      // если уже пройден — сразу подготавливаем ограничения
+      if(this.hasPassed){
+        this.limits = { left: 0, total: this.course?.max_attempts ?? 0 };
+      }
+    },
+
+    // --- data ---
+    async load(){
+      const r = await fetch(`/api/training/courses/${this.courseId}`);
+      const j = await r.json();
+      if(!r.ok) throw new Error(j.description || 'Не удалось загрузить курс');
+      this.course = j.course;
+      this.questions = (j.course.questions || []).map(q => ({
+        id: q.id, text: q.text, options: q.options || []
+      }));
+    },
+    async loadProgress(){
+      const pr = await fetch('/api/training/progress').then(r=>r.json());
+      const attempts = (pr.attempts || []).filter(a => a.course_id === this.courseId);
+      this.bestScore = attempts.reduce((m,a)=>Math.max(m, a.score||0), 0);
+      this.progress = this.bestScore;
+      this.hasPassed = attempts.some(a => a.passed);
+    },
+
+    // --- вкладки/навигация ---
+    setStage(n){
+      if(n === 2){
+        this.stage = 2; // к квизу можно
+        return;
+      }
+      if(!this.canSwitchTabs){
+        this.toast().push({title:'Недоступно', text:'Возврат к материалу во время попытки запрещён', emoji:'⛔️'});
+        return;
+      }
+      this.stage = 1;
+    },
+
+    // --- запрет "назад" в браузере во время попытки ---
+    _popHandler: null,
+    _installNoBack(){
+      history.pushState({ sjLock:true }, '', location.href);
+      this._popHandler = ()=>{
+        if(!this.canSwitchTabs){
+          history.pushState({ sjLock:true }, '', location.href);
+          this.toast().push({title:'Идёт попытка', text:'Нельзя вернуться, пока идёт квиз', emoji:'⏭️'});
+        }
+      };
+      window.addEventListener('popstate', this._popHandler);
+    },
+    _removeNoBack(){
+      if(this._popHandler){
+        window.removeEventListener('popstate', this._popHandler);
+        this._popHandler = null;
+      }
+    },
+    lockQuiz(){ this.canSwitchTabs = false; this._installNoBack(); },
+    unlockQuiz(){ this.canSwitchTabs = true; this._removeNoBack(); },
+
+    // --- старый алиас, чтобы не менять HTML (@click="start()") ---
+    async start(){ return this.beginQuiz(); },
+
+    // --- квиз ---
+    async beginQuiz(){
+      if(this.hasPassed){
+        this.toast().push({title:'Уже пройдено', text:'Курс уже завершён. Повторное прохождение недоступно.', emoji:'✅'});
+        return;
+      }
+      try{
+        const r = await fetch(`/api/training/courses/${this.courseId}/start`, { method:'POST' });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.description || 'Нельзя начать попытку');
+        this.limits = { left: j.attempts_left, total: (this.course?.max_attempts || j.attempts_left) };
+        this.answers = {};
+        this.resultText = '';
+        this.passed = false;
+
+        this.lockQuiz();
+        this.stage = 2;
+
+        this.toast().push({title:'Попытка начата', text:`Осталось попыток: ${j.attempts_left}`, emoji:'▶️'});
+      }catch(e){
+        this.toast().push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+      }
+    },
+
+    async submit(){
+      try{
+        const payload = {
+          answers: Object.entries(this.answers).map(([qid, oid]) => ({
+            question_id: Number(qid), option_id: Number(oid)
+          }))
+        };
+        const r = await fetch(`/api/training/courses/${this.courseId}/submit_quiz`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.description || 'Не удалось сдать тест');
+
+        this.passed = !!j.passed;
+        this.resultText = this.passed
+          ? `Успех! Балл: ${j.score}%`
+          : `Не пройдено. Балл: ${j.score}%. Повторите материал и попробуйте снова.`;
+
+        await this.loadProgress(); // подтянуть факт прохождения
+
+        if(this.passed){
+          this.hasPassed = true;
+          this.fx().confetti();                    // анимация успешки
+          this.toast().push({title:'Курс пройден', text:`+${this.course.xp_reward} XP`, emoji:'🏆'});
+
+          // блокируем дальнейшие попытки
+          this.limits = { left: 0, total: this.course?.max_attempts ?? 0 };
+          this.unlockQuiz();
+
+          // редирект на список курсов
+          setTimeout(()=>{ window.location.href = '/training'; }, 1500);
+        }else{
+          this.toast().push({title:'Пока нет', text:'Попробуйте ещё раз', emoji:'🔁'});
+          this.unlockQuiz(); // попытка завершилась, возвращаться можно
+        }
+      }catch(e){
+        this.resultText = e.message;
+        this.toast().push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+        this.unlockQuiz();
+      }
+    }
+  }
+}
+
+// Автоинициализация компонента на странице
+document.addEventListener('alpine:init', () => {
+  const root = document.querySelector('[x-data^="trainingCourse("]');
+  if(root && !root.__x){
+    Alpine.initTree(root);
+    queueMicrotask(() => {
+      try { root.__x.$data.init(); } catch(_) {}
+    });
+  }
+});
+</script>
+{% endblock %}

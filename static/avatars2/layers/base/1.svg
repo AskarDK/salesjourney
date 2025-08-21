@@ -1,0 +1,14 @@
+<!-- БАЗА: лицо + глаза; цвет кожи задаётся из .skin в родительском SVG -->
+<g id="head-base">
+  <!-- шея -->
+  <rect x="146" y="190" width="28" height="24" rx="6" class="skin" opacity="0.95"/>
+  <!-- голова -->
+  <circle cx="160" cy="140" r="52" class="skin"/>
+  <!-- нос -->
+  <path d="M160 140 q-2 10 0 16" fill="none" stroke="#8B5E3C" stroke-width="2" opacity="0.35"/>
+  <!-- глаза -->
+  <circle cx="142" cy="134" r="5" fill="#1F2937"/>
+  <circle cx="178" cy="134" r="5" fill="#1F2937"/>
+  <!-- лёгкая улыбка -->
+  <path d="M144 160 q16 10 32 0" fill="none" stroke="#8B5E3C" stroke-width="2" opacity="0.35" stroke-linecap="round"/>
+</g>

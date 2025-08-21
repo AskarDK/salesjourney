@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <!-- Фон только для предпросмотра -->
+  <rect width="320" height="320" fill="#0F172A"></rect>
+  <!-- Клип-круг как в навбаре -->
+  <clipPath id="clip">
+    <circle cx="160" cy="160" r="120"></circle>
+  </clipPath>
+
+  <g clip-path="url(#clip)">
+    <!-- Лицо -->
+    <circle cx="160" cy="160" r="86" fill="#F6D0B8"></circle>
+    <!-- Уши -->
+    <circle cx="74" cy="160" r="12" fill="#F6D0B8"></circle>
+    <circle cx="246" cy="160" r="12" fill="#F6D0B8"></circle>
+
+    <!-- Лёгкая тень под подбородком -->
+    <ellipse cx="160" cy="210" rx="36" ry="14" fill="#000" opacity="0.08"></ellipse>
+
+    <!-- Щёки -->
+    <circle cx="118" cy="178" r="9" fill="#F4A7A7" opacity="0.35"></circle>
+    <circle cx="202" cy="178" r="9" fill="#F4A7A7" opacity="0.35"></circle>
+
+    <!-- Глаза (белки) -->
+    <ellipse cx="130" cy="150" rx="16" ry="12" fill="#FFFFFF"></ellipse>
+    <ellipse cx="190" cy="150" rx="16" ry="12" fill="#FFFFFF"></ellipse>
+
+    <!-- Зрачки -->
+    <circle cx="130" cy="150" r="6" fill="#2F2F2F"></circle>
+    <circle cx="190" cy="150" r="6" fill="#2F2F2F"></circle>
+
+    <!-- Блик в глазах -->
+    <circle cx="127" cy="147" r="2" fill="#FFFFFF" opacity="0.9"></circle>
+    <circle cx="187" cy="147" r="2" fill="#FFFFFF" opacity="0.9"></circle>
+
+    <!-- Брови -->
+    <path d="M112 135 Q130 128 148 135" fill="none" stroke="#7A4F2E" stroke-width="5" stroke-linecap="round"></path>
+    <path d="M172 135 Q190 128 208 135" fill="none" stroke="#7A4F2E" stroke-width="5" stroke-linecap="round"></path>
+
+    <!-- Нос -->
+    <path d="M160 150 Q156 168 164 168" fill="none" stroke="#C79476" stroke-width="3" stroke-linecap="round"></path>
+
+    <!-- Рот (мягкая улыбка) -->
+    <path d="M128 186 Q160 198 192 186" fill="none" stroke="#C16C6C" stroke-width="5" stroke-linecap="round"></path>
+
+    <!-- Тёплый градиентный рефлекс внизу лица (очень деликатно) -->
+    <radialGradient id="chinGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(160 195) rotate(90) scale(60 80)">
+      <stop offset="0" stop-color="#EFAE93" stop-opacity="0.18"></stop>
+      <stop offset="1" stop-color="#EFAE93" stop-opacity="0"></stop>
+    </radialGradient>
+    <ellipse cx="160" cy="195" rx="70" ry="38" fill="url(#chinGlow)"></ellipse>
+  </g>
+
+  <!-- Обводка клипа как в твоём коде -->
+  <circle cx="160" cy="160" r="118" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3"></circle>
+</svg>

@@ -1,0 +1,10 @@
+<defs>
+  <linearGradient id="bronze" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#CD7F32"/>
+    <stop offset="100%" stop-color="#8C4A1E"/>
+  </linearGradient>
+</defs>
+<!-- лента -->
+<path d="M154 204 l-16 26 h14 l8 -12 l8 12 h14 l-16 -26 z" fill="#2563EB"/>
+<!-- медаль -->
+<circle cx="160" cy="246" r="12" fill="url(#bronze)" stroke="#6B2E12" stroke-width="2"/>

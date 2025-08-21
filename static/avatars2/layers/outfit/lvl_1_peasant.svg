@@ -1,0 +1,13 @@
+<defs>
+  <linearGradient id="peasantShirt" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#E5E7EB"/>
+    <stop offset="100%" stop-color="#CBD5E1"/>
+  </linearGradient>
+</defs>
+<path d="M88 200 q72 36 144 0 v96 h-144 z" fill="url(#peasantShirt)"/>
+<!-- ворот -->
+<path d="M148 198 h24 v18 h-24 z" fill="#B3BEC8"/>
+<!-- разрез шнуровки -->
+<path d="M160 216 v28" stroke="#8AA0AE" stroke-width="2"/>
+<circle cx="160" cy="224" r="2" fill="#8AA0AE"/>
+<circle cx="160" cy="234" r="2" fill="#8AA0AE"/>

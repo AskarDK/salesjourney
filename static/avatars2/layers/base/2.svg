@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <!-- Голова -->
+  <ellipse cx="100" cy="100" rx="80" ry="90" fill="url(#skinTone)" stroke="#d6a87b" stroke-width="3"></ellipse>
+  
+  <defs>
+    <linearGradient id="skinTone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f9d6b7"></stop>
+      <stop offset="100%" stop-color="#eabf94"></stop>
+    </linearGradient>
+  </defs>
+  
+  <!-- Глаза -->
+  <ellipse cx="65" cy="85" rx="12" ry="8" fill="#fff"></ellipse>
+  <ellipse cx="135" cy="85" rx="12" ry="8" fill="#fff"></ellipse>
+  
+  <!-- Радужка -->
+  <circle cx="65" cy="85" r="5" fill="#6b4d2e"></circle>
+  <circle cx="135" cy="85" r="5" fill="#6b4d2e"></circle>
+  
+  <!-- Зрачки -->
+  <circle cx="65" cy="85" r="2" fill="#000"></circle>
+  <circle cx="135" cy="85" r="2" fill="#000"></circle>
+  
+  <!-- Блики в глазах -->
+  <circle cx="63" cy="83" r="1.5" fill="#fff"></circle>
+  <circle cx="133" cy="83" r="1.5" fill="#fff"></circle>
+  
+  <!-- Брови -->
+  <path d="M50 72 Q65 65 80 72" stroke="#5a3b1e" stroke-width="4" fill="none" stroke-linecap="round"></path>
+  <path d="M120 72 Q135 65 150 72" stroke="#5a3b1e" stroke-width="4" fill="none" stroke-linecap="round"></path>
+  
+  <!-- Нос -->
+  <path d="M100 90 Q102 105 98 105" stroke="#b5855a" stroke-width="2" fill="none"></path>
+  
+  <!-- Рот -->
+  <path d="M75 125 Q100 140 125 125" stroke="#a33" stroke-width="3" fill="none" stroke-linecap="round"></path>
+</svg>

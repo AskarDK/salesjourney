@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="max-w-6xl mx-auto px-4 py-10" x-data="companyDash()">
+  <h1 class="text-2xl font-bold">Дашборд компании</h1>
+
+  <template x-if="err">
+    <div class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-200" x-text="err"></div>
+  </template>
+
+  <div class="mt-6 grid sm:grid-cols-3 gap-4" x-show="data">
+    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+      <div class="text-sm text-slate-400">Участников</div>
+      <div class="text-2xl font-bold" x-text="data.kpi.members"></div>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+      <div class="text-sm text-slate-400">Средний уровень</div>
+      <div class="text-2xl font-bold" x-text="data.kpi.avg_level"></div>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+      <div class="text-sm text-slate-400">Событий за 7 дней</div>
+      <div class="text-2xl font-bold" x-text="data.kpi.events_7d"></div>
+    </div>
+  </div>
+
+  <h2 class="text-lg font-semibold mt-8">Топ по XP</h2>
+  <div class="mt-3 space-y-2">
+    <template x-for="u in (data?.top_xp||[])" :key="u.id">
+      <div class="flex items-center justify-between rounded-xl border border-white/10 bg-slate-900/60 p-3">
+        <div class="flex items-center gap-3">
+          <img :src="`/avatar_svg/${u.id}`" class="w-8 h-8 rounded-lg ring-1 ring-white/10">
+          <div class="font-semibold" x-text="u.display_name"></div>
+        </div>
+        <div class="text-sm text-slate-400">lvl <span x-text="u.level"></span></div>
+        <div class="text-lg font-bold" x-text="u.xp + ' XP'"></div>
+      </div>
+    </template>
+  </div>
+
+  <h2 class="text-lg font-semibold mt-8">Активные конкурсы</h2>
+  <div class="mt-3 grid sm:grid-cols-2 gap-3">
+    <template x-for="c in (data?.contests||[])" :key="c.id">
+      <a :href="`/contest/${c.id}`" class="rounded-xl border border-white/10 bg-slate-900/60 p-4 hover:bg-white/5">
+        <div class="font-semibold" x-text="c.title"></div>
+        <div class="text-xs text-slate-500 mt-1">
+          до <span x-text="new Date(c.end_at).toLocaleDateString()"></span>
+        </div>
+      </a>
+    </template>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+function companyDash(){
+  return {
+    data:null, err:null,
+    async init(){
+      const r = await fetch('/api/company/dashboard');
+      if(r.ok){ this.data = await r.json(); }
+      else { const e = await r.json().catch(()=>({})); this.err = e.description || 'Нет доступа'; }
+    }
+  }
+}
+</script>
+{% endblock %}

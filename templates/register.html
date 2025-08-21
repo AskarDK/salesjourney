@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% set title = "Регистрация — Sales Journey" %}
+{% block content %}
+
+<section class="max-w-3xl mx-auto px-4 py-12" x-data="registerWizard()" x-init="init()">
+  <h1 class="text-4xl font-extrabold">Собери свою легенду продаж</h1>
+  <p class="text-slate-300 mt-2">5 шагов — и ты уже в деле: уровни, ачивки, призы.</p>
+
+  <!-- Progress -->
+  <div class="mt-6">
+    <div class="flex justify-between text-sm">
+      <span>Шаг <span x-text="step"></span> / 5</span>
+      <span x-text="progressLabel"></span>
+    </div>
+    <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden mt-2">
+      <div class="h-full grad-anim" :style="`width:${progress}%`"></div>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="mt-8 rounded-3xl border border-white/10 bg-slate-900/60 p-6 md:p-8 glow">
+    <!-- 1: Аккаунт -->
+<!-- 1: Аккаунт -->
+    <div x-show="step===1" x-transition.opacity>
+      <h2 class="text-2xl font-bold">1) Аккаунт</h2>
+      <div class="grid md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label class="block text-sm mb-1">Email</label>
+          <input x-model="form.email" type="email" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Пароль</label>
+          <input x-model="form.password" type="password" class="...w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+        </div>
+      </div>
+
+      <!-- NEW: Код компании (необязательно) + автоподстановка с ?invite= -->
+      <div class="mt-4 rounded-xl border border-white/10 bg-black/30 p-4"
+           x-data="{
+             token: new URLSearchParams(location.search).get('invite'),
+             resolved: null,
+             async init(){
+               if(this.token){
+                 const r = await fetch(`/api/company/resolve-invite/${this.token}`);
+                 this.resolved = await r.json();
+                 if(this.resolved?.active){ form.company_code = this.resolved.code; }
+               }
+             },
+             clear(){
+               form.company_code = '';
+               this.token = null;
+               this.resolved = null;
+               history.replaceState({}, '', location.pathname);
+             }
+           }" x-init="init()">
+        <label class="block text-sm mb-1">Код компании (необязательно)</label>
+        <div class="flex gap-2">
+          <input x-model="form.company_code" name="company_code"
+                 class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2"
+                 placeholder="Например: 9F3A2C1B">
+          <button type="button" class="rounded-xl px-3 py-2 border border-white/10 hover:bg-white/5"
+                  @click="form.company_code=''">Очистить</button>
+        </div>
+        <template x-if="resolved?.active">
+          <div class="mt-2 text-sm">
+            Привязка: <span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700" x-text="resolved.company_name"></span>
+            <button type="button" class="ml-2 text-slate-400 hover:text-slate-200 underline" @click="clear()">Отменить код</button>
+          </div>
+        </template>
+      </div>
+
+      <p class="text-xs text-slate-400 mt-2">Безопасный пароль — минус лишние отвлечения.</p>
+    </div>
+
+
+    <!-- 2: Профиль -->
+    <div x-show="step===2" x-transition.opacity>
+      <h2 class="text-2xl font-bold">2) Профиль</h2>
+      <div class="grid md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label class="block text-sm mb-1">Отображаемое имя</label>
+          <input x-model="form.display_name" type="text" placeholder="Напр. Alex Hunter" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Пол</label>
+          <select x-model="form.gender" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+            <option value="">Не выбирать</option>
+            <option value="male">Мужской</option>
+            <option value="female">Женский</option>
+          </select>
+        </div>
+      </div>
+      <p class="text-xs text-slate-400 mt-2">Пол влияет на стартовый лут аватара.</p>
+    </div>
+
+    <!-- 3: Роль в продаже -->
+    <div x-show="step===3" x-transition.opacity>
+      <h2 class="text-2xl font-bold">3) Роль в воронке</h2>
+      <div class="grid sm:grid-cols-3 gap-4 mt-4">
+        <button @click="form.role='hunter'; toast('Выбор роли','Хантер — добывает лиды','🧭')"
+                :class="roleBtn('hunter')">🧭 Hunter</button>
+        <button @click="form.role='closer'; toast('Выбор роли','Клоузер — финалит сделки','🔒')"
+                :class="roleBtn('closer')">🔒 Closer</button>
+        <button @click="form.role='farmer'; toast('Выбор роли','Фармер — растит LTV','🌾')"
+                :class="roleBtn('farmer')">🌾 Farmer</button>
+      </div>
+      <p class="text-xs text-slate-400 mt-2">Роль нужна для персональных квестов и конкурсов.</p>
+    </div>
+
+    <!-- 4: Цель (мини-квест) -->
+    <div x-show="step===4" x-transition.opacity>
+      <h2 class="text-2xl font-bold">4) Цель на месяц</h2>
+      <div class="grid md:grid-cols-3 gap-4 mt-4">
+        <div>
+          <label class="block text-sm mb-1">Лиды (шт)</label>
+          <input x-model.number="form.goal_leads" type="number" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Конверсия (%)</label>
+          <input x-model.number="form.goal_conv" type="number" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Выручка (₸)</label>
+          <input x-model.number="form.goal_rev" type="number" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+        </div>
+      </div>
+      <button class="mt-4 rounded-xl border border-white/10 hover:bg-white/5 px-4 py-2"
+              @click="warmup()">Зафиксировал цель (получить бонус)</button>
+      <p class="text-xs text-slate-400 mt-2">Это мини-квест: нажми — и прилетят первые поинты.</p>
+    </div>
+
+    <!-- 5: Аватар -->
+    <div x-show="step===5" x-transition.opacity>
+      <h2 class="text-2xl font-bold">5) Аватар</h2>
+      <div class="grid md:grid-cols-2 gap-6 mt-4 items-center">
+        <div class="rounded-2xl border border-white/10 bg-black/30 p-6 text-center">
+          <div class="text-7xl mb-2" x-text="form.gender==='female'?'👩':'👨'"></div>
+          <div class="text-slate-300 text-sm">База + наряд новичка уже твои</div>
+        </div>
+        <div class="space-y-2 text-sm text-slate-300">
+          <div>Открой прически/скины с уровня 2+</div>
+          <div>Рейтинги и конкурсы дают редкие предметы</div>
+          <div>Магазин: меняй коины на призы</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="mt-8 flex items-center justify-between">
+      <button class="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5"
+              :disabled="step===1" @click="prev()">Назад</button>
+      <div class="flex gap-3">
+        <button x-show="step<5" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold"
+                @click="next()">Дальше</button>
+        <button x-show="step===5" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold"
+                @click="finish()">Завершить</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-sm text-slate-400 mt-4">Уже в игре?
+    <a class="text-indigo-400 hover:underline" href="/login">Войти</a>
+  </p>
+</section>
+
+<script>
+function registerWizard(){
+  return {
+    step: 1,
+form: { email:'', password:'', display_name:'', gender:'', role:'', goal_leads:0, goal_conv:0, goal_rev:0, company_code:'' },
+    localAch: [],
+    get progress(){ return (this.step/5)*100 },
+    get progressLabel(){ return Math.round(this.progress)+'%' },
+
+    roleBtn(key){ return `rounded-xl px-4 py-3 border border-white/10 bg-black/30 hover:bg-white/5 ${this.form.role===key?'ring-2 ring-indigo-400':''}`; },
+
+    // ВАЖНО: используем Alpine.store(...)
+    toast(t,txt,e){ Alpine.store('toasts').push({title:t, text:txt, emoji:e}); },
+
+    prev(){ if(this.step>1) this.step--; },
+
+    async next(){
+      if(this.step===1){
+        if(!this.form.email || !this.form.password){ return this.toast('Заполни данные','Нужны email и пароль','✍️'); }
+        this.toast('Ачивка получена','Первый шаг пройден','🥇');
+        this.localAch.push('REG_STEP1');
+        await apiScore(20,5,{step:1});
+      }
+      if(this.step===2){
+        if(!this.form.display_name){ return this.toast('Имя нужно','Укажи отображаемое имя','🧑‍💼'); }
+        this.toast('Ачивка получена','Профиль введён','🧩');
+        this.localAch.push('REG_STEP2');
+        await apiScore(20,5,{step:2});
+      }
+      if(this.step===3){
+        if(!this.form.role){ return this.toast('Выбери роль','Это нужно для квестов','🎯'); }
+        this.toast('Роль выбрана','Будут персональные задания','🎯');
+        this.localAch.push('REG_ROLE');
+        await apiScore(15,5,{step:3,role:this.form.role});
+      }
+      if(this.step<5) this.step++;
+    },
+
+    async warmup(){
+      this.toast('Разогрев выполнен','Бонус за фокус на цели','🔥');
+      this.localAch.push('REG_WARMUP');
+      await apiScore(25,10,{step:'warmup', goals:{leads:this.form.goal_leads, conv:this.form.goal_conv, rev:this.form.goal_rev}});
+    },
+
+    async finish(){
+      try{
+       const r = await fetch('/api/auth/register', {
+  method:'POST', headers:{'Content-Type':'application/json'},
+  body: JSON.stringify({
+    email:this.form.email, password:this.form.password,
+    display_name:this.form.display_name, gender:this.form.gender,
+    company_code: this.form.company_code || null
+  })
+});
+
+        if(!r.ok){ throw new Error(await r.text() || 'Не удалось зарегистрироваться'); }
+        this.toast('Добро пожаловать!','Аккаунт создан','🚀');
+
+        for(const code of this.localAch){ await apiScore(10,2,{code}); }
+
+        await fetch('/api/achievements/claim', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({code:'PROFILE_100'})
+        });
+
+        Alpine.store('fx').confetti();
+        setTimeout(()=>{ window.location.href = '/achievements'; }, 900);
+      }catch(err){
+        this.toast('Ошибка', err.message, '⚠️');
+      }
+    }
+  }
+}
+
+// helper: тоже без $store
+async function apiScore(points, coins, meta){
+  try{
+    await fetch('/api/events/score', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({source:'bonus', points, coins, meta})
+    });
+    Alpine.store('fx').coins();
+  }catch(e){}
+}
+</script>
+
+{% endblock %}

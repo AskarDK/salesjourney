@@ -1,0 +1,20 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Голова -->
+  <circle cx="100" cy="100" r="80" fill="#FCD7B6" stroke="#E6B892" stroke-width="3"></circle>
+  
+  <!-- Глаза -->
+  <ellipse cx="70" cy="90" rx="10" ry="14" fill="white"></ellipse>
+  <ellipse cx="130" cy="90" rx="10" ry="14" fill="white"></ellipse>
+  <circle cx="70" cy="90" r="5" fill="#3B3B3B"></circle>
+  <circle cx="130" cy="90" r="5" fill="#3B3B3B"></circle>
+  
+  <!-- Брови -->
+  <path d="M55 75 Q70 65 85 75" stroke="#7A4F2E" stroke-width="4" fill="none" stroke-linecap="round"></path>
+  <path d="M115 75 Q130 65 145 75" stroke="#7A4F2E" stroke-width="4" fill="none" stroke-linecap="round"></path>
+  
+  <!-- Нос -->
+  <path d="M100 90 Q95 115 105 115" stroke="#C1906F" stroke-width="3" fill="none" stroke-linecap="round"></path>
+  
+  <!-- Рот -->
+  <path d="M75 135 Q100 150 125 135" stroke="#C16C6C" stroke-width="4" fill="none" stroke-linecap="round"></path>
+</svg>

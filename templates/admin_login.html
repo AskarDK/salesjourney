@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% set title = "Админ — вход" %}
+{% block content %}
+<section class="max-w-md mx-auto px-4 py-16">
+  <div class="rounded-3xl border border-white/10 bg-slate-900/60 p-6 md:p-8 glow">
+    <h1 class="text-3xl font-extrabold">Вход в админку 🔐</h1>
+    <p class="text-slate-300 mt-2">Только для авторизованных администраторов.</p>
+
+    <form id="adminLogin" class="space-y-4 mt-6">
+      <div>
+        <label class="block text-sm mb-1">Email</label>
+        <input name="email" type="email" required
+               class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-500/40">
+      </div>
+      <div>
+        <label class="block text-sm mb-1">Пароль</label>
+        <input name="password" type="password" required
+               class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-500/40">
+      </div>
+      <button type="submit"
+              class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 py-2 font-semibold transition">
+        Войти
+      </button>
+    </form>
+  </div>
+</section>
+
+<script>
+document.getElementById('adminLogin').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  try{
+    const r = await fetch('/api/admin/login',{method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email: fd.get('email'), password: fd.get('password')})
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.description || 'Ошибка входа');
+    location.href = '/admin';
+  }catch(err){
+    Alpine.store('toasts').push({title:'Ошибка', text: err.message, emoji:'⚠️'});
+  }
+});
+</script>
+{% endblock %}

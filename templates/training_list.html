@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set title = "Тренинг — курсы" %}
+{% block content %}
+
+<section class="max-w-7xl mx-auto px-4 py-10" x-data="trainingList()">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-extrabold">Тренинг</h1>
+    <div class="text-sm text-slate-400">Доступные курсы для вашего профиля/компании</div>
+  </div>
+
+  <div class="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <template x-for="c in courses" :key="c.id">
+      <a :href="`/training/${c.id}`"
+         class="rounded-2xl border border-white/10 bg-slate-900/60 p-5 hover:bg-white/[0.04] transition block">
+        <div class="text-xl font-semibold" x-text="c.title"></div>
+        <div class="text-sm text-slate-300 mt-1 line-clamp-2" x-text="c.description || 'Курс'"></div>
+        <div class="mt-3 text-xs text-slate-400">Порог: <span x-text="c.pass_score"></span>% • Награда: <span x-text="c.xp_reward"></span> XP</div>
+        <div class="mt-3">
+          <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-emerald-400 to-emerald-300" :style="`width: ${progress(c)}%`"></div>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">Прогресс: <span x-text="progress(c)"></span>%</div>
+        </div>
+      </a>
+    </template>
+  </div>
+
+  <div class="text-sm text-slate-400 mt-6" x-show="loading">Загрузка…</div>
+  <div class="text-sm text-slate-400 mt-6" x-show="!loading && courses.length===0">Нет доступных курсов.</div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function trainingList(){
+  return {
+    loading: false,
+    courses: [],
+    attempts: {}, // course_id -> best score
+    progress(c){
+      const best = this.attempts[c.id] || 0;
+      return Math.max(best, 0);
+    },
+    async init(){
+      this.loading = true;
+      try{
+        const [cr, pr] = await Promise.all([
+          fetch('/api/training/courses').then(r=>r.json()),
+          fetch('/api/training/progress').then(r=>r.json())
+        ]);
+        this.courses = cr.courses || [];
+        const atts = pr.attempts || [];
+        atts.forEach(a=>{
+          this.attempts[a.course_id] = Math.max(this.attempts[a.course_id]||0, a.score||0);
+        });
+      }catch(e){
+        Alpine.store('toasts').push({title:'Ошибка', text:'Не удалось загрузить курсы', emoji:'⚠️'});
+      }finally{
+        this.loading = false;
+      }
+    }
+  }
+}
+document.addEventListener('alpine:init', ()=> {
+  const root = document.querySelector('[x-data="trainingList()"]');
+  if(root && root.__x==null){ Alpine.initTree(root); root.__x.$data.init(); }
+});
+</script>
+{% endblock %}

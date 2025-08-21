@@ -1,0 +1,775 @@
+{% extends "base.html" %}
+{% set title = "Моя компания — Sales Journey" %}
+
+{% block content %}
+<section class="max-w-7xl mx-auto px-4 py-8" x-data="partnerCompanyPage({{ company_id if company_id is not none else 'null' }})" x-init="init()">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-extrabold">Моя компания</h1>
+      <p class="text-slate-400" x-text="headerSubtitle"></p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <template x-if="companyId">
+        <button @click="openInviteModal()" class="rounded-xl px-4 py-2 bg-slate-700 hover:bg-slate-600 font-semibold">
+          Код и ссылка
+        </button>
+      </template>
+      <template x-if="!companyId">
+        <a href="/partner/company/create" class="rounded-xl px-4 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold">Создать компанию</a>
+      </template>
+    </div>
+  </div>
+
+  <!-- INVITE MODAL -->
+  <div x-show="inviteModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div class="w-full max-w-lg rounded-2xl bg-white p-6 text-slate-900" @click.outside="inviteModal=false">
+      <div class="flex items-center justify-between">
+        <div class="text-lg font-bold">Приглашение в компанию</div>
+        <button class="text-slate-400 hover:text-slate-600" @click="inviteModal=false">&times;</button>
+      </div>
+
+      <div class="mt-4 space-y-3" x-data>
+        <template x-if="invite?.active">
+          <div class="space-y-3">
+            <div>
+              <div class="text-sm text-slate-500">Код</div>
+              <div class="flex items-center gap-2">
+                <input class="w-full rounded-lg border px-3 py-2" :value="invite.code" readonly>
+                <button class="rounded-lg px-3 py-2 border hover:bg-slate-50" @click="copy(invite.code)">Скопировать</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="text-sm text-slate-500">Персональная ссылка</div>
+              <div class="flex items-center gap-2">
+                <input class="w-full rounded-lg border px-3 py-2" :value="invite.invite_url" readonly>
+                <button class="rounded-lg px-3 py-2 border hover:bg-slate-50" @click="copy(invite.invite_url)">Скопировать</button>
+              </div>
+              <div class="text-xs text-slate-500 mt-1">Эту ссылку можно отправить кандидату — код активируется автоматически.</div>
+            </div>
+          </div>
+        </template>
+
+        <template x-if="!invite?.active">
+          <div class="rounded-lg border border-dashed p-4 text-slate-500">
+            Активного кода нет. Нажмите «Сгенерировать код».
+          </div>
+        </template>
+      </div>
+
+      <div class="mt-6 flex items-center justify-between">
+        <button class="rounded-lg px-3 py-2 border hover:bg-slate-50" @click="deactivateInvite()">Сбросить код</button>
+        <div class="space-x-2">
+          <button class="rounded-lg px-3 py-2 border hover:bg-slate-50" @click="inviteModal=false">Закрыть</button>
+          <button class="rounded-lg px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-500" @click="regenerateInvite()">Сгенерировать код</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template x-if="companyId">
+    <div>
+      <!-- LAYOUT: Left content + Right company info -->
+<div class="mt-8 grid md:grid-cols-[1fr,380px] gap-4">
+
+        <!-- LEFT -->
+        <div>
+          <div class="flex gap-2 text-sm">
+  <button :class="tabBtn('feed')" @click="tab='feed'">Лента</button>
+  <button :class="tabBtn('tasks')" @click="tab='tasks'">Задачи</button>
+</div>
+
+
+
+                <!-- FEED -->
+        <div x-show="tab==='feed'" x-transition class="mt-4">
+          <!-- Создать пост (только для партнёра) -->
+         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4 mb-4" x-show="canPost">
+  <div class="font-semibold mb-2">Новый пост</div>
+  <textarea x-model="newPost" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 h-28" placeholder="Текст объявления..."></textarea>
+
+  <!-- загрузка картинки -->
+  <div class="mt-2">
+    <input type="file" accept="image/*" x-ref="newPostImageInput"
+           class="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-white/10 file:bg-white/5 file:px-3 file:py-1.5 file:hover:bg-white/10"
+           @change="onNewPostFile($event)">
+    <div x-show="newPostPreview" class="mt-2">
+      <img :src="newPostPreview" alt="" class="max-h-48 rounded-lg border border-white/10 object-contain">
+      <button type="button" class="mt-2 text-xs text-slate-300 underline hover:opacity-80" @click="clearNewPostFile()">Убрать изображение</button>
+    </div>
+  </div>
+
+  <label class="inline-flex items-center gap-2 text-sm mt-2">
+    <input type="checkbox" x-model="newPinned" class="rounded"> Закрепить
+  </label>
+  <button class="mt-3 w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 py-2 font-semibold"
+          @click="createPost()">Опубликовать</button>
+</div>
+
+
+          <div class="space-y-3">
+            <template x-for="p in feed" :key="p.id">
+              <div class="rounded-xl border border-white/10 bg-black/30 p-4">
+                <div class="text-xs text-slate-400" x-text="new Date(p.created_at).toLocaleString()"></div>
+                <div class="font-semibold mt-1">
+                  <span class="text-emerald-400" x-text="p.author"></span>
+                  <span class="text-slate-500 text-xs" x-text="p.type==='partner'?'(партнёр)':'(менеджер)'"></span>
+                  <span x-show="p.pinned" class="ml-2 text-amber-300">📌</span>
+                </div>
+<div class="mt-1 text-slate-200 whitespace-pre-line" x-text="p.text"></div>
+<template x-if="(p.image_url || p.photo_url || p.image)">
+  <img :src="p.image_url || p.photo_url || p.image"
+       class="mt-2 rounded-lg border border-white/10 max-h-80 object-contain" loading="lazy" alt="">
+</template>
+              </div>
+            </template>
+            <div x-show="feed.length===0" class="text-slate-400 text-sm">Пока пусто.</div>
+          </div>
+        </div>
+
+           <!-- TASKS -->
+        <div x-show="tab==='tasks'" x-transition class="mt-4">
+          <div class="space-y-3">
+            <template x-for="t in tasks" :key="t.id">
+              <div class="rounded-xl border border-white/10 bg-black/30 p-4 flex items-start justify-between gap-4">
+                <!-- левый столбец карточки -->
+                <div>
+                  <div class="font-semibold" x-text="t.title"></div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                          :class="{
+                            'text-emerald-300': t.priority==='low',
+                            'text-sky-300':     t.priority==='normal',
+                            'text-amber-300':   t.priority==='high',
+                            'text-rose-300':    t.priority==='critical',
+                          }"
+                          x-text="'приоритет: ' + (t.priority || 'normal')"></span>
+                    <span class="text-[11px] text-slate-400"
+                          x-text="t.require_proof ? 'требуется отчёт' : 'без отчёта'"></span>
+                  </div>
+                  <div class="text-sm text-slate-300 mt-1" x-text="t.description"></div>
+                  <div class="text-xs text-slate-400 mt-1">
+  Награда: <span class="text-emerald-300" x-text="t.points_xp + ' XP'"></span>,
+  <span class="text-amber-300" x-text="t.coins + ' 🪙'"></span>
+<span x-show="t.due_at"> · дедлайн: <span x-text="new Date(t.due_at).toLocaleDateString()"></span></span>
+  <span x-show="t.due_at" class="ml-2"
+        :class="t.is_due_passed ? 'text-rose-300' : 'text-emerald-300'"
+        x-text="t.is_due_passed ? 'срок истёк' : 'срок не истёк'"></span>
+</div>
+
+                  <div class="text-xs mt-1" :class="{'text-sky-300': t.assign_status==='assigned', 'text-emerald-300': t.assign_status==='approved', 'text-rose-300': t.assign_status==='rejected'}"
+                       x-show="t.assign_status"
+                       x-text="t.assign_status==='assigned' ? 'Назначена' : (t.assign_status==='approved' ? 'Зачтена' : 'Отклонена')">
+                  </div>
+                </div>
+
+<div class="shrink-0 flex items-center gap-2" x-data>
+  <template x-if="canCreateTasks">
+    <button class="rounded-lg border border-white/10 px-3 py-2 hover:bg-white/5"
+            @click="openTaskModal('edit', t)">Изменить</button>
+  </template>
+
+  <!-- Кнопка отправки видна только когда backend выдал submittable=true -->
+  <template x-if="t.submittable">
+    <div class="flex items-center gap-2">
+      <input type="file" class="hidden" :id="'proof_'+t.id" @change="submitProof(t.id, $event)">
+      <button class="rounded-lg border border-white/10 px-3 py-2 hover:bg-white/5"
+              @click="document.getElementById('proof_'+t.id).click()">Отправить отчёт</button>
+    </div>
+  </template>
+</div>
+
+
+              </div>
+            </template>
+            <div x-show="tasks.length===0" class="text-slate-400 text-sm">Активных задач нет.</div>
+          </div>
+
+<!-- Кнопка открытия модала создания -->
+<div class="flex justify-end mt-4" x-show="canCreateTasks">
+  <button class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 font-semibold"
+          @click="openTaskModal('create')">+ Создать задачу</button>
+</div>
+
+          <!-- TASK MODAL (create/edit) -->
+<div x-show="taskModal.open" x-transition.opacity x-cloak>
+  <div class="fixed inset-0 bg-black/60 z-40" @click="closeTaskModal()"></div>
+
+  <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50
+              rounded-2xl border border-white/10 bg-slate-900/95 p-5">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold"
+          x-text="taskModal.mode==='create' ? 'Новая задача' : 'Изменить задачу'"></h3>
+      <button class="rounded-lg border border-white/10 px-2 py-1 hover:bg-white/5"
+              @click="closeTaskModal()">✕</button>
+    </div>
+      <div class="px-5 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
+    <!-- ФОРМА ЗАДАЧИ -->
+    <div class="mt-4 grid gap-3">
+      <input x-model="taskModal.form.title"
+             class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2"
+             placeholder="Заголовок">
+
+      <textarea x-model="taskModal.form.description"
+                class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 h-28"
+                placeholder="Описание"></textarea>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs text-slate-400">XP</label>
+          <input x-model.number="taskModal.form.points_xp" type="number"
+                 class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Коины</label>
+          <input x-model.number="taskModal.form.coins" type="number"
+                 class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs text-slate-400">Приоритет</label>
+          <select x-model="taskModal.form.priority"
+                  class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+            <option value="low">low</option>
+            <option value="normal">normal</option>
+            <option value="high">high</option>
+            <option value="critical">critical</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <label class="inline-flex items-center gap-2 text-xs text-slate-400">
+            <input type="checkbox" x-model="taskModal.form.require_proof" class="rounded">
+            Требуется отчёт с фото
+          </label>
+        </div>
+      </div>
+
+      <div>
+  <label class="text-xs text-slate-400">Дедлайн (дата, опционально)</label>
+  <input type="date" x-model="taskModal.form._due_date"
+         class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+</div>
+
+
+      <div>
+        <label class="text-xs text-slate-400">ID ачивки (опционально)</label>
+        <input x-model.number="taskModal.form.reward_achievement_id" type="number"
+               class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2"
+               placeholder="Напр., 3">
+      </div>
+    </div>
+
+    <!-- ВЫБОР СОТРУДНИКОВ -->
+    <div class="mt-5">
+      <div class="text-sm font-semibold">Назначить сотрудникам</div>
+
+      <!-- выбранные чипсы -->
+      <div class="mt-2 flex flex-wrap gap-2" x-show="taskModal.selectedIds.length">
+        <template x-for="uid in taskModal.selectedIds" :key="uid">
+          <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full
+                        border border-white/10 bg-black/30">
+            <span x-text="nameById(uid)"></span>
+            <button class="hover:text-rose-400" @click="tmUnselect(uid)">✕</button>
+          </span>
+        </template>
+      </div>
+
+      <!-- поиск -->
+      <div class="mt-2">
+        <input x-model="taskModal.query" @input="tmSearchMembers"
+               placeholder="Поиск по имени или email"
+               class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+      </div>
+
+      <!-- список с чекбоксами -->
+     <!-- список с чекбоксами -->
+<div class="mt-3 max-h-64 overflow-auto divide-y divide-white/5">
+  <template x-for="m in taskModal.members" :key="m.id">
+    <label class="flex items-center gap-3 py-2 px-1 cursor-pointer">
+      <input type="checkbox"
+             :value="String(m.id)"
+             :checked="taskModal.selectedIds.includes(String(m.id))"
+             @change="tmToggleSelect(m.id)">
+      <div class="leading-tight">
+        <div class="font-medium" x-text="m.display_name"></div>
+        <div class="text-xs text-slate-400" x-text="m.email"></div>
+      </div>
+    </label>
+  </template>
+  <div class="text-sm text-slate-400 py-6 text-center"
+       x-show="!taskModal.members.length">Ничего не найдено</div>
+</div>
+
+    </div>
+      </div>
+
+    <div class="sticky bottom-0 z-10 flex justify-end gap-2 px-5 py-3 border-t border-white/10
+                  bg-slate-900/95/80 backdrop-blur">
+        <button class="rounded-xl border border-white/10 px-4 py-2 hover:bg-white/5"
+                @click="closeTaskModal()">Отмена</button>
+        <button class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 font-semibold disabled:opacity-50"
+                :disabled="!taskModal.form.title?.trim()" @click="saveTask()"
+                x-text="taskModal.mode==='create' ? 'Создать' : 'Сохранить'"></button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+        </div> <!-- /LEFT -->
+
+        <!-- RIGHT -->
+        <aside class="space-y-4 md:pt-11">
+          <!-- Паспорт компании -->
+          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+            <div class="flex items-center gap-4">
+              <div class="h-16 w-16 rounded-full border border-white/10 bg-indigo-600/20 flex items-center justify-center text-xl font-bold">
+                <span x-text="(company && company.name ? company.name.charAt(0).toUpperCase() : 'C')"></span>
+              </div>
+              <div>
+                <div class="text-lg font-bold" x-text="company?.name || 'Компания'"></div>
+                <div class="text-xs text-slate-400" x-text="company ? '@' + company.slug : ''"></div>
+              </div>
+            </div>
+
+            <!-- KPI мини-карточки -->
+            <div class="mt-4 grid grid-cols-3 gap-2">
+              <div class="rounded-xl border border-white/10 bg-black/30 p-3 text-center">
+                <div class="text-[11px] text-slate-400">Участники</div>
+                <div class="text-lg font-bold" x-text="kpi.members ?? '—'"></div>
+              </div>
+              <div class="rounded-xl border border-white/10 bg-black/30 p-3 text-center">
+                <div class="text-[11px] text-slate-400">Уровень</div>
+                <div class="text-lg font-bold" x-text="kpi.avg_level ?? '—'"></div>
+              </div>
+              <div class="rounded-xl border border-white/10 bg-black/30 p-3 text-center">
+                <div class="text-[11px] text-slate-400">Событ.30д</div>
+                <div class="text-lg font-bold" x-text="kpi.events_30d ?? '—'"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Краткий обзор -->
+          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-sm text-slate-300">
+            Добро пожаловать в панель компании. Используй «Лента» для объявлений, «Задачи» — для микро-квестов, «Лидерборд» — для прогресса за 30 дней.
+          </div>
+
+          <!-- Лидерборд (30 дней) -->
+          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+            <div class="text-sm text-slate-400 mb-2">Лидерборд · 30 дней</div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="text-slate-400">
+                  <tr><th class="text-left py-2">#</th><th class="text-left">Сотрудник</th><th class="text-right">XP</th></tr>
+                </thead>
+                <tbody>
+                  <template x-for="(row,idx) in leaderboard" :key="row.user_id">
+                    <tr class="border-t border-white/5">
+                      <td class="py-2" x-text="idx+1"></td>
+                      <td x-text="row.display_name"></td>
+                      <td class="text-right font-semibold" x-text="row.xp_30d"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <div x-show="leaderboard.length===0" class="text-slate-400 text-sm py-2">Пока нет данных.</div>
+            </div>
+          </div>
+        </aside>
+
+      </div> <!-- /grid -->
+
+  </template>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.partnerCompanyPage = function(initialCompanyId){
+  return {
+
+    toLocalInputDate(iso){
+      // ISO → 'YYYY-MM-DD' в локальной зоне (для <input type="date">)
+      if(!iso) return '';
+      const d = new Date(iso);
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    },
+    isoFromLocalDateEnd(dateStr){
+      // 'YYYY-MM-DD' (локаль) → ISO конца дня (23:59:59 локального времени)
+      if(!dateStr) return null;
+      const dt = new Date(`${dateStr}T23:59:59`);
+      return dt.toISOString();
+    },
+
+    companyId: initialCompanyId,
+    company: null,
+    kpi: {},
+    feed: [],
+    tasks: [],
+    leaderboard: [],
+tab: 'feed',
+    canPost: false,
+    canCreateTasks: false,
+newPost: '',
+newPinned: false,
+newPostFile: null,          // файл изображения для поста
+newPostPreview: '',         // objectURL превью
+taskForm: { title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null },
+
+    // НОВОЕ: состояние модала назначения
+    taskModal: {
+  open:false, mode:'create', taskId:null,
+  form: { title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null },
+  query:'', members:[], selectedIds:[],
+  _byId: Object.create(null)
+},
+
+    get headerSubtitle(){ return this.company ? `${this.company.name} (${this.company.slug})` : 'Нет компаний' },
+    tabBtn(kind){ return `px-3 py-1 rounded-lg border ${this.tab===kind?'bg-white/10 border-white/20':'border-white/10 hover:bg-white/5'}`; },
+
+    async submitProof(taskId, ev){
+  const input = ev.target;
+  const file = input.files?.[0];
+  if(!file) return;
+
+  const fd = new FormData();
+  fd.append('photo', file);
+
+  try{
+const r = await fetch(`/api/company/tasks/${taskId}/submit`, {
+  method:'POST',
+  body: fd,
+  credentials: 'same-origin'
+});
+    if(!r.ok){
+      const err = await r.json().catch(()=>null);
+      alert(err?.description || 'Не удалось отправить отчёт');
+      return;
+    }
+    Alpine.store('toasts')?.push?.({title:'Отчёт отправлен', emoji:'📤'});
+    input.value = ''; // очистить поле
+    await this.loadDashboard();
+  }catch(e){
+    alert('Сеть недоступна');
+  }
+},
+
+openTaskModal(mode, task=null){
+  this.taskModal.open = true;
+  document.body.style.overflow = 'hidden'; // lock
+  this.taskModal.mode = mode;
+  this.taskModal.taskId = null;
+
+// сброс формы
+this.taskModal.form = { title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null };
+// дата для режима "создание" — пустая
+this.taskModal.form._due_date = '';
+this.taskModal.selectedIds = [];
+this.taskModal.query = '';
+this.taskModal.members = [];
+this.taskModal._byId = Object.create(null);
+
+if (mode === 'edit' && task){
+  this.taskModal.taskId = task.id;
+  // заполняем из карточки
+  this.taskModal.form = {
+    title: task.title || '',
+    description: task.description || '',
+    points_xp: task.points_xp ?? 20,
+    coins: task.coins ?? 5,
+    due_at: task.due_at || '',
+    _due_date: task.due_at ? this.toLocalInputDate(task.due_at) : '',
+
+    priority: task.priority || 'normal',
+    require_proof: !!task.require_proof,
+    reward_achievement_id: task.reward_achievement_id ?? null
+  };
+
+  // 1) Пытаемся взять назначенных прямо из объекта задачи (любая из возможных форм)
+  const preset = this.extractAssignedIds(task);
+  this.taskModal.selectedIds = preset.length ? preset : [];
+
+  // 2) Если в объекте задачи назначенных нет — тихо пробуем несколько GET-эндпоинтов.
+  if (!preset.length) {
+    this.tryFetchAssignees(task.id);
+  }
+}
+
+
+  this.tmFetchMembers();
+},
+
+closeTaskModal(){
+  this.taskModal.open = false;
+  document.body.style.overflow = '';       // unlock
+  this.taskModal.taskId = null;
+},
+
+
+extractAssignedIds(task){
+  const out = [];
+  if (task) {
+    if (Array.isArray(task.assigned_user_ids)) {
+      out.push(...task.assigned_user_ids);
+    } else if (Array.isArray(task.assignees)) {
+      out.push(...task.assignees.map(a => (typeof a === 'object' ? a.id : a)));
+    } else if (Array.isArray(task.assigned)) {
+      out.push(...task.assigned);
+    } else if (Array.isArray(task.assigned_ids)) {
+      out.push(...task.assigned_ids);
+    }
+  }
+  return out.map(x => String(x));
+},
+
+async tryFetchAssignees(taskId){
+  const cid = this.companyId;
+  // пробуем несколько распространённых вариантов без падения на 404/405
+  const candidates = [
+    `/api/partners/company/${cid}/tasks/${taskId}/assign`,
+    `/api/partners/company/${cid}/tasks/${taskId}/assignees`,
+    `/api/partners/company/${cid}/tasks/${taskId}?with=assignees=1`,
+  ];
+  for (const url of candidates){
+    try{
+const r = await fetch(url, { credentials: 'same-origin' });
+      if(!r.ok) continue;
+      const d = await r.json().catch(()=>null);
+
+      const ids =
+        Array.isArray(d?.assigned_user_ids) ? d.assigned_user_ids :
+        Array.isArray(d?.assignees)        ? d.assignees.map(a => a.id ?? a.user_id ?? a) :
+        Array.isArray(d)                   ? d.map(a => a.id ?? a.user_id ?? a) :
+        null;
+
+      if (ids && ids.length){
+        this.taskModal.selectedIds = ids.map(x => String(x));
+        break;
+      }
+    }catch(_e){ /* глотаем сетевые/JSON ошибки */ }
+  }
+},
+
+async tmFetchMembers(){
+  const r = await fetch(
+    `/api/partners/company/${this.companyId}/members` + (this.taskModal.query ? `?query=${encodeURIComponent(this.taskModal.query)}` : ''),
+    { credentials: 'same-origin' }
+  );
+  if(!r.ok) return;
+  const d = await r.json();
+  this.taskModal.members = d.members || [];
+  this.taskModal._byId = Object.create(null);
+  for (const m of this.taskModal.members){
+    this.taskModal._byId[String(m.id)] = m;
+  }
+},
+
+
+
+tmSearchMembers(){
+  clearTimeout(this._tmTimer);
+  this._tmTimer = setTimeout(()=> this.tmFetchMembers(), 250);
+},
+tmToggleSelect(id){
+  id = String(id);
+  const i = this.taskModal.selectedIds.indexOf(id);
+  if(i===-1) this.taskModal.selectedIds.push(id);
+  else this.taskModal.selectedIds.splice(i,1);
+},
+tmUnselect(id){
+  id = String(id);
+  const i = this.taskModal.selectedIds.indexOf(id);
+  if(i!==-1) this.taskModal.selectedIds.splice(i,1);
+},
+
+nameById(id){
+  id = String(id);
+  return this.taskModal._byId[id]?.display_name || `#${id}`;
+},
+
+// === Создание/редактирование ===
+async saveTask(){
+  const cid = this.companyId;
+  const body = {...this.taskModal.form};
+
+// конвертируем date → ISO конца дня
+if (body._due_date && body._due_date.trim()){
+  body.due_at = this.isoFromLocalDateEnd(body._due_date.trim());
+} else {
+  body.due_at = null; // очистить дедлайн, если поле пустое
+}
+delete body._due_date;
+
+  if(this.taskModal.mode === 'create'){
+    // 1) создаём задачу
+const r = await fetch(`/api/partners/company/${cid}/tasks`, {
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body: JSON.stringify(body),
+  credentials: 'same-origin'
+});
+
+    if(!r.ok){ alert('Не удалось создать задачу'); return; }
+   const created = await r.json().catch(()=>null);
+const taskId = created?.task_id || created?.id;
+
+    // 2) назначаем выбранных (если есть) — с флагом replace
+    if(taskId && this.taskModal.selectedIds.length){
+      const ra = await fetch(`/api/partners/company/${cid}/tasks/${taskId}/assign`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+body: JSON.stringify({ user_ids: this.taskModal.selectedIds.map(Number), replace: true })
+      });
+      if(!ra.ok){ alert('Создано, но не удалось назначить сотрудников'); }
+    }
+    Alpine.store('toasts')?.push?.({title:'Задача создана', emoji:'✅'});
+  } else {
+    // редактирование
+    const taskId = this.taskModal.taskId;
+    if(!taskId) return;
+    // 1) обновляем поля
+const ru = await fetch(`/api/partners/company/${cid}/tasks/${taskId}`, {
+  method:'PUT',
+  headers:{'Content-Type':'application/json'},
+  body: JSON.stringify(body),
+  credentials: 'same-origin'
+});
+
+    if(!ru.ok){ alert('Не удалось сохранить изменения'); return; }
+    // 2) обновляем назначения (полная замена)
+const ra = await fetch(`/api/partners/company/${cid}/tasks/${taskId}/assign`,{
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body: JSON.stringify({ user_ids: this.taskModal.selectedIds.map(Number), replace: true }),
+  credentials: 'same-origin'
+});
+
+    if(!ra.ok){ alert('Сохранено, но не удалось обновить назначения'); }
+    Alpine.store('toasts')?.push?.({title:'Изменения сохранены', emoji:'💾'});
+  }
+
+  this.closeTaskModal();
+  await this.loadDashboard();
+},
+
+
+    async init(){
+      if(!this.companyId) return;
+      await this.loadDashboard();
+    },
+ async loadDashboard(){
+const r = await fetch(`/api/partners/company/${this.companyId}/dashboard`, { credentials: 'same-origin' });
+  if(!r.ok){ return alert('Не удалось загрузить дашборд'); }
+  const d = await r.json();
+  const dd = d.dashboard || d.data || d; // нормализуем возможные обёртки
+
+  this.company    = dd.company || dd.company_info || null;
+  this.kpi        = dd.kpi || dd.stats || {};
+  this.feed       = dd.feed || dd.company_feed || dd.posts || [];
+  this.tasks      = dd.tasks || dd.company_tasks || [];
+  this.leaderboard= dd.leaderboard || dd.top || [];
+
+const perms = dd.permissions || dd.perms || {};
+this.canPost        = !!(perms.can_create_feed  ?? perms.can_manage ?? false);
+this.canCreateTasks = !!(perms.can_create_tasks ?? perms.can_manage ?? false);
+
+},
+
+async createPost(){
+  // позволяем пост без текста, если есть картинка
+  if(!this.newPost.trim() && !this.newPostFile) return;
+
+  let r;
+  if (this.newPostFile){
+    // multipart (бэкенд: поле файла — "photo", как в submitProof)
+    const fd = new FormData();
+    fd.append('text', this.newPost || '');
+    fd.append('pinned', this.newPinned ? '1' : '0');
+    fd.append('photo', this.newPostFile);
+ r = await fetch(`/api/partners/company/${this.companyId}/feed`, {
+  method:'POST',
+  body: fd,
+  credentials: 'same-origin'
+});
+ } else {
+    // как было: JSON
+r = await fetch(`/api/partners/company/${this.companyId}/feed`, {
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body: JSON.stringify({text:this.newPost, pinned:this.newPinned}),
+  credentials: 'same-origin'
+});
+
+  }
+
+  if(!r.ok){ return alert('Не удалось создать пост'); }
+
+  // сброс формы
+  this.newPost = '';
+  this.newPinned = false;
+  this.clearNewPostFile();
+
+  await this.loadDashboard();
+},
+
+onNewPostFile(ev){
+  const f = ev.target.files?.[0];
+  if(!f){ this.clearNewPostFile(); return; }
+  // превью
+  if(this.newPostPreview) URL.revokeObjectURL(this.newPostPreview);
+  this.newPostFile = f;
+  this.newPostPreview = URL.createObjectURL(f);
+},
+clearNewPostFile(){
+  this.newPostFile = null;
+  if(this.newPostPreview){
+    URL.revokeObjectURL(this.newPostPreview);
+    this.newPostPreview = '';
+  }
+  // очистим инпут, если есть
+  this.$refs?.newPostImageInput && (this.$refs.newPostImageInput.value = '');
+},
+
+async createTask(){
+  if(!this.taskForm.title.trim()) return;
+
+  const body = { ...this.taskForm };
+  if (body._due_date && body._due_date.trim()){
+    body.due_at = this.isoFromLocalDateEnd(body._due_date.trim());
+  }
+  delete body._due_date;
+
+  const r = await fetch(`/api/partners/company/${this.companyId}/tasks`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body),
+    credentials: 'same-origin'
+  });
+
+  if(!r.ok){ return alert('Не удалось создать задачу'); }
+  this.taskForm = { title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null };
+  await this.loadDashboard();
+},
+
+    async completeTask(taskId){
+const r = await fetch(`/api/company/tasks/${taskId}/complete`, {
+  method:'POST',
+  credentials:'same-origin'
+});
+      if(!r.ok){
+        const e = await r.json().catch(()=>({description:'Ошибка'}));
+        return alert(e.description || 'Ошибка');
+      }
+      Alpine.store('fx')?.coins?.();
+      await this.loadDashboard();
+    }
+  }
+}
+</script>
+{% endblock %}

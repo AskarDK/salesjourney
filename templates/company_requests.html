@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set title = "Заявки в компанию" %}
+{% block content %}
+
+<section class="max-w-5xl mx-auto px-4 py-12" x-data="companyRequests()">
+  <h1 class="text-3xl font-extrabold">Заявки на вступление</h1>
+  <p class="text-slate-300 mt-2">Укажите ID компании и обработайте заявки.</p>
+
+  <div class="mt-4 flex gap-2">
+    <input x-model.number="companyId" type="number" placeholder="company_id"
+           class="rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+    <button @click="load" class="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5">Загрузить</button>
+  </div>
+
+  <div class="mt-6 rounded-2xl border border-white/10 bg-slate-900/60">
+    <div class="p-4 border-b border-white/10 text-sm text-slate-400">Ожидают подтверждения</div>
+    <div class="divide-y divide-white/10">
+      <template x-for="r in rows" :key="r.id">
+        <div class="p-4 flex items-center justify-between">
+          <div>
+            <div class="font-semibold" x-text="r.user.display_name"></div>
+            <div class="text-xs text-slate-400" x-text="r.user.email"></div>
+          </div>
+          <div class="flex gap-2">
+            <button @click="approve(r.id)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm">Одобрить</button>
+            <button @click="reject(r.id)" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-sm">Отклонить</button>
+          </div>
+        </div>
+      </template>
+      <div class="p-4 text-sm text-slate-400" x-show="rows.length===0">Нет заявок.</div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function companyRequests(){
+  return {
+    companyId: '',
+    rows: [],
+    async load(){
+      try{
+        const r = await fetch(`/api/company/join/requests?company_id=${this.companyId}`);
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.description || 'Ошибка');
+        this.rows = j.requests || [];
+      }catch(e){
+        Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+      }
+    },
+    async approve(id){
+      const r = await fetch(`/api/company/join/approve/${id}`, {method:'POST'});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ Alpine.store('toasts').push({title:'Ошибка', text:(j.description||'Ошибка'), emoji:'⚠️'}); return; }
+      this.rows = this.rows.filter(x=>x.id!==id);
+      Alpine.store('toasts').push({title:'Одобрено', text:'Пользователь добавлен', emoji:'✅'});
+    },
+    async reject(id){
+      const r = await fetch(`/api/company/join/reject/${id}`, {method:'POST'});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ Alpine.store('toasts').push({title:'Ошибка', text:(j.description||'Ошибка'), emoji:'⚠️'}); return; }
+      this.rows = this.rows.filter(x=>x.id!==id);
+      Alpine.store('toasts').push({title:'Отклонено', text:'Заявка отклонена', emoji:'🚫'});
+    }
+  }
+}
+</script>
+{% endblock %}

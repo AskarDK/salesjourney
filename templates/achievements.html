@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% set title = "Мои ачивки — Sales Journey" %}
+{% block content %}
+<section class="max-w-5xl mx-auto px-4 py-12">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-4xl font-extrabold">Мои ачивки</h1>
+      <p class="text-slate-300 mt-1">Собирай сет — открывай редкие предметы</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-right cursor-pointer hover:bg-white/5 transition"
+     x-data @click="$dispatch('open-xp-history')">
+  <div class="text-sm text-slate-300">Уровень</div>
+  <div class="text-2xl font-bold">{{ user.level }}</div>
+  <div class="text-xs text-slate-400 mt-1">XP: {{ user.xp }} / {{ user_next_xp }}</div>
+  <div class="w-40 h-2 bg-white/10 rounded-full mt-2 overflow-hidden">
+    <div class="h-full grad-anim" style="width: {{ (user.xp / user_next_xp * 100)|round(1) }}%"></div>
+  </div>
+  <div class="text-[11px] text-slate-400 mt-2">Нажми, чтобы посмотреть историю</div>
+</div>
+
+  </div>
+
+  <div class="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for a in achievements %}
+    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5 hover:translate-y-[-2px] transition">
+      <div class="text-3xl">{{ '🌟' if a.rarity!='common' else '✨' }}</div>
+      <div class="font-semibold mt-2">{{ a.title }}</div>
+      <div class="text-sm text-slate-300 mt-1">{{ a.description or '' }}</div>
+      <div class="mt-3 text-xs text-slate-400">+{{ a.points }} XP • {{ a.rarity }}</div>
+      {% if a.code in owned_codes %}
+        <div class="mt-3 inline-flex items-center gap-2 text-emerald-400 text-sm font-semibold">✔ Получено</div>
+      {% else %}
+        <div class="mt-3 inline-flex items-center gap-2 text-slate-400 text-sm">✖ Не получено</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+<!-- XP/Coins History Modal -->
+<div x-data="xpHistoryModal()" @open-xp-history.window="open()" x-cloak>
+  <div x-show="openModal" x-transition.opacity
+       class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"></div>
+
+  <div x-show="openModal" x-transition
+       class="fixed z-50 inset-0 grid place-items-center p-4">
+    <div class="w-full max-w-2xl rounded-2xl border border-white/10 bg-slate-900/90 p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xl font-bold">История прокачки</h3>
+        <button class="text-slate-400 hover:text-slate-200" @click="close()">✕</button>
+      </div>
+
+      <!-- фильтры -->
+      <div class="mt-4 flex flex-wrap gap-2 text-sm">
+        <button :class="tabBtn('all')" @click="filter='all'">Все</button>
+        <button :class="tabBtn('achievement')" @click="filter='achievement'">Ачивки</button>
+        <button :class="tabBtn('events')" @click="filter='events'">События</button>
+      </div>
+
+      <!-- список -->
+      <div class="mt-4 max-h-[60vh] overflow-auto space-y-3 pr-1">
+        <template x-for="row in filtered" :key="row.key">
+          <div class="flex items-start gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+            <div class="text-2xl" x-text="row.emoji"></div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <div class="font-semibold" x-text="row.title"></div>
+                <div class="text-xs text-slate-400" x-text="row.when"></div>
+              </div>
+              <div class="text-sm text-slate-300" x-text="row.subtitle"></div>
+              <div class="mt-1 text-xs text-slate-400" x-show="row.meta" x-text="row.meta"></div>
+            </div>
+            <div class="text-right">
+              <div class="text-emerald-400 font-semibold" x-show="row.points">+<span x-text="row.points"></span> XP</div>
+              <div class="text-amber-300 font-semibold" x-show="row.coins">+<span x-text="row.coins"></span> 🪙</div>
+            </div>
+          </div>
+        </template>
+
+        <div class="text-sm text-slate-400 text-center py-6" x-show="!loading && filtered.length===0">
+          Пусто. Сделай первый квест или получи ачивку!
+        </div>
+        <div class="text-sm text-slate-300" x-show="loading">Загрузка…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function xpHistoryModal(){
+  return {
+    openModal: false,
+    loading: false,
+    rows: [],
+    filter: 'all', // all | achievement | events
+
+    tabBtn(kind){
+      return `px-3 py-1 rounded-lg border ${this.filter===kind ? 'bg-white/10 border-white/20' : 'border-white/10 hover:bg-white/5'}`;
+    },
+
+    get filtered(){
+      if(this.filter==='all') return this.rows;
+      if(this.filter==='achievement') return this.rows.filter(r => r.type==='achievement');
+      return this.rows.filter(r => r.type==='event');
+    },
+
+    open(){ this.openModal = true; this.fetchData(); },
+    close(){ this.openModal = false; },
+
+    async fetchData(){
+      if(this.rows.length){ return; }
+      try{
+        this.loading = true;
+        const [evr, ar] = await Promise.all([
+          fetch('/api/user/xp_history').then(r=>r.json()),
+          fetch('/api/user/achievements/history').then(r=>r.json())
+        ]);
+
+        // events
+        const evRows = (evr.events || []).map(e => {
+          const dt = new Date(e.created_at);
+          const when = dt.toLocaleString();
+          const isAch = e.source === 'achievement';
+          const title = isAch ? (e.achievement_title || 'Ачивка получена') : srcTitle(e.source);
+          const subtitle = isAch ? (e.achievement_code ? `Код: ${e.achievement_code}` : '') : metaBrief(e.meta);
+          return {
+            key: `e_${e.id}`,
+            type: isAch ? 'achievement' : 'event',
+            emoji: isAch ? '🏆' : sourceEmoji(e.source),
+            title, subtitle,
+            when, points: e.points, coins: e.coins,
+            meta: isAch ? null : metaLine(e.meta)
+          };
+        });
+
+        // achievements (на случай, если не всё отражено в score_events)
+        const achRows = (ar.achievements || []).map((a, idx) => {
+          const dt = new Date(a.awarded_at);
+          return {
+            key: `a_${idx}_${a.code}`,
+            type: 'achievement',
+            emoji: a.rarity!=='common' ? '🌟' : '✨',
+            title: a.title,
+            subtitle: `Редкость: ${a.rarity}`,
+            when: dt.toLocaleString(),
+            points: a.points,
+            coins: null,
+            meta: `Код: ${a.code}`
+          };
+        });
+
+        // объединяем и сортируем по дате (у нас строки already локализованы, возьмём повторно из исходных)
+        this.rows = [...evRows, ...achRows].sort((a,b) => {
+          // грубая сортировка: вытянем ISO из исходных сырцов если доступны
+          // events у нас уже по дате, achievements — тоже, так что можно оставить порядок
+          return 0;
+        });
+
+      }catch(e){
+        Alpine.store('toasts').push({title:'Ошибка', text:'Не удалось загрузить историю', emoji:'⚠️'});
+      }finally{
+        this.loading = false;
+      }
+
+      function srcTitle(src){
+        return ({
+          sale: 'Сделка',
+          task: 'Задание',
+          contest: 'Конкурс',
+          bonus: 'Бонус',
+        })[src] || 'Событие';
+      }
+      function sourceEmoji(src){
+        return ({
+          sale: '💼',
+          task: '🧩',
+          contest: '🏁',
+          bonus: '🎁',
+        })[src] || '📌';
+      }
+      function metaBrief(meta){
+        if(!meta) return '';
+        if(meta.step) return `Шаг: ${meta.step}`;
+        if(meta.role) return `Роль: ${meta.role}`;
+        if(meta.score_delta) return `Изменение: ${meta.score_delta}`;
+        return '';
+      }
+      function metaLine(meta){
+        if(!meta) return null;
+        try{
+          const keys = Object.keys(meta);
+          if(!keys.length) return null;
+          return keys.map(k=>`${k}: ${meta[k]}`).join(', ');
+        }catch(_){ return null; }
+      }
+    }
+  }
+}
+</script>
+
+{% endblock %}

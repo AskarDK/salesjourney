@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+<defs>
+  <clipPath id="clipCircle">
+    <circle cx="160" cy="160" r="120"/>
+  </clipPath>
+</defs>
+<g clip-path="url(#clipCircle)">
+  <!-- shoulders -->
+  <rect x="80" y="190" width="160" height="110" rx="20" fill="#1f2937"/>
+  <!-- neck -->
+  <rect x="145" y="176" width="30" height="24" rx="6" fill="#e6b8a7"/>
+  <!-- face -->
+  <circle cx="160" cy="150" r="62" class="skin"/>
+  <!-- ears -->
+  <circle cx="100" cy="150" r="10" class="skin"/>
+  <circle cx="220" cy="150" r="10" class="skin"/>
+  <!-- eyes -->
+  <ellipse cx="142" cy="150" rx="8" ry="6" fill="#1f2937"/>
+  <ellipse cx="178" cy="150" rx="8" ry="6" fill="#1f2937"/>
+  <!-- mouth -->
+  <path d="M135 174 Q160 188 185 174" stroke="#9b4d3f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- subtle cheek blush -->
+  <circle cx="130" cy="160" r="8" fill="#f3a6a6" opacity="0.55"/>
+  <circle cx="190" cy="160" r="8" fill="#f3a6a6" opacity="0.55"/>
+</g>
+<style>.skin{fill:#f2c6a0}</style>
+
+</svg>

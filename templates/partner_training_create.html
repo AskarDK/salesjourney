@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% set title = "Курс для сотрудников (партнёр)" %}
+
+{% block content %}
+<section class="max-w-3xl mx-auto px-4 py-8" x-data="pCreateCourse()">
+  <h1 class="text-3xl font-extrabold">Создать курс для выбранной компании</h1>
+
+  <div class="mt-4">
+    <label class="text-sm text-slate-400">Компания</label>
+    <select x-model="company_id" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+      <option value="">— выберите —</option>
+      {% for c in companies %}
+        <option value="{{ c.id }}">{{ c.name }} ({{ c.slug }})</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  {% include 'partials/course_form_block.html' %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function pCreateCourse(){
+  return {
+    company_id:'',
+    form: {
+      title:'', description:'', content_md:'', youtube_url:'',
+      pass_score:80, max_attempts:3, xp_reward:50,
+      questions:[{text:'', options:[{text:'',is_correct:false}]}]
+    },
+    async submit(){
+      if(!this.company_id) return alert('Выберите компанию');
+      const payload = {
+        scope:'company', company_id: Number(this.company_id),
+        title:this.form.title, description:this.form.description,
+        content_md:this.form.content_md, youtube_url:this.form.youtube_url,
+        pass_score:this.form.pass_score, max_attempts:this.form.max_attempts, xp_reward:this.form.xp_reward,
+        questions:this.form.questions
+      };
+      const r = await fetch('/api/training/courses', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      if(!r.ok){
+        const e = await r.json().catch(()=>({description:'Ошибка'}));
+        return alert(e.description || 'Ошибка');
+      }
+      const d = await r.json();
+      location.href = `/training/${d.course.id}`;
+    }
+  }
+}
+</script>
+{% endblock %}

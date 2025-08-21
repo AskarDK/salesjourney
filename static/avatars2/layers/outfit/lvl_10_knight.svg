@@ -1,0 +1,14 @@
+<defs>
+  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#D1D5DB"/>
+    <stop offset="50%" stop-color="#9CA3AF"/>
+    <stop offset="100%" stop-color="#E5E7EB"/>
+  </linearGradient>
+</defs>
+<!-- нагрудник -->
+<path d="M96 200 q64 34 128 0 v88 h-128 z" fill="url(#metal)"/>
+<!-- окантовка -->
+<path d="M96 200 q64 34 128 0" fill="none" stroke="#6B7280" stroke-width="3"/>
+<!-- эмблема -->
+<circle cx="160" cy="236" r="14" fill="#0EA5E9" stroke="#075985" stroke-width="3"/>
+<path d="M160 228 v16 M152 236 h16" stroke="white" stroke-width="3" stroke-linecap="round"/>

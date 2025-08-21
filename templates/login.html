@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% set title = "Войти — Sales Journey" %}
+{% block content %}
+<section class="max-w-md mx-auto px-4 py-16">
+  <div class="rounded-3xl border border-white/10 bg-slate-900/60 p-6 md:p-8 glow">
+    <h1 class="text-3xl font-extrabold">С возвращением 👋</h1>
+    <p class="text-slate-300 mt-2">Продолжаем охоту за ачивками.</p>
+
+    <form id="loginForm" class="space-y-4 mt-6">
+      <div>
+        <label class="block text-sm mb-1">Email</label>
+        <input id="email" name="email" type="email" required
+               class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-500/40">
+      </div>
+      <div>
+        <label class="block text-sm mb-1">Пароль</label>
+        <input id="password" name="password" type="password" required
+               class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-500/40">
+      </div>
+      <button type="submit"
+              class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 py-2 font-semibold transition">
+        Войти
+      </button>
+    </form>
+
+    <p class="mt-6 text-sm text-center text-slate-400">
+      Нет аккаунта? <a class="text-indigo-400 hover:underline" href="/register">Зарегистрироваться</a>
+    </p>
+  </div>
+</section>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!email || !password) {
+        alert("Заполните все поля!");
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+});
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Ошибка входа:", errorText);
+            alert("Ошибка: " + errorText);
+            return;
+        }
+
+        const data = await response.json();
+        console.log("Успех:", data);
+
+        // Можно сохранить токен
+        if (data.token) {
+            localStorage.setItem("token", data.token);
+        }
+
+        alert("Вы успешно вошли!");
+        window.location.href = "/"; // редирект
+    } catch (error) {
+        console.error("Ошибка запроса:", error);
+        alert("Ошибка подключения к серверу");
+    }
+});
+</script>
+{% endblock %}

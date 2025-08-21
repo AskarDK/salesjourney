@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% set title = "Партнёры — вход" %}
+{% block content %}
+
+<section class="max-w-md mx-auto px-4 py-12" x-data="partnerAuth()">
+  <h1 class="text-3xl font-extrabold">Партнёры</h1>
+  <p class="text-slate-300 mt-2">Войдите или зарегистрируйтесь, чтобы управлять компаниями и курсами.</p>
+
+  <div class="mt-6 rounded-2xl border border-white/10 bg-slate-900/60 p-6">
+    <div class="flex gap-2 text-sm">
+      <button :class="tab==='login' ? 'bg-white/10' : 'bg-transparent'"
+              class="px-4 py-2 rounded-lg border border-white/10" @click="tab='login'">Вход</button>
+      <button :class="tab==='register' ? 'bg-white/10' : 'bg-transparent'"
+              class="px-4 py-2 rounded-lg border border-white/10" @click="tab='register'">Регистрация</button>
+    </div>
+
+    <div class="mt-4 space-y-3">
+      <div>
+        <label class="block text-sm mb-1">Email</label>
+        <input x-model="form.email" type="email" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm mb-1">Пароль</label>
+        <input x-model="form.password" type="password" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+      </div>
+      <div x-show="tab==='register'">
+        <label class="block text-sm mb-1">Отображаемое имя</label>
+        <input x-model="form.display_name" type="text" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+      </div>
+      <div class="pt-2">
+        <button @click="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold">
+          <span x-text="tab==='login' ? 'Войти' : 'Зарегистрироваться'"></span>
+        </button>
+      </div>
+      <div class="text-xs text-slate-400" x-text="status"></div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function partnerAuth(){
+  return {
+    tab: 'login',
+    form: { email:'', password:'', display_name:'' },
+    status:'',
+    async submit(){
+      try{
+        const url = this.tab==='login' ? '/api/partners/auth/login' : '/api/partners/auth/register';
+        const r = await fetch(url, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(this.form)
+        });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.description || 'Ошибка');
+        Alpine.store('toasts').push({title:'Готово', text:'Вы вошли как партнёр', emoji:'✅'});
+        window.location.href = '/partner/company';
+      }catch(e){
+        this.status = e.message;
+        Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

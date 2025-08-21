@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="max-w-7xl mx-auto px-4 py-10">
+  <div class="grid md:grid-cols-[300px,1fr] gap-8">
+
+    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-6">
+      <div class="flex flex-col items-center">
+        <div class="relative">
+          <img src="/avatar_svg/{{ user.id }}" alt="avatar"
+               class="w-44 h-44 rounded-2xl ring-1 ring-white/10 transition-all duration-300">
+        </div>
+
+        <div class="mt-4 text-center">
+          <div class="text-xl font-bold">{{ user.display_name }}</div>
+          <div class="text-sm text-slate-400 mt-1">Уровень {{ user.level }}</div>
+
+          <div class="w-64 h-2 bg-white/10 rounded-full mt-3 overflow-hidden">
+            {% set pct = (user.xp / user_next_xp * 100) | round(1) %}
+            <div class="h-full bg-gradient-to-r from-indigo-400 via-cyan-300 to-emerald-300"
+                 style="width: {{ pct }}%"></div>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">
+            XP: <span class="font-semibold">{{ user.xp }}</span> / {{ user_next_xp }}
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-3 gap-3 text-center">
+        <div class="rounded-xl bg-black/30 border border-white/10 p-3">
+          <div class="text-2xl">🪙</div>
+          <div class="text-lg font-bold">{{ user.coins }}</div>
+          <div class="text-[11px] text-slate-400">coins</div>
+        </div>
+        <a href="/achievements" class="rounded-2xl bg-black/30 border border-white/10 p-3 hover:bg-white/5">
+          <div class="text-2xl">🏆</div>
+          <div class="text-lg font-bold">ACH</div>
+          <div class="text-[11px] text-slate-400">👁️</div>
+        </a>
+        <a href="/contests" class="rounded-2xl bg-black/30 border border-white/10 p-3 hover:bg-white/5">
+          <div class="text-2xl">🏁</div>
+          <div class="text-lg font-bold">Tour.</div>
+          <div class="text-[11px] text-slate-400">👁️</div>
+        </a>
+      </div>
+
+      <a class="mt-6 block w-full text-center px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"
+         href="/achievements">
+        История прокачки (XP/коины/ачивки)
+      </a>
+
+      <!-- Ввод кода компании -->
+      <!-- Компания / вступление -->
+<div class="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4" x-data="companyJoin()" x-init="init()">
+  <!-- Состоит в компании -->
+  <template x-if="member">
+    <div>
+      <div class="text-sm font-semibold">Вы состоите в компании</div>
+      <div class="mt-1 text-slate-200 font-semibold" x-text="company_name"></div>
+      <a href="/partner/company"
+         class="mt-3 inline-block px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10">
+        Открыть панель компании
+      </a>
+    </div>
+  </template>
+
+  <!-- Заявка отправлена -->
+  <template x-if="!member && pending">
+    <div>
+      <div class="text-sm font-semibold">Заявка отправлена</div>
+      <div class="mt-1 text-slate-200">Компания: <span class="font-semibold" x-text="company_name"></span></div>
+      <div class="text-xs text-slate-400 mt-1">Ожидает одобрения. Новую заявку отправить нельзя.</div>
+      <div class="mt-3 flex gap-2">
+        <button @click="cancel"
+                class="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5">
+          Отменить заявку
+        </button>
+      </div>
+      <div class="text-xs text-slate-400 mt-2" x-text="status"></div>
+    </div>
+  </template>
+
+  <!-- Нет компании и нет заявки — форма подачи -->
+  <template x-if="!member && !pending">
+    <div>
+      <div class="text-sm font-semibold">Присоединиться к компании по коду</div>
+      <div class="mt-2 flex gap-2">
+        <input x-model="code" class="flex-1 rounded-xl bg-black/40 border border-white/10 px-3 py-2"
+               placeholder="Напр. 9F3A2C1B">
+        <button @click="submit"
+                class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold"
+                :disabled="!code.trim()">
+          Отправить
+        </button>
+      </div>
+      <div class="text-xs text-slate-400 mt-2" x-text="status"></div>
+    </div>
+  </template>
+</div>
+
+    </div>
+
+    <!-- Правая колонка -->
+    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-6">
+      <h2 class="text-2xl font-bold">Добро пожаловать, {{ user.display_name }}!</h2>
+      <p class="text-slate-300 mt-2">
+        Здесь появятся твои квесты, активность и рекомендации.
+        Загляни в <a href="/training" class="text-indigo-400 hover:underline">Тренинг</a>,
+        <a href="/achievements" class="text-indigo-400 hover:underline">ачивки</a> или
+        проверь <a href="/contests" class="text-indigo-400 hover:underline">конкурсы</a>.
+      </p>
+
+      <div class="mt-6 grid md:grid-cols-2 gap-4">
+        <a href="/store" class="group rounded-2xl border border-white/10 p-5 bg-gradient-to-br from-white/0 to-white/[0.03] hover:to-white/[0.06]">
+          <div class="text-3xl mb-2">🛒</div>
+          <div class="font-semibold">Магазин</div>
+          <div class="text-sm text-slate-400">Трать монеты на скины и бонусы</div>
+        </a>
+        <a href="/partner/company" class="group rounded-2xl border border-white/10 p-5 bg-gradient-to-br from-white/0 to-white/[0.03] hover:to-white/[0.06]">
+          <div class="text-3xl mb-2">📊</div>
+          <div class="font-semibold">Компания</div>
+          <div class="text-sm text-slate-400">Соревнования и сводки по отделу</div>
+        </a>
+      </div>
+
+      <div class="mt-6">
+        <div class="text-sm uppercase tracking-wide text-slate-400 mb-2">Последнее</div>
+        <div class="rounded-xl border border-white/10 bg-black/30 p-4">
+          <div class="text-slate-400 text-sm">Здесь будет лента активности и персональные задания.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Модал: История прокачки (без изменений) -->
+<div x-data="xpHistoryModal()" @open-xp-history.window="open()" x-cloak>
+  <div x-show="openModal" x-transition.opacity class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"></div>
+  <div x-show="openModal" x-transition class="fixed z-50 inset-0 grid place-items-center p-4">
+    <div class="w-full max-w-3xl rounded-2xl border border-white/10 bg-slate-900/95 p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xl font-bold">История прокачки</h3>
+        <button class="text-slate-400 hover:text-slate-200" @click="close()">✕</button>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2 text-sm">
+        <button :class="tabBtn('all')" @click="filter='all'">Все</button>
+        <button :class="tabBtn('achievement')" @click="filter='achievement'">Ачивки</button>
+        <button :class="tabBtn('events')" @click="filter='events'">События</button>
+      </div>
+      <div class="mt-4 max-h-[65vh] overflow-auto space-y-3 pr-1">
+        <template x-for="row in filtered" :key="row.key">
+          <div class="flex items-start gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+            <div class="text-2xl" x-text="row.emoji"></div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <div class="font-semibold" x-text="row.title"></div>
+                <div class="text-xs text-slate-400" x-text="row.when"></div>
+              </div>
+              <div class="text-sm text-slate-300" x-text="row.subtitle"></div>
+              <div class="mt-1 text-xs text-slate-400" x-show="row.meta" x-text="row.meta"></div>
+            </div>
+            <div class="text-right">
+              <div class="text-emerald-400 font-semibold" x-show="row.points">+<span x-text="row.points"></span> XP</div>
+              <div class="text-amber-300 font-semibold" x-show="row.coins">+<span x-text="row.coins"></span> 🪙</div>
+            </div>
+          </div>
+        </template>
+
+        <div class="text-sm text-slate-400 text-center py-6" x-show="!loading && filtered.length===0">
+          Пусто. Сделай первый квест или получи ачивку!
+        </div>
+        <div class="text-sm text-slate-300" x-show="loading">Загрузка…</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function companyJoin(){
+  return {
+    code: '',
+    status: '',
+    member: false,        // уже состоит в компании
+    pending: false,       // есть активная заявка
+    company_name: '',     // имя компании (для member/pending)
+
+    async init(){
+      try{
+        const r = await fetch('/api/company/join/status', { credentials: 'same-origin' });
+        // 404 — значит на бэке нет эндпоинта, молча считаем, что статуса нет
+        if (r.status === 404) { this.member=false; this.pending=false; this.company_name=''; this.status=''; return; }
+        if (!r.ok) return;
+        const j = await r.json().catch(()=>({}));
+        this.member = !!j.member;
+        this.pending = !!j.pending;
+        this.company_name = j.company_name || j.company?.name || '';
+        this.status = j.message || '';
+      }catch(_e){}
+    },
+
+    async submit(){
+      if (this.member || this.pending) return; // запрет второй заявки
+      try{
+        const r = await fetch('/api/company/join', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'same-origin',
+          body: JSON.stringify({ code: this.code.trim() })
+        });
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok){
+          // уже есть активная заявка
+          if (r.status === 409 || j.pending_exists){
+            this.pending = true;
+            this.company_name = j.company_name || j.company?.name || this.company_name;
+            this.status = j.description || 'Заявка уже отправлена и ожидает одобрения.';
+            Alpine.store('toasts').push({title:'Заявка', text:this.status, emoji:'⏳'});
+            return;
+          }
+          throw new Error(j.error || j.description || 'Ошибка');
+        }
+        // успех: либо сразу участник, либо заявка создана
+        if (j.already_member || j.member){
+          this.member = true; this.pending = false;
+          this.company_name = j.company_name || j.company?.name || this.company_name;
+          this.status = 'Вы уже участник компании.';
+          Alpine.store('toasts').push({title:'Компания', text:'Вы в компании', emoji:'🏢'});
+        } else {
+          this.pending = true;
+          this.company_name = j.company_name || j.company?.name || this.company_name;
+          this.status = 'Заявка отправлена. Ожидайте одобрения.';
+          Alpine.store('toasts').push({title:'Заявка', text:'Отправлена на одобрение', emoji:'📨'});
+        }
+      }catch(e){
+        this.status = e.message;
+        Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+      }
+    },
+
+    async cancel(){
+      if(!this.pending || this.member) return;
+      try{
+        const r = await fetch('/api/company/join/cancel', {
+          method:'POST',
+          credentials:'same-origin',
+          headers:{'Content-Type':'application/json'}
+        });
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error(j.error || j.description || 'Не удалось отменить заявку');
+
+        this.pending = false;
+        this.company_name = '';
+        this.status = 'Заявка отменена.';
+        Alpine.store('toasts').push({title:'Заявка', text:'Отменена', emoji:'🗑️'});
+      }catch(e){
+        this.status = e.message;
+        Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+      }
+    }
+  }
+}
+
+function xpHistoryModal(){
+  return {
+    openModal: false,
+    filter: 'all',
+    loading: false,
+    items: [],
+
+    tabBtn(kind){
+      return `px-3 py-1 rounded-lg border ${this.filter===kind ? 'bg-white/10 border-white/20' : 'border-white/10 hover:bg-white/5'}`;
+    },
+
+    get filtered(){
+      if (this.filter === 'all') return this.items;
+      return this.items.filter(x => x.type === this.filter); // 'achievement' | 'events'
+    },
+
+    open(){
+      this.openModal = true;
+      if (!this.items.length) this.load();
+    },
+    close(){ this.openModal = false; },
+
+    async load(){
+      this.loading = true;
+      try{
+        // ✅ правильный эндпоинт бэка
+        const r = await fetch('/api/user/xp_history', { credentials: 'same-origin' });
+        const j = await r.json().catch(()=>({}));
+        if (!r.ok) return;
+
+        const events = Array.isArray(j.events) ? j.events : [];
+
+        const emojiBySource = {
+          achievement: '🏆',
+          task: '✅',
+          training: '🎓',
+          sale: '💼',
+          contest: '🏁',
+          bonus: '✨',
+        };
+
+        this.items = events.map(ev => {
+          const m = ev.meta || {};
+          const src = ev.source || 'events';
+          const type = src === 'achievement' ? 'achievement' : 'events';
+          const when = ev.created_at ? new Date(ev.created_at).toLocaleString() : '';
+          const emoji = emojiBySource[src] || '📌';
+
+          let title = 'Событие';
+          let subtitle = '';
+
+          switch (src) {
+            case 'achievement':
+              title = ev.achievement_title || 'Ачивка';
+              subtitle = m.code ? `Код: ${m.code}` : '';
+              break;
+            case 'task':
+              title = 'Задача выполнена';
+              subtitle = m.title || '';
+              break;
+            case 'training':
+              title = 'Тренинг пройден';
+              subtitle = m.title ? `${m.title}${m.score!=null ? ` (${m.score}%)` : ''}` : '';
+              break;
+            case 'contest':
+              title = 'Конкурс';
+              subtitle = m.title || '';
+              break;
+            case 'sale':
+              title = 'Продажа';
+              subtitle = m.title || '';
+              break;
+            default:
+              title = 'Событие';
+              subtitle = m.title || '';
+          }
+
+          return {
+            key: ev.id,
+            emoji,
+            title,
+            when,
+            subtitle,
+            meta: '',
+            points: ev.points,
+            coins: ev.coins,
+            type
+          };
+        });
+      } finally {
+        this.loading = false;
+      }
+    }
+  }
+}
+
+</script>
+
+
+{% endblock %}

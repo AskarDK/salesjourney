@@ -1,0 +1,12 @@
+<defs>
+  <linearGradient id="crownGold" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FCE68E"/>
+    <stop offset="100%" stop-color="#D4AF37"/>
+  </linearGradient>
+</defs>
+<!-- корона чуть выше головы -->
+<path d="M128 96 l12 22 l20 -18 l20 18 l12 -22 l-64 0 z"
+      fill="url(#crownGold)" stroke="#B28A2A" stroke-width="3" />
+<circle cx="160" cy="98" r="4" fill="#F59E0B"/>
+<circle cx="140" cy="106" r="3" fill="#F59E0B"/>
+<circle cx="180" cy="106" r="3" fill="#F59E0B"/>

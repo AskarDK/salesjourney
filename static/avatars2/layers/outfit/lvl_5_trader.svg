@@ -1,0 +1,20 @@
+<defs>
+  <linearGradient id="traderJacket" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#374151"/>
+    <stop offset="100%" stop-color="#1F2937"/>
+  </linearGradient>
+  <linearGradient id="traderShirt" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#F3F4F6"/>
+    <stop offset="100%" stop-color="#D1D5DB"/>
+  </linearGradient>
+</defs>
+<!-- плечи/пиджак -->
+<path d="M80 204 q80 40 160 0 v96 h-160 z" fill="url(#traderJacket)"/>
+<!-- лацканы -->
+<path d="M120 204 l40 26 l-14 24 h-54 z" fill="#111827" opacity="0.9"/>
+<path d="M200 204 l-40 26 l14 24 h54 z" fill="#111827" opacity="0.9"/>
+<!-- рубашка -->
+<rect x="144" y="204" width="32" height="76" rx="4" fill="url(#traderShirt)"/>
+<!-- галстук -->
+<path d="M160 208 l10 12 l-10 12 l-10 -12 z" fill="#DC2626"/>
+<rect x="156" y="232" width="8" height="36" rx="3" fill="#B91C1C"/>

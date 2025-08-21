@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% set title = "Статистика обучений" %}
+{% block content %}
+
+<section class="max-w-5xl mx-auto px-4 py-12" x-data="companyTrainingStats()">
+  <h1 class="text-3xl font-extrabold">Статистика обучений</h1>
+  <p class="text-slate-300 mt-2">Просмотр результатов по сотрудникам.</p>
+
+  <div class="mt-4 flex gap-2">
+    <input x-model.number="companyId" type="number" placeholder="company_id"
+           class="rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+    <button @click="load" class="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5">Загрузить</button>
+  </div>
+
+  <div class="mt-6 rounded-2xl border border-white/10 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-900/60">
+        <tr class="text-left">
+          <th class="px-4 py-3 border-b border-white/10">Сотрудник</th>
+          <th class="px-4 py-3 border-b border-white/10">Попыток</th>
+          <th class="px-4 py-3 border-b border-white/10">Пройдено</th>
+          <th class="px-4 py-3 border-b border-white/10">Средний балл</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/10">
+        <template x-for="row in rows" :key="row.user.id">
+          <tr>
+            <td class="px-4 py-3" x-text="row.user.display_name"></td>
+            <td class="px-4 py-3" x-text="row.total"></td>
+            <td class="px-4 py-3" x-text="row.passed"></td>
+            <td class="px-4 py-3" x-text="row.avg_score + '%'"></td>
+          </tr>
+        </template>
+        <tr x-show="rows.length===0">
+          <td colspan="4" class="px-4 py-6 text-slate-400 text-center">Нет данных.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function companyTrainingStats(){
+  return {
+    companyId:'',
+    rows:[],
+    async load(){
+      try{
+        const r = await fetch(`/api/company/training/stats?company_id=${this.companyId}`);
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.description || 'Ошибка');
+        this.rows = j.stats || [];
+      }catch(e){
+        Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

@@ -1,38 +1,89 @@
 {% extends "base.html" %}
 {% set title = "Партнёры — вход" %}
+
 {% block content %}
 
-<section class="max-w-md mx-auto px-4 py-12" x-data="partnerAuth()">
-  <h1 class="text-3xl font-extrabold">Партнёры</h1>
-  <p class="text-slate-300 mt-2">Войдите или зарегистрируйтесь, чтобы управлять компаниями и курсами.</p>
+<style>
+  /* лёгкая анимация и мягкая «аура» на фоне */
+  @keyframes fadeIn { from {opacity:0; transform: translateY(8px)} to {opacity:1; transform:none} }
+  .animate-fade-in { animation: fadeIn .5s ease-out both }
+  .aurora-bg::before,
+  .aurora-bg::after{
+    content:""; position:absolute; pointer-events:none; border-radius:9999px; filter: blur(110px);
+  }
+  .aurora-bg::before{ width:380px; height:380px; top:-15%; left:-15%; background: radial-gradient(circle, rgba(99,102,241,.28), transparent 70%); }
+  .aurora-bg::after { width:420px; height:420px; bottom:-18%; right:-18%; background: radial-gradient(circle, rgba(59,130,246,.25), transparent 70%); }
+</style>
 
-  <div class="mt-6 rounded-2xl border border-white/10 bg-slate-900/60 p-6">
-    <div class="flex gap-2 text-sm">
-      <button :class="tab==='login' ? 'bg-white/10' : 'bg-transparent'"
-              class="px-4 py-2 rounded-lg border border-white/10" @click="tab='login'">Вход</button>
-      <button :class="tab==='register' ? 'bg-white/10' : 'bg-transparent'"
-              class="px-4 py-2 rounded-lg border border-white/10" @click="tab='register'">Регистрация</button>
+<section class="relative min-h-[70vh] flex items-center justify-center px-4 py-12 aurora-bg">
+  <div class="relative z-10 w-full max-w-4xl grid md:grid-cols-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-fade-in">
+
+    <!-- Левый инфо-блок -->
+    <div class="hidden md:flex flex-col justify-center gap-6 p-10 bg-slate-900/40">
+      <div class="flex items-center gap-3">
+        <!-- простая иконка-логотип -->
+        <svg class="h-9 w-9 text-indigo-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 3a9 9 0 1 0 9 9A9.01 9.01 0 0 0 12 3Zm0 14.5a5.5 5.5 0 1 1 5.5-5.5A5.51 5.51 0 0 1 12 17.5Z"/>
+          <circle cx="12" cy="12" r="2.5"/>
+        </svg>
+        <span class="text-2xl font-bold">SalesJourney — Партнёры</span>
+      </div>
+
+      <h2 class="text-2xl font-extrabold">Партнёрский кабинет</h2>
+      <ul class="text-sm text-slate-300 space-y-2">
+        <li>🏢 Управляйте компаниями и доступами</li>
+        <li>🎓 Публикуйте и назначайте обучение</li>
+        <li>🎯 Создавайте задания и отслеживайте результаты</li>
+      </ul>
+      <p class="text-xs text-slate-400">Доступ выдаёт администратор.</p>
     </div>
 
-    <div class="mt-4 space-y-3">
-      <div>
-        <label class="block text-sm mb-1">Email</label>
-        <input x-model="form.email" type="email" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
-      </div>
-      <div>
-        <label class="block text-sm mb-1">Пароль</label>
-        <input x-model="form.password" type="password" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
-      </div>
-      <div x-show="tab==='register'">
-        <label class="block text-sm mb-1">Отображаемое имя</label>
-        <input x-model="form.display_name" type="text" class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
-      </div>
-      <div class="pt-2">
-        <button @click="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold">
-          <span x-text="tab==='login' ? 'Войти' : 'Зарегистрироваться'"></span>
+    <!-- Правая колонка: форма входа -->
+    <div class="w-full p-8 sm:p-12">
+      <h1 class="text-3xl font-extrabold text-center">Вход партнёра</h1>
+
+      <div id="err" class="hidden text-rose-300 bg-rose-950/40 border border-rose-500/30 text-sm text-center p-3 rounded-lg my-4"></div>
+
+      <form id="loginForm" class="mt-6 space-y-5" novalidate>
+        <div>
+          <label for="email" class="sr-only">Email</label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <svg class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.94 6.34A2 2 0 0 1 4.9 5h10.2a2 2 0 0 1 1.96 1.34L10 10.88 2.94 6.34Z"/><path d="M2 7.58V14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.58l-7.47 4.67a2 2 0 0 1-2.06 0L2 7.58Z"/></svg>
+            </div>
+            <input id="email" type="email" name="email" placeholder="partner@company.com"
+                   class="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                   autocomplete="username" required>
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="sr-only">Пароль</label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <svg class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M6 8V6a4 4 0 1 1 8 0v2h1a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h1Zm2 0h4V6a2 2 0 1 0-4 0v2Z"/></svg>
+            </div>
+            <input id="password" type="password" name="password" placeholder="••••••••"
+                   class="w-full pl-10 pr-12 py-3 rounded-xl bg-black/40 border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                   autocomplete="current-password" required>
+            <button type="button" id="togglePassword"
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200"
+                    title="Показать/скрыть пароль">
+              <svg id="eye-open" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4C5.5 4 1.73 7.11.46 11.08a1.5 1.5 0 0 0 0 .84C1.73 15.89 5.5 19 10 19s8.27-3.11 9.54-7.08a1.5 1.5 0 0 0 0-.84C18.27 7.11 14.5 4 10 4Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/></svg>
+              <svg id="eye-closed" class="h-5 w-5 hidden" viewBox="0 0 20 20" fill="currentColor"><path d="M3.28 2.22a.75.75 0 0 0-1.06 1.06l15.5 15.5a.75.75 0 1 0 1.06-1.06l-2.08-2.08A11.86 11.86 0 0 0 20 11.5a1.5 1.5 0 0 0 0-.84C18.73 6.69 14.96 3.58 10.46 3.58c-1.4 0-2.75.28-4 .8L3.28 2.22ZM10 15a4 4 0 0 1-4-4 .75.75 0 0 1 .75-.75.75.75 0 0 1 .75.75 2.5 2.5 0 0 0 3.91 2.06l1.1 1.1A3.97 3.97 0 0 1 10 15Z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <button id="submitBtn" type="submit"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-semibold transition disabled:opacity-50">
+          Войти
         </button>
-      </div>
-      <div class="text-xs text-slate-400" x-text="status"></div>
+      </form>
+
+      <p class="mt-6 text-center text-xs text-slate-400">
+        Нет учётной записи? Свяжитесь с администратором.
+      </p>
     </div>
   </div>
 </section>
@@ -41,28 +92,52 @@
 
 {% block scripts %}
 <script>
-function partnerAuth(){
-  return {
-    tab: 'login',
-    form: { email:'', password:'', display_name:'' },
-    status:'',
-    async submit(){
-      try{
-        const url = this.tab==='login' ? '/api/partners/auth/login' : '/api/partners/auth/register';
-        const r = await fetch(url, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(this.form)
-        });
-        const j = await r.json();
-        if(!r.ok) throw new Error(j.description || 'Ошибка');
-        Alpine.store('toasts').push({title:'Готово', text:'Вы вошли как партнёр', emoji:'✅'});
-        window.location.href = '/partner/company';
-      }catch(e){
-        this.status = e.message;
-        Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
-      }
+  // показать/скрыть пароль
+  const togglePassword = document.getElementById('togglePassword');
+  const pw = document.getElementById('password');
+  const eyeOpen = document.getElementById('eye-open');
+  const eyeClosed = document.getElementById('eye-closed');
+  togglePassword?.addEventListener('click', () => {
+    const t = pw.getAttribute('type') === 'password' ? 'text' : 'password';
+    pw.setAttribute('type', t);
+    eyeOpen.classList.toggle('hidden'); eyeClosed.classList.toggle('hidden');
+  });
+
+  // JSON-логин против /api/partners/auth/login
+  const form = document.getElementById('loginForm');
+  const btn = document.getElementById('submitBtn');
+  const err = document.getElementById('err');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.classList.add('hidden');
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = pw.value;
+    if(!email || !password){
+      err.textContent = 'Заполните email и пароль'; err.classList.remove('hidden'); return;
     }
-  }
-}
+    btn.disabled = true; btn.textContent = 'Входим…';
+    try{
+      const r = await fetch('/api/partners/auth/login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+      const j = await r.json().catch(()=> ({}));
+      if(!r.ok) throw new Error(j.description || 'Ошибка входа');
+      // опциональный тост
+      if(window.Alpine?.store?.('toasts')){
+        Alpine.store('toasts').push({emoji:'✅', title:'Готово', text:'Вы вошли как партнёр'});
+      }
+      window.location.href = '/partner/company';
+    }catch(e){
+      err.textContent = e.message || 'Ошибка входа';
+      err.classList.remove('hidden');
+      if(window.Alpine?.store?.('toasts')){
+        Alpine.store('toasts').push({emoji:'⚠️', title:'Ошибка', text: String(e.message || e)});
+      }
+    }finally{
+      btn.disabled = false; btn.textContent = 'Войти';
+    }
+  });
 </script>
 {% endblock %}

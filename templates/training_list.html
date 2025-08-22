@@ -2,69 +2,148 @@
 {% set title = "Тренинг — курсы" %}
 {% block content %}
 
-<section class="max-w-7xl mx-auto px-4 py-10" x-data="trainingList()">
+<section class="max-w-7xl mx-auto px-4 py-10" x-data="trainingList()" x-init="init()">
   <div class="flex items-center justify-between">
     <h1 class="text-3xl font-extrabold">Тренинг</h1>
-    <div class="text-sm text-slate-400">Доступные курсы для вашего профиля/компании</div>
+    <div class="text-sm text-slate-500 dark:text-slate-400">Доступные курсы для вашего профиля/компании</div>
+  </div>
+
+  <!-- Вкладки -->
+  <div class="mt-4 flex gap-2">
+    <button @click="tab='available'"
+            class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-white/10 text-sm"
+            :class="{'bg-black/5 dark:bg-white/10 font-semibold': tab==='available'}">
+      Тренинги <span class="ml-1 text-xs text-slate-500 dark:text-slate-400" x-text="availableCount"></span>
+    </button>
+    <button @click="tab='completed'"
+            class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-white/10 text-sm"
+            :class="{'bg-black/5 dark:bg-white/10 font-semibold': tab==='completed'}">
+      Завершённые <span class="ml-1 text-xs text-slate-500 dark:text-slate-400" x-text="completedCount"></span>
+    </button>
+  </div>
+
+  <!-- Поиск + быстрые фильтры сложности -->
+  <div class="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+    <div class="flex-1">
+      <input type="search" placeholder="Поиск по курсам" x-model="query"
+             class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900/60 px-3 py-2 outline-none focus:ring focus:ring-indigo-500/30">
+    </div>
+    <div class="flex gap-2">
+      <button @click="level='all'"    :class="{'bg-black/5 dark:bg-white/10': level==='all'}"    class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Все</button>
+      <button @click="level='easy'"   :class="{'bg-black/5 dark:bg-white/10': level==='easy'}"   class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Легко</button>
+      <button @click="level='medium'" :class="{'bg-black/5 dark:bg-white/10': level==='medium'}" class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Средне</button>
+      <button @click="level='hard'"   :class="{'bg-black/5 dark:bg-white/10': level==='hard'}"   class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Сложно</button>
+    </div>
   </div>
 
   <div class="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-    <template x-for="c in courses" :key="c.id">
+    <!-- skeleton -->
+    <template x-if="loading">
+      <div class="col-span-full grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="skeleton h-40 rounded-2xl"></div>
+        <div class="skeleton h-40 rounded-2xl"></div>
+        <div class="skeleton h-40 rounded-2xl"></div>
+      </div>
+    </template>
+
+    <!-- пусто -->
+    <template x-if="!loading && filtered.length===0">
+      <div class="col-span-full rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6 text-center text-slate-600 dark:text-slate-400">
+        <template x-if="tab==='available'">
+          <span>Курсы пока не найдены. Попробуйте изменить фильтры.</span>
+        </template>
+        <template x-if="tab==='completed'">
+          <span>Завершённых курсов пока нет.</span>
+        </template>
+      </div>
+    </template>
+
+    <!-- список -->
+    <template x-for="c in filtered" :key="c.id">
       <a :href="`/training/${c.id}`"
-         class="rounded-2xl border border-white/10 bg-slate-900/60 p-5 hover:bg-white/[0.04] transition block">
+         class="rounded-2xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900/60 p-5 hover:bg-black/5 dark:hover:bg-white/[0.04] transition block">
         <div class="text-xl font-semibold" x-text="c.title"></div>
-        <div class="text-sm text-slate-300 mt-1 line-clamp-2" x-text="c.description || 'Курс'"></div>
-        <div class="mt-3 text-xs text-slate-400">Порог: <span x-text="c.pass_score"></span>% • Награда: <span x-text="c.xp_reward"></span> XP</div>
+        <div class="text-sm text-slate-600 dark:text-slate-300 mt-1 line-clamp-2" x-text="c.description || 'Курс'"></div>
+        <div class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          Порог: <span x-text="c.pass_score"></span>% • Награда: <span x-text="c.xp_reward"></span> XP
+        </div>
         <div class="mt-3">
-          <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+          <div class="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
             <div class="h-full bg-gradient-to-r from-emerald-400 to-emerald-300" :style="`width: ${progress(c)}%`"></div>
           </div>
-          <div class="text-xs text-slate-400 mt-1">Прогресс: <span x-text="progress(c)"></span>%</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Прогресс: <span x-text="progress(c)"></span>%
+          </div>
         </div>
       </a>
     </template>
   </div>
-
-  <div class="text-sm text-slate-400 mt-6" x-show="loading">Загрузка…</div>
-  <div class="text-sm text-slate-400 mt-6" x-show="!loading && courses.length===0">Нет доступных курсов.</div>
 </section>
 
-{% endblock %}
 
+{% endblock %}
 {% block scripts %}
 <script>
 function trainingList(){
   return {
     loading: false,
+    tab: 'available',        // 'available' | 'completed'
+    query: '',
+    level: 'all',            // 'all' | 'easy' | 'medium' | 'hard'
     courses: [],
-    attempts: {}, // course_id -> best score
-    progress(c){
-      const best = this.attempts[c.id] || 0;
-      return Math.max(best, 0);
+    attempts: {},            // course_id -> best score
+
+    bestScore(c){
+      return Number(this.attempts[c.id] || 0);
     },
+    isCompleted(c){
+      const pass = Number(c.pass_score) || 0;
+      return this.bestScore(c) >= pass && pass > 0;
+    },
+
+    get available(){
+      return this.courses.filter(c => !this.isCompleted(c));
+    },
+    get completed(){
+      return this.courses.filter(c => this.isCompleted(c));
+    },
+    get availableCount(){ return this.available.length; },
+    get completedCount(){ return this.completed.length; },
+
+    get filtered(){
+      const source = this.tab === 'completed' ? this.completed : this.available;
+      const q = this.query.toLowerCase();
+      return source.filter(c => {
+        const byQ = !q || (c.title||'').toLowerCase().includes(q);
+        const byL = this.level === 'all' || (c.difficulty||'all') === this.level;
+        return byQ && byL;
+      });
+    },
+
+    progress(c){
+      const best = this.bestScore(c);
+      return Math.max(0, Math.min(100, Math.round(best)));
+    },
+
     async init(){
       this.loading = true;
       try{
         const [cr, pr] = await Promise.all([
-          fetch('/api/training/courses').then(r=>r.json()),
-          fetch('/api/training/progress').then(r=>r.json())
+          fetch('/api/training/courses').then(r => r.json()),
+          fetch('/api/training/progress').then(r => r.json())
         ]);
         this.courses = cr.courses || [];
-        const atts = pr.attempts || [];
-        atts.forEach(a=>{
-          this.attempts[a.course_id] = Math.max(this.attempts[a.course_id]||0, a.score||0);
+        (pr.attempts || []).forEach(a => {
+          const score = Number(a.score) || 0;
+          this.attempts[a.course_id] = Math.max(this.attempts[a.course_id] || 0, score);
         });
       }catch(e){
-        Alpine.store('toasts').push({title:'Ошибка', text:'Не удалось загрузить курсы', emoji:'⚠️'});
+        Alpine.store('toasts').push({ title:'Ошибка', text:'Не удалось загрузить курсы', emoji:'⚠️' });
       }finally{
         this.loading = false;
       }
     }
   }
 }
-document.addEventListener('alpine:init', ()=> {
-  const root = document.querySelector('[x-data="trainingList()"]');
-  if(root && root.__x==null){ Alpine.initTree(root); root.__x.$data.init(); }
-});
 </script>
 {% endblock %}

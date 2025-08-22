@@ -14,9 +14,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UniqueConstraint, Index, func, and_, or_, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import pathlib, hashlib, re
-import uuid, random, string
-from datetime import datetime
-from sqlalchemy import func
+import random, string
+
 # -----------------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------------
@@ -116,7 +115,8 @@ def safe_int(v, default=0):
         return default
 
 def now_utc():
-    return datetime.utcnow()
+    # Наивный UTC (как и было), просто через fromtimestamp(… , tz=None)
+    return datetime.utcfromtimestamp(datetime.utcnow().timestamp())
 
 # -----------------------------------------------------------------------------
 # Models
@@ -598,34 +598,77 @@ class TrainingAttempt(db.Model):
 with app.app_context():
     db.create_all()
 
+
     def _migrate_db():
-        try: db.session.execute(text('ALTER TABLE company_tasks ADD COLUMN priority VARCHAR(16) DEFAULT "normal"'))
-        except Exception: pass
-        try: db.session.execute(text('ALTER TABLE company_tasks ADD COLUMN require_proof BOOLEAN DEFAULT 1'))
-        except Exception: pass
-        try: db.session.execute(text('ALTER TABLE company_tasks ADD COLUMN reward_achievement_id INTEGER'))
-        except Exception: pass
-        try: db.session.execute(text('ALTER TABLE company_tasks ADD COLUMN reward_item_payload TEXT'))
-        except Exception: pass
-        try: db.session.execute(text('ALTER TABLE company_task_assigns ADD COLUMN submitted_at DATETIME'))
-        except Exception: pass
-        try: db.session.execute(text('ALTER TABLE company_task_assigns RENAME COLUMN status TO status'))
-        except Exception: pass
-        try: db.session.execute(text('UPDATE company_task_assigns SET status="assigned" WHERE status NOT IN ("submitted","approved","rejected")'))
-        except Exception: pass
-        try: db.session.execute(text('ALTER TABLE company_feed_posts ADD COLUMN image_url VARCHAR(255)'))   # <<< добавлено
-        except Exception: pass
+        try:
+            db.session.execute(text("ALTER TABLE company_tasks ADD COLUMN priority VARCHAR(16) DEFAULT 'normal'"))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_tasks ADD COLUMN require_proof BOOLEAN DEFAULT 1'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_tasks ADD COLUMN reward_achievement_id INTEGER'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_tasks ADD COLUMN reward_item_payload TEXT'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_task_assigns ADD COLUMN submitted_at DATETIME'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_task_assigns RENAME COLUMN status TO status'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text(
+                'UPDATE company_task_assigns SET status="assigned" WHERE status NOT IN ("submitted","approved","rejected")'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_feed_posts ADD COLUMN image_url VARCHAR(255)'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_join_requests ADD COLUMN reviewed_by INTEGER'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_join_requests ADD COLUMN reviewed_at DATETIME'))
+        except Exception:
+            pass
+
+        # <<< перенесено из блока с engine.connect
+        try:
+            db.session.execute(text('ALTER TABLE companies ADD COLUMN join_code VARCHAR(32)'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE companies ADD COLUMN owner_partner_id INTEGER'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(
+                text('CREATE UNIQUE INDEX IF NOT EXISTS ix_companies_join_code ON companies (join_code)'))
+        except Exception:
+            pass
+
         db.session.commit()
+
+
     _migrate_db()
 
-
+with app.app_context():
     if not AdminUser.query.filter_by(email="admin@salesjourney.local").first():
         db.session.add(AdminUser(
             email="admin@salesjourney.local",
             password=generate_password_hash(os.getenv("ADMIN_PASSWORD", "admin123"))
         ))
         db.session.commit()
-
 
     # seed начальных ачивок/предметов/магазина (один раз)
     if not Achievement.query.first():
@@ -635,6 +678,7 @@ with app.app_context():
             Achievement(code="PROFILE_100", title="Полный профиль", points=100, rarity="uncommon",
                         description="Заполни профиль на 100%"),
         ])
+
     if not AvatarItem.query.first():
         db.session.add_all([
             AvatarItem(slot="base", key="base_t1", gender="any", rarity="common", min_level=1,
@@ -646,6 +690,7 @@ with app.app_context():
             AvatarItem(slot="outfit", key="outfit_lvl1_common", gender="any", rarity="common", min_level=1,
                        asset_url="/assets/avatars/common/outfit_lvl1_common.png"),
         ])
+
     if not StoreItem.query.first():
         db.session.add_all([
             StoreItem(type="skin", title="Редкий плащ", cost_coins=200, stock=100, min_level=3),
@@ -654,21 +699,7 @@ with app.app_context():
         ])
     db.session.commit()
 
-    # Попытка мягкой миграции для существующих баз: добавим недостающие колонки (SQLite допускает)
-    with db.engine.connect() as con:
-        try:
-            con.execute(text("ALTER TABLE companies ADD COLUMN join_code VARCHAR(32)"))
-        except Exception:
-            pass
-        try:
-            con.execute(text("ALTER TABLE companies ADD COLUMN owner_partner_id INTEGER"))
-        except Exception:
-            pass
-        try:
-            con.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_companies_join_code ON companies (join_code)"))
-        except Exception:
-            pass
-
+with app.app_context():
     # Дополнительные предметы + заполнение join_code
     if not StoreItem.query.filter_by(title="Золотая рамка").first():
         db.session.add_all([
@@ -699,7 +730,6 @@ with app.app_context():
         ])
         db.session.commit()
 
-    # Проставить коды приглашений компаниям, где пусто
     for c in Company.query.filter(or_(Company.join_code.is_(None), Company.join_code == "")).all():
         c.join_code = uuid.uuid4().hex[:8].upper()
     db.session.commit()
@@ -1005,6 +1035,31 @@ def logout():
 def me():
     return as_json({"user": user_to_dict(current_user())})
 
+@app.post("/api/me/profile")
+@login_required
+def update_me_profile():
+    require_json()
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+
+    if len(name) < 2:
+        abort(400, description="Введите имя (минимум 2 символа)")
+    if "@" not in email or "." not in email:
+        abort(400, description="Введите корректный e-mail")
+
+    user = current_user()
+    if email != user.email:
+        exists = db.session.execute(db.select(User).filter_by(email=email)).scalars().first()
+        if exists:
+            abort(409, description="Такой e-mail уже используется")
+
+    user.display_name = name
+    user.email = email
+    db.session.commit()
+    return as_json({"ok": True})
+
+
 # -----------------------------------------------------------------------------
 # Avatar / Inventory
 # -----------------------------------------------------------------------------
@@ -1230,11 +1285,25 @@ def contest_add_score(contest_id):
 def store_list():
     u = current_user()
     items = StoreItem.query.order_by(StoreItem.created_at.desc()).all()
+
+    # все купленные пользователем (статус done)
+    purchased_ids = {
+        p.store_item_id
+        for p in Purchase.query.filter_by(user_id=u.id, status="done").all()
+    }
+
     out = []
     for i in items:
         d = store_item_to_dict(i)
         d["locked"] = i.min_level > u.level
         d["lock_reason"] = None if not d["locked"] else f"Требуется уровень {i.min_level}"
+
+        # новый флаг
+        d["purchased"] = i.id in purchased_ids
+        if d["purchased"]:
+            # чтобы на карточке была понятная подсказка
+            d["lock_reason"] = d["lock_reason"] or "Уже куплено"
+
         out.append(d)
     return as_json({"items": out})
 
@@ -1721,6 +1790,14 @@ def store_buy(item_id):
         abort(403, description="Level too low")
     if item.stock is not None and item.stock <= 0:
         abort(409, description="Out of stock")
+
+    # 🔴 НОВОЕ: уже покупал — не списываем монеты повторно
+    already = Purchase.query.filter_by(
+        user_id=u.id, store_item_id=item.id, status="done"
+    ).first()
+    if already:
+        return as_json({"ok": True, "already": True})  # 200, чтобы фронт показал «Куплено»
+
     if u.coins < item.cost_coins:
         abort(400, description="Not enough coins")
 
@@ -1746,24 +1823,48 @@ def store_buy(item_id):
     db.session.commit()
     return as_json({"ok": True, "purchase_id": p.id, "user": user_to_dict(u)})
 
-# ---------------- Partner auth ----------------
-@app.post("/api/partners/auth/register")
-def partner_register():
-    require_json()
-    d = request.get_json()
-    email = (d.get("email") or "").strip().lower()
-    password = d.get("password") or ""
-    display_name = (d.get("display_name") or "").strip()
-    if not email or not password or not display_name:
-        abort(400, description="email, password, display_name required")
-    if PartnerUser.query.filter_by(email=email).first():
-        abort(409, description="Email already registered")
-    session.pop("uid", None)  # на всякий случай, чтобы не смешивать
-    p = PartnerUser(email=email, password=generate_password_hash(password), display_name=display_name)
-    db.session.add(p)
-    db.session.commit()
-    session["partner_uid"] = p.id
-    return as_json({"partner": partner_to_dict(p)})
+@app.get("/api/store/my_inventory")
+@login_required
+def api_store_my_inventory():
+    u = current_user()
+
+    # Косметика (из Inventory + AvatarItem)
+    rows = (db.session.query(Inventory, AvatarItem)
+            .join(AvatarItem, Inventory.item_id == AvatarItem.id)
+            .filter(Inventory.user_id == u.id)
+            .order_by(Inventory.obtained_at.desc())
+            .all())
+    skins = [{
+        "slot": item.slot,
+        "key": item.key,
+        "gender": item.gender,
+        "rarity": item.rarity,
+        "min_level": item.min_level,
+        "asset_url": item.asset_url,
+        "obtained_at": inv.obtained_at.isoformat()
+    } for inv, item in rows]
+
+    # Купоны/прочее (из Purchase + StoreItem), без дублирования косметики
+    pur_rows = (db.session.query(Purchase, StoreItem)
+                .join(StoreItem, Purchase.store_item_id == StoreItem.id)
+                .filter(Purchase.user_id == u.id, Purchase.status == "done")
+                .order_by(Purchase.created_at.desc())
+                .all())
+    other = []
+    for pr, si in pur_rows:
+        if si.type == "skin":
+            continue
+        other.append({
+            "id": pr.id,
+            "type": si.type,
+            "title": si.title,
+            "payload": _json_or_empty(si.payload),
+            "cost_coins": si.cost_coins,
+            "created_at": pr.created_at.isoformat()
+        })
+
+    return as_json({"skins": skins, "other": other})
+
 
 @app.post("/api/partners/auth/login")
 def partner_login():
@@ -2511,12 +2612,18 @@ def api_company_task_complete(task_id):
     a = CompanyTaskAssign.query.filter_by(task_id=task_id, user_id=u.id).first()
     if not a: abort(404)
     t = a.task
-    # Если по задаче требуется отчёт — просим загрузить его через /submit
     if t.require_proof:
         abort(400, description="По этой задаче требуется отправить отчёт с фото. Используйте /api/company/tasks/<id>/submit.")
-    # Иначе — старое поведение: зачесть сразу
-    if a.status in ("approved","done"):
-        return as_json({"ok": True, "already": True})
+
+    # Идемпотентность и явные ответы
+    if a.status == "approved":
+        return as_json({"ok": True, "already": True, "status": a.status})
+    if a.status == "submitted":
+        return as_json({"ok": False, "pending_review": True, "status": a.status}), 409
+    if a.status == "rejected":
+        # Разрешаем повторную попытку через submit (если require_proof=False — пользователь может повторно нажать complete)
+        pass
+
     a.status = "approved"
     a.completed_at = now_utc()
     u.add_xp(max(0, t.points_xp))
@@ -2525,14 +2632,14 @@ def api_company_task_complete(task_id):
         user_id=u.id, source="task", points=t.points_xp, coins=t.coins,
         meta_json=json.dumps({"task_id": t.id, "title": t.title})
     ))
-    # Уведомление пользователю о зачёте
     db.session.add(Notification(
         user_id=u.id, type="task_result",
         title="Задача зачтена", body=t.title,
         data_json=json.dumps({"task_id": t.id})
     ))
     db.session.commit()
-    return as_json({"ok": True, "user": user_to_dict(u)})
+    return as_json({"ok": True, "status": a.status, "user": user_to_dict(u)})
+
 
 @app.get("/api/partners/company/<int:company_id>/members")
 @company_manager_or_admin_required
@@ -2670,6 +2777,7 @@ def api_partner_task_assigns(company_id, task_id):
     out = []
     for r in rows:
         out.append({
+            "assign_id": r.id,  # <— добавлено для удобства UI
             "user_id": r.user_id,
             "display_name": r.user.display_name if r.user else "",
             "status": r.status,
@@ -2680,12 +2788,8 @@ def api_partner_task_assigns(company_id, task_id):
 
 
 @app.post("/api/partners/company/<int:company_id>/tasks/<int:task_id>/review")
-@partner_required
+@company_manager_or_admin_required
 def api_partner_company_task_review(company_id, task_id):
-    p = current_partner()
-    c = db.session.get(Company, company_id)
-    if not c or c.owner_partner_id != p.id: abort(403)
-
     require_json()
     d = request.get_json()
     uid = safe_int(d.get("user_id"), 0)
@@ -2699,10 +2803,27 @@ def api_partner_company_task_review(company_id, task_id):
     u = db.session.get(User, uid)
     if not u: abort(404)
 
+    # Идемпотентность
+    if approve and a.status == "approved":
+        return as_json({"ok": True, "already": True, "status": a.status})
+    if (not approve) and a.status == "rejected":
+        return as_json({"ok": True, "already": True, "status": a.status})
+
+    # Валидные переходы статусов:
+    # - если для задачи требуется отчёт — ревью только из состояния submitted
+    # - если отчёт не требуется (теоретически) — допускаем из assigned
+    if t.require_proof:
+        if a.status not in ("submitted",):
+            abort(400, description="Нельзя проверять до отправки отчёта")
+    else:
+        if a.status not in ("assigned", "submitted"):
+            abort(400, description="Некорректный статус для ревью")
+
     a.completed_at = now_utc()
+
     if approve:
         a.status = "approved"
-        # Награды
+        # Награды начисляем только при первом переходе в approved
         u.add_xp(max(0, t.points_xp))
         u.add_coins(max(0, t.coins))
         db.session.add(ScoreEvent(
@@ -2712,7 +2833,6 @@ def api_partner_company_task_review(company_id, task_id):
         if t.reward_achievement_id:
             if not UserAchievement.query.filter_by(user_id=uid, achievement_id=t.reward_achievement_id).first():
                 db.session.add(UserAchievement(user_id=uid, achievement_id=t.reward_achievement_id))
-        # Уведомление пользователю
         db.session.add(Notification(
             user_id=uid, type="task_result",
             title="Задача зачтена", body=t.title,
@@ -2739,6 +2859,12 @@ def api_notifications():
         q = Notification.query.filter_by(partner_id=p.id)
     else:
         abort(401)
+
+    # <<< НОВОЕ: поддержка фильтра на непрочитанные
+    unread_only = (request.args.get("unread_only") or "").strip()
+    if unread_only and unread_only not in ("0", "false", "False"):
+        q = q.filter_by(is_read=False)
+
     items = q.order_by(Notification.created_at.desc()).limit(50).all()
     out = [{
         "id": n.id,
@@ -2750,7 +2876,6 @@ def api_notifications():
         "created_at": n.created_at.isoformat()
     } for n in items]
     return as_json({"notifications": out})
-
 
 @app.post("/api/notifications/read")
 def api_notifications_mark_read():
@@ -2979,10 +3104,10 @@ def admin_user_assign_company(user_id):
 @admin_required
 def admin_user_unassign_company(user_id):
     u = _get_user_or_404(user_id)
-    if u.company_id:
-        CompanyMember.query.filter_by(company_id=u.company_id, user_id=u.id).delete()
-        u.company_id = None
-        db.session.commit()
+    # удаляем связи членства
+    CompanyMember.query.filter_by(user_id=u.id).delete()
+    u.company_id = None
+    db.session.commit()
     return as_json({"ok": True})
 
 @app.post("/api/admin/users/<int:user_id>/achievements")
@@ -3555,6 +3680,312 @@ def api_company_invite_deactivate(company_id):
     CompanyInvite.query.filter_by(company_id=company_id, is_active=True).update({"is_active": False})
     db.session.commit()
     return as_json({"active": False, "company_id": company_id})
+
+
+# ========================= Partner pages: Requests & Reports =========================
+
+@app.get("/partner/requests")
+@partner_required
+def page_partner_requests():
+    return render_template("partner_requests.html")
+
+@app.get("/partner/reports")
+@partner_required
+def page_partner_reports():
+    return render_template("partner_reports.html")
+
+
+# ========================= Partner API: Join Requests ===============================
+
+def _partner_company_ids(partner_id: int) -> list[int]:
+    return [c.id for c in Company.query.filter_by(owner_partner_id=partner_id).all()]
+
+@app.get("/api/partners/requests")
+@partner_required
+def api_partner_requests_list():
+    """
+    ?status=pending|approved|rejected|all (default: pending)
+    Возвращает заявки на вступление во ВСЕ компании, которыми владеет партнёр.
+    """
+    p = current_partner()
+    status = (request.args.get("status") or "pending").strip().lower()
+    allowed = {"pending", "approved", "rejected", "all"}
+    if status not in allowed:
+        status = "pending"
+
+    cids = _partner_company_ids(p.id)
+    if not cids:
+        return as_json({"requests": []})
+
+    q = CompanyJoinRequest.query.filter(CompanyJoinRequest.company_id.in_(cids)).order_by(CompanyJoinRequest.created_at.desc())
+    if status != "all":
+        q = q.filter_by(status=status)
+
+    rows = q.all()
+    out = []
+    for r in rows:
+        out.append({
+            "id": r.id,
+            "user_id": r.user_id,
+            "user_name": r.user.display_name if r.user else "",
+            "user_email": r.user.email if r.user else "",
+            "company_id": r.company_id,
+            "company_name": r.company.name if r.company else "",
+            "status": r.status,
+            "created_at": r.created_at.isoformat(),
+        })
+    return as_json({"requests": out})
+
+@app.post("/api/partners/requests/<int:req_id>/approve")
+@partner_required
+def api_partner_request_approve(req_id):
+    """
+    Одобрить заявку (только если компания принадлежит партнёру).
+    Добавляет пользователя в компанию (CompanyMember) и проставляет user.company_id.
+    """
+    p = current_partner()
+    r = db.session.get(CompanyJoinRequest, req_id)
+    if not r or r.status != "pending":
+        abort(404, description="Request not found/pending")
+
+    c = r.company
+    if not c or c.owner_partner_id != p.id:
+        abort(403)
+
+    u = r.user
+    if not u:
+        abort(404, description="User not found")
+
+    # уже участник? — просто помечаем как approved
+    link = CompanyMember.query.filter_by(company_id=c.id, user_id=u.id).first()
+    if not link:
+        db.session.add(CompanyMember(company_id=c.id, user_id=u.id, role="member"))
+    if u.company_id != c.id:
+        u.company_id = c.id
+
+    r.status = "approved"
+    r.reviewed_at = now_utc()
+
+    # уведомление пользователю
+    db.session.add(Notification(
+        user_id=u.id, type="system",
+        title="Заявка одобрена", body=f"Вы приняты в компанию {c.name}",
+        data_json=json.dumps({"company_id": c.id})
+    ))
+
+    db.session.commit()
+    return as_json({"ok": True})
+
+@app.post("/api/partners/requests/<int:req_id>/reject")
+@partner_required
+def api_partner_request_reject(req_id):
+    """
+    Отклонить заявку (только если компания принадлежит партнёру).
+    body: { "reason": "..." } (необязательно)
+    """
+    p = current_partner()
+    r = db.session.get(CompanyJoinRequest, req_id)
+    if not r or r.status != "pending":
+        abort(404, description="Request not found/pending")
+
+    c = r.company
+    if not c or c.owner_partner_id != p.id:
+        abort(403)
+
+    data = request.get_json(silent=True) or {}
+    reason = (data.get("reason") or "").strip()
+
+    r.status = "rejected"
+    r.reviewed_at = now_utc()
+
+    # уведомление пользователю
+    if r.user:
+        body = f"Заявка в компанию {c.name} отклонена."
+        if reason:
+            body += f" Причина: {reason}"
+        db.session.add(Notification(
+            user_id=r.user.id, type="system",
+            title="Заявка отклонена", body=body,
+            data_json=json.dumps({"company_id": c.id})
+        ))
+
+    db.session.commit()
+    return as_json({"ok": True})
+
+
+# ========================= Partner API: Task Reports (moderation) ===================
+
+def _latest_by_assign(rows):
+    """
+    rows: list of (assign, task, user, submission | None)
+    возвращает dict[assign_id] = {"a":assign,"t":task,"u":user,"s":latest_submission_or_None}
+    """
+    bucket = {}
+    for a, t, u, s in rows:
+        rec = bucket.get(a.id)
+        if not rec:
+            bucket[a.id] = {"a": a, "t": t, "u": u, "s": s}
+        else:
+            # выбираем самый свежий сабмит
+            if s and (not rec["s"] or (s.submitted_at or now_utc()) > (rec["s"].submitted_at or now_utc())):
+                rec["s"] = s
+
+    return bucket
+
+@app.get("/api/partners/task_reports")
+def api_partner_task_reports():
+    """
+    Сводка назначений задач для компании.
+    Доступ: партнёр-владелец ИЛИ admin/manager компании.
+
+    query:
+      - company_id (опционально) — если не передан, берём:
+          * для партнёра: первую компанию, где он owner;
+          * для пользователя: его company_id.
+      - status = assigned|submitted|approved|rejected|pending|all
+        (alias: pending -> submitted)
+    """
+    # --- Кто обращается
+    p = current_partner()
+    u = current_user()
+    if not p and not u:
+        abort(401)
+
+    # --- company_id: из query или авто-детект
+    company_id = safe_int(request.args.get("company_id"), 0)
+    if company_id <= 0:
+        if p:
+            c_own = Company.query.filter_by(owner_partner_id=p.id).order_by(Company.id.asc()).first()
+            if c_own:
+                company_id = c_own.id
+        if not company_id and u and u.company_id:
+            company_id = u.company_id
+    if company_id <= 0:
+        abort(400, description="company_id required")
+
+    c = db.session.get(Company, company_id)
+    if not c:
+        abort(404, description="Company not found")
+
+    # --- Авторизация на эту компанию
+    allowed = False
+    if p and c.owner_partner_id == p.id:
+        allowed = True
+    if u:
+        cm = CompanyMember.query.filter_by(company_id=company_id, user_id=u.id).first()
+        if cm and cm.role in ("admin", "manager"):
+            allowed = True
+    if not allowed:
+        abort(403)
+
+    # --- Фильтр статуса
+    status = (request.args.get("status") or "submitted").strip().lower()
+    if status == "pending":
+        status = "submitted"
+    allowed_status = {"assigned", "submitted", "approved", "rejected", "all"}
+    if status not in allowed_status:
+        status = "submitted"
+
+    # --- Выборка
+    q = (db.session.query(CompanyTaskAssign, CompanyTask, User)
+         .join(CompanyTask, CompanyTaskAssign.task_id == CompanyTask.id)
+         .join(User, User.id == CompanyTaskAssign.user_id)
+         .filter(CompanyTask.company_id == company_id))
+
+    if status != "all":
+        q = q.filter(CompanyTaskAssign.status == status)
+
+    # SQLite терпит NULLS LAST не везде — делаем безопасный порядок
+    q = q.order_by(
+        CompanyTaskAssign.submitted_at.desc(),
+        CompanyTaskAssign.completed_at.desc(),
+        CompanyTaskAssign.id.desc()
+    )
+
+    rows = q.limit(300).all()
+    out = []
+    for a, t, usr in rows:
+        out.append({
+            "task_id": t.id,
+            "task_title": t.title,
+            "user_id": usr.id,
+            "user_name": usr.display_name,
+            "status": a.status,
+            "submitted_at": a.submitted_at.isoformat() if a.submitted_at else None,
+            "completed_at": a.completed_at.isoformat() if a.completed_at else None
+        })
+    return as_json({"reports": out})
+
+@app.post("/api/partners/task_reports/<int:assign_id>/approve")
+@partner_required
+def api_partner_task_report_approve(assign_id):
+    """
+    body: { "score"?: int, "comment"?: str }  # сохраняем в уведомление (хранить негде)
+    Одобряет отчёт: начисляет XP/coins, выдаёт ачивку (если задана у задачи),
+    создаёт ScoreEvent и Notification пользователю.
+    """
+    p = current_partner()
+    a, t, u = _check_partner_owns_assign(p, assign_id)
+
+    data = request.get_json(silent=True) or {}
+    score = data.get("score")
+    mod_comment = (data.get("comment") or "").strip()
+
+    a.status = "approved"
+    a.completed_at = now_utc()
+
+    # награды
+    u.add_xp(max(0, t.points_xp))
+    u.add_coins(max(0, t.coins))
+    db.session.add(ScoreEvent(
+        user_id=u.id, source="task", points=max(0, t.points_xp), coins=max(0, t.coins),
+        meta_json=json.dumps({"task_id": t.id, "title": t.title})
+    ))
+    if t.reward_achievement_id and not UserAchievement.query.filter_by(user_id=u.id, achievement_id=t.reward_achievement_id).first():
+        db.session.add(UserAchievement(user_id=u.id, achievement_id=t.reward_achievement_id))
+
+    # уведомление
+    note = "Задача зачтена"
+    if isinstance(score, int):
+        note += f" (оценка: {score}%)"
+    if mod_comment:
+        note += f". Комментарий: {mod_comment}"
+    db.session.add(Notification(
+        user_id=u.id, type="task_result",
+        title="Задача зачтена", body=note,
+        data_json=json.dumps({"task_id": t.id, "score": score, "comment": mod_comment})
+    ))
+
+    db.session.commit()
+    return as_json({"ok": True, "status": a.status})
+
+@app.post("/api/partners/task_reports/<int:assign_id>/reject")
+@partner_required
+def api_partner_task_report_reject(assign_id):
+    """
+    body: { "reason"?: str }
+    Отклоняет отчёт: ставит статус rejected и шлёт уведомление пользователю.
+    """
+    p = current_partner()
+    a, t, u = _check_partner_owns_assign(p, assign_id)
+
+    data = request.get_json(silent=True) or {}
+    reason = (data.get("reason") or "").strip()
+
+    a.status = "rejected"
+    a.completed_at = now_utc()
+
+    body = "Отчёт по задаче отклонён."
+    if reason:
+        body += f" Причина: {reason}"
+    db.session.add(Notification(
+        user_id=u.id, type="task_result",
+        title="Задача отклонена", body=body,
+        data_json=json.dumps({"task_id": t.id, "reason": reason})
+    ))
+
+    db.session.commit()
+    return as_json({"ok": True, "status": a.status})
 
 # -----------------------------------------------------------------------------
 # Run

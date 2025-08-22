@@ -1,147 +1,258 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="max-w-7xl mx-auto px-4 py-10">
-  <div class="grid md:grid-cols-[300px,1fr] gap-8">
+<section class="max-w-7xl mx-auto px-4 py-10" aria-labelledby="profile-title">
+  <h1 id="profile-title" class="sr-only">Профиль пользователя</h1>
 
-    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-6">
+  <div class="grid md:grid-cols-[320px,1fr] gap-8 items-start">
+
+    <!-- ЛЕВАЯ КОЛОНКА: карточка профиля -->
+    <aside class="relative rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6"
+           aria-label="Карточка профиля">
+
+      <!-- Кнопка-карандаш (открывает панель редактирования) -->
+      <button type="button"
+              class="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-lg
+                     border border-slate-300 dark:border-white/10
+                     hover:bg-black/5 dark:hover:bg-white/10
+                     focus:outline-none focus:ring focus:ring-indigo-500/30"
+              aria-label="Редактировать профиль"
+              @click="$dispatch('open-profile-editor')"
+              @keydown.enter.prevent="$dispatch('open-profile-editor')">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16.862 3.487a2.25 2.25 0 013.182 3.182L7.5 19.313l-4.25.567.567-4.25L16.862 3.487z" />
+        </svg>
+      </button>
+
+      <!-- Аватар + имя/уровень -->
       <div class="flex flex-col items-center">
         <div class="relative">
-          <img src="/avatar_svg/{{ user.id }}" alt="avatar"
-               class="w-44 h-44 rounded-2xl ring-1 ring-white/10 transition-all duration-300">
+          <img src="/avatar_svg/{{ user.id }}" alt="Аватар"
+               class="w-44 h-44 rounded-2xl ring-1 ring-slate-300 dark:ring-white/10 transition-all duration-300">
         </div>
 
         <div class="mt-4 text-center">
-          <div class="text-xl font-bold">{{ user.display_name }}</div>
-          <div class="text-sm text-slate-400 mt-1">Уровень {{ user.level }}</div>
-
-          <div class="w-64 h-2 bg-white/10 rounded-full mt-3 overflow-hidden">
-            {% set pct = (user.xp / user_next_xp * 100) | round(1) %}
-            <div class="h-full bg-gradient-to-r from-indigo-400 via-cyan-300 to-emerald-300"
-                 style="width: {{ pct }}%"></div>
+          <div class="text-xl font-bold text-slate-900 dark:text-slate-100" data-profile-name>
+            {{ user.display_name }}
           </div>
-          <div class="text-xs text-slate-400 mt-1">
-            XP: <span class="font-semibold">{{ user.xp }}</span> / {{ user_next_xp }}
+          <div class="text-sm text-slate-600 dark:text-slate-400 mt-1">Уровень {{ user.level }}</div>
+
+          <!-- Прогресс XP -->
+          {% set pct = (user.xp / user_next_xp * 100) | round(1) %}
+          <div class="mt-3 w-full max-w-xs" aria-label="Прогресс опыта">
+            <div class="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden"
+                 role="progressbar"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}"
+                 aria-valuetext="{{ pct }}%">
+              <div class="h-full bg-gradient-to-r from-indigo-400 via-cyan-300 to-emerald-300"
+                   style="width: {{ pct }}%"></div>
+            </div>
+            <div class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              XP: <span class="font-semibold">{{ user.xp }}</span> / {{ user_next_xp }} ({{ pct }}%)
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="mt-6 grid grid-cols-3 gap-3 text-center">
-        <div class="rounded-xl bg-black/30 border border-white/10 p-3">
+      <!-- Статы и быстрые ссылки -->
+      <div class="mt-6 grid grid-cols-3 gap-3 text-center" aria-label="Статистика и быстрые действия">
+        <div class="rounded-xl bg-white/70 dark:bg-black/30 border border-slate-300 dark:border-white/10 p-3">
           <div class="text-2xl">🪙</div>
-          <div class="text-lg font-bold">{{ user.coins }}</div>
-          <div class="text-[11px] text-slate-400">coins</div>
+          <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ user.coins }}</div>
+          <div class="text-[11px] text-slate-600 dark:text-slate-400">Coins</div>
         </div>
-        <a href="/achievements" class="rounded-2xl bg-black/30 border border-white/10 p-3 hover:bg-white/5">
+        <a href="/achievements"
+           class="rounded-2xl bg-white/70 dark:bg-black/30 border border-slate-300 dark:border-white/10 p-3 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
+           aria-label="Ачивки">
           <div class="text-2xl">🏆</div>
-          <div class="text-lg font-bold">ACH</div>
-          <div class="text-[11px] text-slate-400">👁️</div>
+          <div class="text-lg font-bold text-slate-900 dark:text-slate-100">ACH</div>
+          <div class="text-[11px] text-slate-600 dark:text-slate-400">Открыть</div>
         </a>
-        <a href="/contests" class="rounded-2xl bg-black/30 border border-white/10 p-3 hover:bg-white/5">
+        <a href="/contests"
+           class="rounded-2xl bg-white/70 dark:bg-black/30 border border-slate-300 dark:border-white/10 p-3 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
+           aria-label="Конкурсы">
           <div class="text-2xl">🏁</div>
-          <div class="text-lg font-bold">Tour.</div>
-          <div class="text-[11px] text-slate-400">👁️</div>
+          <div class="text-lg font-bold text-slate-900 dark:text-slate-100">Tour</div>
+          <div class="text-[11px] text-slate-600 dark:text-slate-400">Открыть</div>
         </a>
       </div>
 
-      <a class="mt-6 block w-full text-center px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"
-         href="/achievements">
-        История прокачки (XP/коины/ачивки)
-      </a>
+      <!-- История прокачки -->
+      <button type="button"
+              class="mt-6 w-full text-center px-4 py-3 rounded-xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
+              @click="$dispatch('open-xp-history')">
+        История прокачки (XP / coins / ачивки)
+      </button>
 
-      <!-- Ввод кода компании -->
-      <!-- Компания / вступление -->
-<div class="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4" x-data="companyJoin()" x-init="init()">
-  <!-- Состоит в компании -->
-  <template x-if="member">
-    <div>
-      <div class="text-sm font-semibold">Вы состоите в компании</div>
-      <div class="mt-1 text-slate-200 font-semibold" x-text="company_name"></div>
-      <a href="/partner/company"
-         class="mt-3 inline-block px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10">
-        Открыть панель компании
-      </a>
-    </div>
-  </template>
+      <!-- Блок компании -->
+      <section class="mt-6 rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-black/30 p-4"
+               x-data="companyJoin()" x-init="init()" aria-labelledby="company-title">
+        <h2 id="company-title" class="text-sm font-semibold text-slate-800 dark:text-slate-200">Компания</h2>
 
-  <!-- Заявка отправлена -->
-  <template x-if="!member && pending">
-    <div>
-      <div class="text-sm font-semibold">Заявка отправлена</div>
-      <div class="mt-1 text-slate-200">Компания: <span class="font-semibold" x-text="company_name"></span></div>
-      <div class="text-xs text-slate-400 mt-1">Ожидает одобрения. Новую заявку отправить нельзя.</div>
-      <div class="mt-3 flex gap-2">
-        <button @click="cancel"
-                class="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5">
-          Отменить заявку
-        </button>
-      </div>
-      <div class="text-xs text-slate-400 mt-2" x-text="status"></div>
-    </div>
-  </template>
+        <!-- Участник -->
+        <template x-if="member">
+          <div class="mt-2">
+            <div class="text-sm text-slate-700 dark:text-slate-300">Вы состоите в компании</div>
+            <div class="mt-1 text-slate-900 dark:text-slate-100 font-semibold" x-text="company_name"></div>
+            <a href="/partner/company"
+               class="mt-3 inline-block px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30">
+              Открыть панель компании
+            </a>
+          </div>
+        </template>
 
-  <!-- Нет компании и нет заявки — форма подачи -->
-  <template x-if="!member && !pending">
-    <div>
-      <div class="text-sm font-semibold">Присоединиться к компании по коду</div>
-      <div class="mt-2 flex gap-2">
-        <input x-model="code" class="flex-1 rounded-xl bg-black/40 border border-white/10 px-3 py-2"
-               placeholder="Напр. 9F3A2C1B">
-        <button @click="submit"
-                class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold"
-                :disabled="!code.trim()">
-          Отправить
-        </button>
-      </div>
-      <div class="text-xs text-slate-400 mt-2" x-text="status"></div>
-    </div>
-  </template>
-</div>
+        <!-- Заявка отправлена -->
+        <template x-if="!member && pending">
+          <div class="mt-2">
+            <div class="text-sm font-semibold text-slate-800 dark:text-slate-200">Заявка отправлена</div>
+            <div class="mt-1 text-slate-700 dark:text-slate-300">Компания: <span class="font-semibold" x-text="company_name"></span></div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Ожидает одобрения. Новую заявку отправить нельзя.</div>
+            <div class="mt-3 flex gap-2">
+              <button type="button" @click="cancel"
+                      class="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30">
+                Отменить заявку
+              </button>
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-2" x-text="status" aria-live="polite"></div>
+          </div>
+        </template>
 
-    </div>
+        <!-- Нет компании и нет заявки — форма -->
+        <template x-if="!member && !pending">
+          <form class="mt-2" @submit.prevent="submit" aria-label="Присоединиться к компании по коду">
+            <label class="block text-sm text-slate-700 dark:text-slate-300 mb-1">Присоединиться по коду</label>
+            <div class="flex gap-2">
+              <input x-model="code"
+                     inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="16"
+                     class="flex-1 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900/60
+                            text-slate-900 dark:text-slate-100 px-3 py-2 outline-none
+                            focus:ring focus:ring-indigo-500/30"
+                     placeholder="Напр. 9F3A2C1B" aria-label="Код компании">
+              <button type="submit"
+                      class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold focus:outline-none focus:ring focus:ring-indigo-500/30"
+                      :disabled="!code.trim()">
+                Отправить
+              </button>
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-2" x-text="status" aria-live="polite"></div>
+          </form>
+        </template>
+      </section>
+    </aside>
 
-    <!-- Правая колонка -->
-    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-6">
-      <h2 class="text-2xl font-bold">Добро пожаловать, {{ user.display_name }}!</h2>
-      <p class="text-slate-300 mt-2">
-        Здесь появятся твои квесты, активность и рекомендации.
-        Загляни в <a href="/training" class="text-indigo-400 hover:underline">Тренинг</a>,
-        <a href="/achievements" class="text-indigo-400 hover:underline">ачивки</a> или
-        проверь <a href="/contests" class="text-indigo-400 hover:underline">конкурсы</a>.
-      </p>
+    <!-- ПРАВАЯ КОЛОНКА -->
+    <div class="space-y-6">
 
-      <div class="mt-6 grid md:grid-cols-2 gap-4">
-        <a href="/store" class="group rounded-2xl border border-white/10 p-5 bg-gradient-to-br from-white/0 to-white/[0.03] hover:to-white/[0.06]">
-          <div class="text-3xl mb-2">🛒</div>
-          <div class="font-semibold">Магазин</div>
-          <div class="text-sm text-slate-400">Трать монеты на скины и бонусы</div>
+      <!-- Добро пожаловать -->
+      <section class="rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6"
+               aria-labelledby="welcome-title">
+        <h2 id="welcome-title" class="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          Добро пожаловать, <span data-profile-name>{{ user.display_name }}</span>!
+        </h2>
+        <p class="text-slate-700 dark:text-slate-300 mt-2">
+          Здесь появятся твои квесты, активность и рекомендации.
+          Загляни в <a href="/training" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">Тренинг</a>,
+          <a href="/achievements" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">ачивки</a> или
+          проверь <a href="/contests" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">конкурсы</a>.
+        </p>
+      </section>
+
+      <!-- Быстрые действия -->
+      <section class="grid md:grid-cols-2 gap-4" aria-label="Быстрые действия">
+        <a href="/store"
+           class="group rounded-2xl border border-slate-300 dark:border-white/10 p-5
+                  bg-gradient-to-br from-white/40 dark:from-white/0 to-white/80 dark:to-white/[0.03]
+                  hover:to-white/90 dark:hover:to-white/[0.06] focus:outline-none focus:ring focus:ring-indigo-500/30">
+          <div class="text-3xl mb-2" aria-hidden="true">🛒</div>
+          <div class="font-semibold text-slate-900 dark:text-slate-100">Магазин</div>
+          <div class="text-sm text-slate-700 dark:text-slate-400">Трать монеты на скины и бонусы</div>
         </a>
-        <a href="/partner/company" class="group rounded-2xl border border-white/10 p-5 bg-gradient-to-br from-white/0 to-white/[0.03] hover:to-white/[0.06]">
-          <div class="text-3xl mb-2">📊</div>
-          <div class="font-semibold">Компания</div>
-          <div class="text-sm text-slate-400">Соревнования и сводки по отделу</div>
+        <a href="/partner/company"
+           class="group rounded-2xl border border-slate-300 dark:border-white/10 p-5
+                  bg-gradient-to-br from-white/40 dark:from-white/0 to-white/80 dark:to-white/[0.03]
+                  hover:to-white/90 dark:hover:to-white/[0.06] focus:outline-none focus:ring focus:ring-indigo-500/30">
+          <div class="text-3xl mb-2" aria-hidden="true">📊</div>
+          <div class="font-semibold text-slate-900 dark:text-slate-100">Компания</div>
+          <div class="text-sm text-slate-700 dark:text-slate-400">Соревнования и сводки по отделу</div>
         </a>
-      </div>
+      </section>
 
-      <div class="mt-6">
-        <div class="text-sm uppercase tracking-wide text-slate-400 mb-2">Последнее</div>
-        <div class="rounded-xl border border-white/10 bg-black/30 p-4">
-          <div class="text-slate-400 text-sm">Здесь будет лента активности и персональные задания.</div>
+      <!-- Плейсхолдер активности -->
+      <section class="rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6"
+               aria-labelledby="activity-title">
+        <h2 id="activity-title" class="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2">Последнее</h2>
+        <div class="rounded-xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-black/30 p-4">
+          <div class="text-slate-700 dark:text-slate-400 text-sm">Здесь будет лента активности и персональные задания.</div>
         </div>
-      </div>
-    </div>
+      </section>
 
+    </div>
   </div>
 </section>
 
-<!-- Модал: История прокачки (без изменений) -->
+<!-- Slide-over: редактирование профиля -->
+<div x-data="profileEditor({{ user.display_name|tojson }}, {{ user.email|tojson }})"
+     @open-profile-editor.window="open()" x-cloak>
+  <!-- overlay -->
+  <div x-show="openModal" x-transition.opacity
+       class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+       @click="close()" aria-hidden="true"></div>
+
+  <!-- panel -->
+  <div x-show="openModal" x-transition
+       class="fixed inset-y-0 right-0 z-50 w-full max-w-md
+              bg-white/95 dark:bg-slate-900/95
+              border-l border-slate-200 dark:border-white/10
+              p-6 shadow-xl"
+       role="dialog" aria-modal="true" aria-labelledby="edit-title">
+    <div class="flex items-center justify-between mb-4">
+      <h2 id="edit-title" class="text-lg font-bold text-slate-900 dark:text-slate-100">Редактирование профиля</h2>
+      <button class="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white focus:outline-none"
+              @click="close()" aria-label="Закрыть">✕</button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm text-slate-700 dark:text-slate-400 mb-1" for="name">Имя</label>
+        <input id="name" type="text" x-model="name" minlength="2" required
+               class="w-full rounded-xl border border-slate-300 dark:border-white/10
+                      bg-white dark:bg-slate-900/60 text-slate-900 dark:text-slate-100
+                      px-3 py-2 outline-none focus:ring focus:ring-indigo-500/30"
+               placeholder="Ваше имя">
+      </div>
+      <div>
+        <label class="block text-sm text-slate-700 dark:text-slate-400 mb-1" for="email">E-mail</label>
+        <input id="email" type="email" x-model="email" required
+               class="w-full rounded-xl border border-slate-300 dark:border-white/10
+                      bg-white dark:bg-slate-900/60 text-slate-900 dark:text-slate-100
+                      px-3 py-2 outline-none focus:ring focus:ring-indigo-500/30"
+               placeholder="you@example.com">
+      </div>
+
+      <p class="text-sm text-rose-600 dark:text-rose-400" x-text="error" x-show="error" aria-live="assertive"></p>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button"
+                class="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
+                @click="close()" :disabled="saving">Отмена</button>
+        <button type="button" class="btn-primary" @click="save()" :disabled="saving">
+          <span x-show="saving" class="btn-spinner"></span>
+          <span x-text="saving ? 'Сохраняю…' : 'Сохранить'"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: История прокачки -->
 <div x-data="xpHistoryModal()" @open-xp-history.window="open()" x-cloak>
-  <div x-show="openModal" x-transition.opacity class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"></div>
-  <div x-show="openModal" x-transition class="fixed z-50 inset-0 grid place-items-center p-4">
-    <div class="w-full max-w-3xl rounded-2xl border border-white/10 bg-slate-900/95 p-5">
+  <div x-show="openModal" x-transition.opacity class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" aria-hidden="true"></div>
+  <div x-show="openModal" x-transition class="fixed z-50 inset-0 grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="xp-title">
+    <div class="w-full max-w-3xl rounded-2xl border border-slate-300 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 p-5">
       <div class="flex items-center justify-between">
-        <h3 class="text-xl font-bold">История прокачки</h3>
-        <button class="text-slate-400 hover:text-slate-200" @click="close()">✕</button>
+        <h2 id="xp-title" class="text-xl font-bold text-slate-900 dark:text-slate-100">История прокачки</h2>
+        <button class="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white" @click="close()" aria-label="Закрыть">✕</button>
       </div>
       <div class="mt-4 flex flex-wrap gap-2 text-sm">
         <button :class="tabBtn('all')" @click="filter='all'">Все</button>
@@ -150,27 +261,27 @@
       </div>
       <div class="mt-4 max-h-[65vh] overflow-auto space-y-3 pr-1">
         <template x-for="row in filtered" :key="row.key">
-          <div class="flex items-start gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
-            <div class="text-2xl" x-text="row.emoji"></div>
+          <article class="flex items-start gap-3 rounded-xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-black/30 p-3">
+            <div class="text-2xl" x-text="row.emoji" aria-hidden="true"></div>
             <div class="flex-1">
               <div class="flex items-center justify-between">
-                <div class="font-semibold" x-text="row.title"></div>
-                <div class="text-xs text-slate-400" x-text="row.when"></div>
+                <h3 class="font-semibold text-slate-900 dark:text-slate-100" x-text="row.title"></h3>
+                <time class="text-xs text-slate-600 dark:text-slate-400" x-text="row.when"></time>
               </div>
-              <div class="text-sm text-slate-300" x-text="row.subtitle"></div>
-              <div class="mt-1 text-xs text-slate-400" x-show="row.meta" x-text="row.meta"></div>
+              <p class="text-sm text-slate-700 dark:text-slate-300" x-text="row.subtitle"></p>
+              <div class="mt-1 text-xs text-slate-600 dark:text-slate-400" x-show="row.meta" x-text="row.meta"></div>
             </div>
-            <div class="text-right">
-              <div class="text-emerald-400 font-semibold" x-show="row.points">+<span x-text="row.points"></span> XP</div>
-              <div class="text-amber-300 font-semibold" x-show="row.coins">+<span x-text="row.coins"></span> 🪙</div>
+            <div class="text-right shrink-0">
+              <div class="text-emerald-600 dark:text-emerald-400 font-semibold" x-show="row.points">+<span x-text="row.points"></span> XP</div>
+              <div class="text-amber-600 dark:text-amber-300 font-semibold" x-show="row.coins">+<span x-text="row.coins"></span> 🪙</div>
             </div>
-          </div>
+          </article>
         </template>
 
-        <div class="text-sm text-slate-400 text-center py-6" x-show="!loading && filtered.length===0">
+        <div class="text-sm text-slate-600 dark:text-slate-400 text-center py-6" x-show="!loading && filtered.length===0" aria-live="polite">
           Пусто. Сделай первый квест или получи ачивку!
         </div>
-        <div class="text-sm text-slate-300" x-show="loading">Загрузка…</div>
+        <div class="text-sm text-slate-700 dark:text-slate-300" x-show="loading">Загрузка…</div>
       </div>
     </div>
   </div>
@@ -179,18 +290,18 @@
 
 {% block scripts %}
 <script>
+/* --- Company join block --- */
 function companyJoin(){
   return {
     code: '',
     status: '',
-    member: false,        // уже состоит в компании
-    pending: false,       // есть активная заявка
-    company_name: '',     // имя компании (для member/pending)
+    member: false,
+    pending: false,
+    company_name: '',
 
     async init(){
       try{
         const r = await fetch('/api/company/join/status', { credentials: 'same-origin' });
-        // 404 — значит на бэке нет эндпоинта, молча считаем, что статуса нет
         if (r.status === 404) { this.member=false; this.pending=false; this.company_name=''; this.status=''; return; }
         if (!r.ok) return;
         const j = await r.json().catch(()=>({}));
@@ -202,17 +313,19 @@ function companyJoin(){
     },
 
     async submit(){
-      if (this.member || this.pending) return; // запрет второй заявки
+      if (this.member || this.pending) return;
+      const code = (this.code||'').trim().toUpperCase();
+      if (!code){ this.status='Введите код компании'; return; }
+
       try{
         const r = await fetch('/api/company/join', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           credentials:'same-origin',
-          body: JSON.stringify({ code: this.code.trim() })
+          body: JSON.stringify({ code })
         });
         const j = await r.json().catch(()=>({}));
         if(!r.ok){
-          // уже есть активная заявка
           if (r.status === 409 || j.pending_exists){
             this.pending = true;
             this.company_name = j.company_name || j.company?.name || this.company_name;
@@ -222,7 +335,6 @@ function companyJoin(){
           }
           throw new Error(j.error || j.description || 'Ошибка');
         }
-        // успех: либо сразу участник, либо заявка создана
         if (j.already_member || j.member){
           this.member = true; this.pending = false;
           this.company_name = j.company_name || j.company?.name || this.company_name;
@@ -235,8 +347,8 @@ function companyJoin(){
           Alpine.store('toasts').push({title:'Заявка', text:'Отправлена на одобрение', emoji:'📨'});
         }
       }catch(e){
-        this.status = e.message;
-        Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+        this.status = e.message || 'Ошибка';
+        Alpine.store('toasts').push({title:'Ошибка', text:this.status, emoji:'⚠️'});
       }
     },
 
@@ -256,13 +368,59 @@ function companyJoin(){
         this.status = 'Заявка отменена.';
         Alpine.store('toasts').push({title:'Заявка', text:'Отменена', emoji:'🗑️'});
       }catch(e){
-        this.status = e.message;
-        Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+        this.status = e.message || 'Ошибка';
+        Alpine.store('toasts').push({title:'Ошибка', text:this.status, emoji:'⚠️'});
       }
     }
   }
 }
 
+/* --- Slide-over: profile editor --- */
+function profileEditor(initName, initEmail){
+  return {
+    openModal: false,
+    name: initName || '',
+    email: initEmail || '',
+    saving: false,
+    error: '',
+
+    open(){ this.error=''; this.openModal = true; },
+    close(){ if(!this.saving) this.openModal = false; },
+
+    async save(){
+      if ((this.name||'').trim().length < 2){ this.error = 'Имя слишком короткое'; return; }
+      if (!/.+@.+\..+/.test(this.email||'')){ this.error = 'Некорректный e-mail'; return; }
+
+      this.saving = true; this.error = '';
+      try{
+        const r = await fetch('/api/me/profile', {
+          method:'POST',
+          credentials:'same-origin',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ name:this.name.trim(), email:this.email.trim() })
+        });
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok || j.ok === false){
+          const msg = j.error || j.description || (r.status===409 ? 'E-mail уже занят' : 'Не удалось сохранить');
+          throw new Error(msg);
+        }
+        Alpine.store('toasts').push({title:'Профиль', text:'Обновлён', emoji:'✅'});
+
+        // Обновим имя в карточке (все элементы с data-profile-name)
+        document.querySelectorAll('[data-profile-name]').forEach(el => el.textContent = this.name);
+
+        this.close();
+      }catch(e){
+        this.error = e.message || 'Ошибка';
+        Alpine.store('toasts').push({title:'Ошибка', text:this.error, emoji:'⚠️'});
+      }finally{
+        this.saving = false;
+      }
+    }
+  }
+}
+
+/* --- XP history modal --- */
 function xpHistoryModal(){
   return {
     openModal: false,
@@ -271,7 +429,8 @@ function xpHistoryModal(){
     items: [],
 
     tabBtn(kind){
-      return `px-3 py-1 rounded-lg border ${this.filter===kind ? 'bg-white/10 border-white/20' : 'border-white/10 hover:bg-white/5'}`;
+      const active = this.filter===kind;
+      return `px-3 py-1 rounded-lg border ${active ? 'bg-white/10 border-white/20' : 'border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10'}`;
     },
 
     get filtered(){
@@ -279,30 +438,18 @@ function xpHistoryModal(){
       return this.items.filter(x => x.type === this.filter); // 'achievement' | 'events'
     },
 
-    open(){
-      this.openModal = true;
-      if (!this.items.length) this.load();
-    },
+    open(){ this.openModal = true; if (!this.items.length) this.load(); },
     close(){ this.openModal = false; },
 
     async load(){
       this.loading = true;
       try{
-        // ✅ правильный эндпоинт бэка
         const r = await fetch('/api/user/xp_history', { credentials: 'same-origin' });
         const j = await r.json().catch(()=>({}));
         if (!r.ok) return;
 
         const events = Array.isArray(j.events) ? j.events : [];
-
-        const emojiBySource = {
-          achievement: '🏆',
-          task: '✅',
-          training: '🎓',
-          sale: '💼',
-          contest: '🏁',
-          bonus: '✨',
-        };
+        const emojiBySource = { achievement:'🏆', task:'✅', training:'🎓', sale:'💼', contest:'🏁', bonus:'✨' };
 
         this.items = events.map(ev => {
           const m = ev.meta || {};
@@ -311,46 +458,16 @@ function xpHistoryModal(){
           const when = ev.created_at ? new Date(ev.created_at).toLocaleString() : '';
           const emoji = emojiBySource[src] || '📌';
 
-          let title = 'Событие';
-          let subtitle = '';
-
+          let title = 'Событие', subtitle = '';
           switch (src) {
-            case 'achievement':
-              title = ev.achievement_title || 'Ачивка';
-              subtitle = m.code ? `Код: ${m.code}` : '';
-              break;
-            case 'task':
-              title = 'Задача выполнена';
-              subtitle = m.title || '';
-              break;
-            case 'training':
-              title = 'Тренинг пройден';
-              subtitle = m.title ? `${m.title}${m.score!=null ? ` (${m.score}%)` : ''}` : '';
-              break;
-            case 'contest':
-              title = 'Конкурс';
-              subtitle = m.title || '';
-              break;
-            case 'sale':
-              title = 'Продажа';
-              subtitle = m.title || '';
-              break;
-            default:
-              title = 'Событие';
-              subtitle = m.title || '';
+            case 'achievement': title = ev.achievement_title || 'Ачивка'; subtitle = m.code ? `Код: ${m.code}` : ''; break;
+            case 'task':       title = 'Задача выполнена'; subtitle = m.title || ''; break;
+            case 'training':   title = 'Тренинг пройден'; subtitle = m.title ? `${m.title}${m.score!=null ? ` (${m.score}%)` : ''}` : ''; break;
+            case 'contest':    title = 'Конкурс'; subtitle = m.title || ''; break;
+            case 'sale':       title = 'Продажа'; subtitle = m.title || ''; break;
           }
 
-          return {
-            key: ev.id,
-            emoji,
-            title,
-            when,
-            subtitle,
-            meta: '',
-            points: ev.points,
-            coins: ev.coins,
-            type
-          };
+          return { key: ev.id, emoji, title, when, subtitle, meta: '', points: ev.points, coins: ev.coins, type };
         });
       } finally {
         this.loading = false;
@@ -358,8 +475,5 @@ function xpHistoryModal(){
     }
   }
 }
-
 </script>
-
-
 {% endblock %}

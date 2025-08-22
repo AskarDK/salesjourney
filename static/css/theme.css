@@ -1,0 +1,60 @@
+/* Токены (можно расширять позже) */
+:root {
+  --surface: #0b1220;
+  --card: rgba(2,6,23,0.6);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --border: #1e293b;
+  --primary: #6366f1;
+  --primary-contrast: #0b1220;
+}
+html:not(.dark) {
+  --surface: #ffffff;
+  --card: rgba(15,23,42,0.05);
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #4f46e5;
+  --primary-contrast: #ffffff;
+}
+
+/* Утилиты (не ломают текущую вёрстку) */
+.ui-surface { background-color: var(--surface); color: var(--text); }
+.ui-card    { background-color: var(--card); color: var(--text); border: 1px solid var(--border); }
+.ui-text    { color: var(--text); }
+.ui-muted   { color: var(--muted); }
+.ui-border  { border-color: var(--border); }
+
+/* Кнопка primary (для новых мест) */
+.btn-primary{
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-radius: 0.75rem;
+  padding: .625rem 1rem;
+  font-weight: 600;
+}
+.btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* Индикатор загрузки в кнопке */
+.btn-spinner{
+  width: 1rem; height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  display:inline-block; vertical-align:middle; margin-right:.5rem;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Скелетоны */
+.skeleton {
+  position: relative; overflow:hidden;
+  background: #e5e7eb; /* slate-200 */
+}
+html.dark .skeleton { background: #334155; /* slate-700 */ }
+.skeleton::after{
+  content:""; position:absolute; inset:0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, #ffffff33, transparent);
+  animation: skeleton 1.2s infinite;
+}
+@keyframes skeleton { 100% { transform: translateX(100%);} }

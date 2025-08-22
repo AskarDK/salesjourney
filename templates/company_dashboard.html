@@ -6,17 +6,25 @@
   <template x-if="err">
     <div class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-200" x-text="err"></div>
   </template>
+  <!-- skeleton при загрузке -->
+  <template x-if="!data && !err">
+    <div class="mt-6 grid sm:grid-cols-3 gap-4">
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-24 rounded-2xl"></div>
+    </div>
+  </template>
 
   <div class="mt-6 grid sm:grid-cols-3 gap-4" x-show="data">
-    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+<div class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-5">
       <div class="text-sm text-slate-400">Участников</div>
       <div class="text-2xl font-bold" x-text="data.kpi.members"></div>
     </div>
-    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+<div class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-5">
       <div class="text-sm text-slate-400">Средний уровень</div>
       <div class="text-2xl font-bold" x-text="data.kpi.avg_level"></div>
     </div>
-    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+<div class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-5">
       <div class="text-sm text-slate-400">Событий за 7 дней</div>
       <div class="text-2xl font-bold" x-text="data.kpi.events_7d"></div>
     </div>

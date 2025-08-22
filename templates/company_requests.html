@@ -12,9 +12,19 @@
     <button @click="load" class="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5">Загрузить</button>
   </div>
 
-  <div class="mt-6 rounded-2xl border border-white/10 bg-slate-900/60">
+      <!-- skeleton при загрузке -->
+    <template x-if="loading">
+      <div class="p-4 space-y-3">
+        <div class="skeleton h-12 rounded-xl"></div>
+        <div class="skeleton h-12 rounded-xl"></div>
+        <div class="skeleton h-12 rounded-xl"></div>
+      </div>
+    </template>
+
+
+<div class="mt-6 rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60">
     <div class="p-4 border-b border-white/10 text-sm text-slate-400">Ожидают подтверждения</div>
-    <div class="divide-y divide-white/10">
+    <div class="divide-y divide-white/10" x-show="!loading && rows.length">
       <template x-for="r in rows" :key="r.id">
         <div class="p-4 flex items-center justify-between">
           <div>
@@ -27,7 +37,7 @@
           </div>
         </div>
       </template>
-      <div class="p-4 text-sm text-slate-400" x-show="rows.length===0">Нет заявок.</div>
+      <div class="p-4 text-sm text-slate-500 dark:text-slate-400" x-show="!loading && rows.length===0">Нет заявок.</div>
     </div>
   </div>
 </section>
@@ -40,7 +50,9 @@ function companyRequests(){
   return {
     companyId: '',
     rows: [],
+    loading: false,
     async load(){
+      this.loading = true;
       try{
         const r = await fetch(`/api/company/join/requests?company_id=${this.companyId}`);
         const j = await r.json();
@@ -48,8 +60,11 @@ function companyRequests(){
         this.rows = j.requests || [];
       }catch(e){
         Alpine.store('toasts').push({title:'Ошибка', text:e.message, emoji:'⚠️'});
+      } finally {
+        this.loading = false;
       }
     },
+
     async approve(id){
       const r = await fetch(`/api/company/join/approve/${id}`, {method:'POST'});
       const j = await r.json().catch(()=>({}));

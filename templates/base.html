@@ -2,12 +2,135 @@
 <html lang="ru" x-data>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>{{ title or "Sales Journey" }}</title>
+  <meta name="theme-color" content="#0b1220" id="themeColorMeta">
 
-  <!-- Tailwind CDN (dev). В проде используй собранный CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+  <!-- Тема: раннее применение без мерцания -->
+  <script>
+    (function(){
+      try{
+        const KEY='sj_theme';
+        const saved = localStorage.getItem(KEY);
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const mode = saved || (prefersDark ? 'dark' : 'light');
+        const root = document.documentElement;
+        root.classList.toggle('dark', mode==='dark');
+        root.dataset.theme = mode;
+        const meta = document.getElementById('themeColorMeta');
+        if (meta) meta.setAttribute('content', mode==='dark' ? '#0b1220' : '#ffffff');
+        window.__setTheme = function(m){
+          const dark = m==='dark';
+          root.classList.toggle('dark', dark);
+          root.dataset.theme = m;
+          localStorage.setItem(KEY, m);
+          const meta = document.getElementById('themeColorMeta');
+          if (meta) meta.setAttribute('content', dark ? '#0b1220' : '#ffffff');
+          window.dispatchEvent(new CustomEvent('sj:theme', { detail:{ mode:m } }));
+        };
+      }catch(e){}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: { brand: '#4F46E5' },
+          boxShadow: {
+            soft: '0 10px 30px -12px rgba(0,0,0,.20)',
+            'inner-soft': 'inset 0 1px 0 rgba(255,255,255,.04), inset 0 -1px 0 rgba(0,0,0,.08)'
+          },
+          transitionTimingFunction: {
+            'swift': 'cubic-bezier(.2,.8,.2,1)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    [x-cloak]{display:none!important}
+
+    /* Токены — переиспользуем цвета для светлой/тёмной */
+    :root{
+      --bg-surface:#ffffff;
+      --bg-card:rgba(15,23,42,0.05);
+      --bg-chip:rgba(0,0,0,.06);
+      --bg-dropdown:#ffffff;
+      --txt:#0f172a;
+      --muted:#64748b;
+      --bd:#e2e8f0;
+      --overlay: rgba(2,6,23,.25);
+    }
+    html.dark{
+      --bg-surface:#0b1220;
+      --bg-card:rgba(2,6,23,.60);
+      --bg-chip:rgba(255,255,255,.10);
+      --bg-dropdown:rgba(2,6,23,.95);
+      --txt:#e2e8f0;
+      --muted:#94a3b8;
+      --bd:#1e293b;
+      --overlay: rgba(2,6,23,.60);
+    }
+
+    /* Глобальная адаптация тёмных классов под светлую тему */
+    .theme-auto .bg-slate-900\/60{ background-color: var(--bg-card) !important; }
+    .theme-auto .bg-slate-900\/95{ background-color: var(--bg-dropdown) !important; }
+    .theme-auto .bg-black\/30{     background-color: var(--bg-card) !important; }
+    .theme-auto .bg-black\/40{     background-color: var(--bg-card) !important; }
+    .theme-auto .bg-white\/10{     background-color: var(--bg-chip) !important; }
+    .theme-auto .border-white\/10{ border-color: var(--bd) !important; }
+    .theme-auto .text-slate-300{   color: var(--muted) !important; }
+    .theme-auto .text-slate-400{   color: var(--muted) !important; }
+    .theme-auto .text-slate-100{   color: var(--txt)   !important; }
+    .theme-auto .hover\:bg-white\/5:hover{  background-color: rgba(0,0,0,.05) !important; }
+    .theme-auto .hover\:bg-white\/10:hover{ background-color: rgba(0,0,0,.08) !important; }
+    .theme-auto .bg-slate-900\/80{ background-color: var(--bg-dropdown) !important; }
+    .theme-auto .bg-slate-900\/90{ background-color: var(--bg-dropdown) !important; }
+    .theme-auto input.bg-black\/40,
+    .theme-auto textarea.bg-black\/40,
+    .theme-auto select.bg-black\/40{
+      background-color: var(--bg-surface) !important;
+      color: var(--txt) !important;
+      border-color: var(--bd) !important;
+    }
+    .theme-auto .bg-slate-900\/50{ background-color: var(--bg-card) !important; }
+
+    html:not(.dark) .theme-auto [class*="bg-slate-900/"],
+    html:not(.dark) .theme-auto [class~="bg-slate-900"],
+    html:not(.dark) .theme-auto [class*="bg-slate-950"],
+    html:not(.dark) .theme-auto [class*="bg-black/"]{
+      background-color: var(--bg-card) !important;
+    }
+
+    /* Skeleton shimmer */
+    .skeleton{
+      position:relative; overflow:hidden; background:linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.08), rgba(148,163,184,.15));
+      background-size:200% 100%; animation:sk 1.4s linear infinite;
+    }
+    @keyframes sk { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* Микроэффекты */
+    .hover-lift{ transition:transform .25s var(--swift, cubic-bezier(.2,.8,.2,1)), box-shadow .25s var(--swift, cubic-bezier(.2,.8,.2,1)); }
+    .hover-lift:hover{ transform:translateY(-2px); box-shadow:var(--shadow, 0 10px 20px -12px rgba(0,0,0,.25)); }
+
+    /* Градиентная линия под шапкой */
+    .grad-anim { background: linear-gradient(90deg,#22d3ee,#6366f1,#22c55e,#f59e0b,#22d3ee); background-size: 300% 100%; animation: shift 12s ease infinite; }
+    @keyframes shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+    /* Плавающая кнопка "вверх" */
+    .float { animation: float 6s ease-in-out infinite; }
+    @keyframes float { 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
+
+    /* Уменьшаем анимации для reduce-motion */
+    @media (prefers-reduced-motion: reduce){
+      * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+    }
+  </style>
 
   <!-- Наши stores/эффекты: ПЕРЕД Alpine -->
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
@@ -20,130 +143,249 @@
   <style>
     body{font-family:'Inter',sans-serif}
     .glow { box-shadow: 0 0 30px rgba(59,130,246,.35), inset 0 0 15px rgba(99,102,241,.25); }
-    .grad-anim { background: linear-gradient(120deg,#0ea5e9,#6366f1,#e879f9,#22d3ee); background-size:300% 300%; animation:shift 10s ease infinite; }
-    @keyframes shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-    .float { animation: float 6s ease-in-out infinite; }
-    @keyframes float { 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
     .sparkle { position:relative; }
     .sparkle:after{ content:""; position:absolute; inset:-2px; border-radius:14px; background: radial-gradient(white,rgba(255,255,255,0)) center/150% 150% no-repeat; filter: blur(8px); opacity:.15; }
+    .link-underline{ position:relative; }
+    .link-underline:after{ content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px; background: currentColor; opacity:.2; transition:opacity .2s; }
+    .link-underline:hover:after{ opacity:.55; }
   </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100">
-  <!-- nav -->
-  <header class="sticky top-0 z-40 bg-slate-950/70 backdrop-blur border-b border-white/10">
+
+<body class="theme-auto min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+  <!-- HEADER -->
+  <header x-data="headerUI()" class="sticky top-0 z-40 backdrop-blur border-b border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-950/70 transition-shadow">
+    <div class="h-0.5 grad-anim"></div>
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="/" class="text-xl font-extrabold tracking-tight">
-        <span class="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 text-transparent bg-clip-text">
-          Sales Journey
-        </span>
-      </a>
+      <div class="flex items-center gap-3">
+        <!-- Burger (mobile) -->
+        <button class="md:hidden p-2 rounded-lg border border-white/10 hover:bg-white/10"
+                @click="toggleMobile()" :aria-expanded="mobileOpen.toString()" aria-controls="mobileNav" aria-label="Открыть меню">
+          <svg x-show="!mobileOpen" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <svg x-show="mobileOpen" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
+        <a href="/" class="text-xl font-extrabold tracking-tight hover:opacity-90 transition">
+          <span class="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 text-transparent bg-clip-text">
+            Sales Journey
+          </span>
+        </a>
+      </div>
 
       <!-- DESKTOP NAV -->
-{% set is_user = current_user is not none %}
-{% set is_partner = current_partner is not none %}
-{% set is_admin = current_admin is not none %}
+      {% set is_user = current_user is not none %}
+      {% set is_partner = current_partner is not none %}
+      {% set is_admin = current_admin is not none %}
 
-<nav class="hidden md:flex items-center gap-3">
-  {# Меню пользователя #}
-  {% if is_user %}
-    <a href="{{ url_for('page_training_list') }}" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Курсы</a>
-    <a href="/contests" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Конкурсы</a>
-    <a href="/store" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Магазин</a>
-    {% if current_user.company and is_manager(current_user.company.id) %}
-      <a href="/company/requests" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Заявки</a>
-      <a href="/training/create" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold">Создать курс</a>
-    {% endif %}
-  {% endif %}
+      <nav class="hidden md:flex items-center gap-3">
+        {% if is_user %}
+          <a href="{{ url_for('page_training_list') }}" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover-lift link-underline">Курсы</a>
+          <a href="/contests" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover-lift link-underline">Конкурсы</a>
+          <a href="/store" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover-lift link-underline">Магазин</a>
+          {% if current_user.company and is_manager(current_user.company.id) %}
+            <a href="/company/requests" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover-lift">Заявки</a>
+            <a href="/partner/reports" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover-lift">Отчёты по задачам</a>
+            <a href="/training/create" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold hover-lift">Создать курс</a>
+          {% endif %}
+        {% endif %}
 
-  {# Меню партнёра #}
-  {% if is_partner %}
-    <a href="/partner/company" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Моя компания</a>
-    <a href="/partner/training/create" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold">Курс для сотрудников</a>
-  {% endif %}
+        {% if is_partner %}
+          <a href="/partner/company" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover-lift">Моя компания</a>
+          <a href="/partner/training/create" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold hover-lift">Курс для сотрудников</a>
+        {% endif %}
 
-  {# Меню админа #}
-  {% if is_admin %}
-    <a href="{{ url_for('page_admin_dashboard') }}" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold">Админ-панель</a>
-  {% endif %}
+        {% if is_admin %}
+          <a href="/partner/requests" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover-lift">Заявки</a>
+          <a href="/partner/reports" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover-lift">Отчёты по задачам</a>
+          <a href="{{ url_for('page_admin_dashboard') }}" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold hover-lift">Админ-панель</a>
+        {% endif %}
+      </nav>
 
+      <!-- RIGHT -->
+      <div class="flex items-center gap-3">
+        <!-- Theme switch -->
+        <button class="rounded-xl border border-slate-300 dark:border-white/10 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
+                @click="toggleTheme()" aria-label="Сменить тему">
+          <span class="dark:hidden">🌙 Тёмная</span>
+          <span class="hidden dark:inline">☀️ Светлая</span>
+        </button>
 
-</nav>
+        {% if is_user %}
+          <!-- Notifications -->
+          <div class="relative" x-data="notifMenu()" @keydown.escape="open=false">
+            <button @click="toggle()"
+                    class="relative rounded-xl border border-white/10 px-3 py-2 hover:bg-white/5"
+                    aria-label="Уведомления">
+              🔔
+              <span x-show="unreadCount"
+                    class="absolute -top-1 -right-1 text-[10px] px-1 rounded bg-rose-600 text-white animate-pulse"
+                    x-text="unreadCount"></span>
+            </button>
 
-{# Правая часть шапки #}
-<div class="flex items-center gap-3">
-  {% if is_user %}
-  <div class="relative" x-data="notifMenu()" @keydown.escape="open=false">
-  <button @click="toggle()" class="relative rounded-xl border border-white/10 px-3 py-2 hover:bg-white/5">
-    🔔
-    <span x-show="unreadCount" class="absolute -top-1 -right-1 text-[10px] px-1 rounded bg-rose-600 text-white" x-text="unreadCount"></span>
-  </button>
-  <div x-show="open" x-transition class="absolute right-0 mt-2 w-80 rounded-xl border border-white/10 bg-slate-900/95 p-2">
-    <div class="text-sm text-slate-400 px-2 py-1">Уведомления</div>
-    <template x-for="n in items" :key="n.id">
-      <div class="p-2 rounded-lg hover:bg-white/5">
-        <div class="text-sm font-semibold" x-text="n.title"></div>
-        <div class="text-xs text-slate-400" x-text="n.body"></div>
+            <div x-show="open" x-transition
+                 class="absolute right-0 mt-2 w-80 max-w-[90vw] z-50
+                        rounded-xl border border-slate-200 dark:border-white/10
+                        bg-white/90 dark:bg-slate-900/95 p-2 shadow-soft"
+                 @click.outside="open=false" x-cloak>
+
+              <div class="text-sm text-slate-500 dark:text-slate-400 px-2 py-1">Уведомления</div>
+
+              <!-- quick filters -->
+              <div class="flex flex-wrap items-center gap-1.5 px-2 py-1">
+                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-white/10 text-xs whitespace-nowrap"
+                        :class="{'bg-black/5 dark:bg-white/10': tab==='all'}"
+                        @click="tab='all'">Все</button>
+                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-white/10 text-xs whitespace-nowrap"
+                        :class="{'bg-black/5 dark:bg-white/10': tab==='system'}"
+                        @click="tab='system'">Системные</button>
+                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-white/10 text-xs whitespace-nowrap"
+                        :class="{'bg-black/5 dark:bg-white/10': tab==='review'}"
+                        @click="tab='review'">Проверки</button>
+                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-white/10 text-xs whitespace-nowrap"
+                        :class="{'bg-black/5 dark:bg-white/10': tab==='achievement'}"
+                        @click="tab='achievement'">Ачивки</button>
+                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-white/10 text-xs whitespace-nowrap"
+                        :class="{'bg-black/5 dark:bg-white/10': tab==='purchase'}"
+                        @click="tab='purchase'">Покупки</button>
+              </div>
+
+              <template x-if="loading">
+                <div class="p-2 space-y-2">
+                  <div class="skeleton h-10 rounded-lg"></div>
+                  <div class="skeleton h-10 rounded-lg"></div>
+                </div>
+              </template>
+
+              <div class="px-2 py-3 text-sm text-slate-500 dark:text-slate-400"
+                   x-show="!loading && filtered.length===0">
+                Пока уведомлений нет.
+              </div>
+
+              <div class="overflow-y-auto max-h-[60vh] pr-1">
+                <template x-for="n in filtered" :key="n.id">
+                  <div class="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition">
+                    <div class="text-sm font-semibold" x-text="n.title"></div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400" x-text="n.body"></div>
+                  </div>
+                </template>
+              </div>
+
+              <div class="flex justify-end" x-show="!loading && filtered.length">
+                <button class="text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-2 py-1"
+                        @click="markAllRead()">Отметить всё прочитанным</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile: user -->
+          <div class="relative" x-data="{open:false}" @keydown.escape="open=false">
+            <button class="flex items-center gap-3 group" @click="open=!open" :aria-expanded="open.toString()" aria-haspopup="menu">
+              <img src="{{ url_for('avatar_svg', user_id=current_user.id) }}?part=head&t={{ (current_user.updated_at.timestamp()|int) if current_user.updated_at else 0 }}"
+                   alt="avatar" class="w-9 h-9 rounded-full ring-2 ring-white/10 transition group-hover:ring-white/20">
+              <span class="font-semibold">{{ current_user.display_name }}</span>
+            </button>
+            <div x-show="open" x-transition
+                 class="absolute right-0 mt-2 w-52 rounded-xl border border-white/10 bg-slate-900/95 p-2 shadow-soft"
+                 @click.outside="open=false" x-cloak role="menu">
+              <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/profile" role="menuitem">Профиль</a>
+              {% if current_user.company and is_manager(current_user.company.id) %}
+              <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/company/requests" role="menuitem">Заявки</a>
+              <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/partner/reports" role="menuitem">Отчёты по задачам</a>
+              {% endif %}
+              <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5"
+                      onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/login')" role="menuitem">
+                Выйти
+              </button>
+            </div>
+          </div>
+
+        {% elif is_partner %}
+          <!-- Profile: partner -->
+          <div class="relative" x-data="{open:false}" @keydown.escape="open=false">
+            <button class="flex items-center gap-3 group" @click="open=!open" :aria-expanded="open.toString()" aria-haspopup="menu">
+              <div class="w-9 h-9 grid place-items-center rounded-full ring-2 ring-white/10 bg-indigo-500/20">🤝</div>
+              <span class="font-semibold">{{ current_partner.email }}</span>
+            </button>
+            <div x-show="open" x-transition
+                 class="absolute right-0 mt-2 w-56 rounded-xl border border-white/10 bg-slate-900/95 p-2 shadow-soft"
+                 @click.outside="open=false" x-cloak role="menu">
+              <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/partner/company" role="menuitem">Моя компания</a>
+              <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/partner/training/create" role="menuitem">Создать курс</a>
+              <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5"
+                onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>location.href='/partner/login')" role="menuitem">
+                Выйти (партнёр)
+              </button>
+            </div>
+          </div>
+
+        {% elif is_admin %}
+          <form onsubmit="event.preventDefault(); fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">
+            <button class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Выйти (админ)</button>
+          </form>
+
+        {% else %}
+          <!-- гостю показываем набор коротких кнопок -->
+          <a href="/login" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hidden sm:inline-block">Войти</a>
+          <a href="/register" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold hidden sm:inline-block">Регистрация</a>
+          <a href="{{ url_for('page_admin_login') }}" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hidden lg:inline-block">Вход для админа</a>
+          <a href="/partner/login" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 hidden lg:inline-block">Вход партнёра</a>
+        {% endif %}
       </div>
-    </template>
-    <div class="flex justify-end">
-      <button class="text-xs text-slate-300 hover:text-white px-2 py-1" @click="markAllRead()">Отметить всё прочитанным</button>
     </div>
-  </div>
-</div>
-    {# профиль обычного пользователя #}
-    <div class="relative" x-data="{open:false}" @mouseenter="open=true" @mouseleave="open=false">
-      <a href="{{ url_for('profile_page') }}" class="flex items-center gap-3">
-        <img src="{{ url_for('avatar_svg', user_id=current_user.id) }}?part=head&t={{ (current_user.updated_at.timestamp()|int) if current_user.updated_at else 0 }}"
-             alt="avatar" class="w-9 h-9 rounded-full ring-2 ring-white/10 transition">
-        <span class="text-slate-100 font-semibold">{{ current_user.display_name }}</span>
-      </a>
-      <div x-show="open" x-transition class="absolute right-0 mt-2 w-44 rounded-xl border border-white/10 bg-slate-900/95 p-2">
-        <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/profile">Профиль</a>
-  <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5"
-        onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/login')">
-  Выйти
-</button>
 
-
+    <!-- MOBILE NAV (Drawer) -->
+    <div x-cloak x-show="mobileOpen" x-transition.opacity class="fixed inset-0 z-40 bg-[var(--overlay)] md:hidden" @click="closeMobile()" aria-hidden="true"></div>
+    <aside id="mobileNav" x-cloak x-show="mobileOpen"
+           x-transition:enter="transition transform ease-out duration-200"
+           x-transition:enter-start="-translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           x-transition:leave="transition transform ease-in duration-150"
+           x-transition:leave-start="translate-x-0"
+           x-transition:leave-end="-translate-x-full"
+           class="fixed left-0 top-0 bottom-0 z-50 w-[84vw] max-w-sm bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10 shadow-soft md:hidden">
+      <div class="p-4 flex items-center justify-between border-b border-slate-200 dark:border-white/10">
+        <span class="text-lg font-extrabold">Навигация</span>
+        <button class="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5" @click="closeMobile()" aria-label="Закрыть меню">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
       </div>
-    </div>
-
-  {% elif is_partner %}
-    {# профиль партнёра #}
-    <div class="relative" x-data="{open:false}" @mouseenter="open=true" @mouseleave="open=false">
-      <a href="/partner/company" class="flex items-center gap-3">
-        <div class="w-9 h-9 grid place-items-center rounded-full ring-2 ring-white/10 bg-indigo-500/20">🤝</div>
-        <span class="text-slate-100 font-semibold">{{ current_partner.email }}</span>
-      </a>
-      <div x-show="open" x-transition class="absolute right-0 mt-2 w-48 rounded-xl border border-white/10 bg-slate-900/95 p-2">
-        <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/partner/company">Моя компания</a>
-        <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/partner/training/create">Создать курс</a>
-       <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5"
-        onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>location.href='/partner/login')">
-  Выйти (партнёр)
-</button>
-
+      <nav class="p-3 flex flex-col gap-2 text-sm">
+        {% if is_user %}
+          <a href="{{ url_for('page_training_list') }}" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Курсы</a>
+          <a href="/contests" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Конкурсы</a>
+          <a href="/store" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Магазин</a>
+          {% if current_user.company and is_manager(current_user.company.id) %}
+            <a href="/company/requests" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Заявки</a>
+            <a href="/partner/reports" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Отчёты по задачам</a>
+            <a href="/training/create" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold">Создать курс</a>
+          {% endif %}
+          <hr class="my-2 border-white/10">
+          <a href="/profile" class="px-3 py-2 rounded-lg hover:bg-white/5">Профиль</a>
+          <button class="text-left px-3 py-2 rounded-lg hover:bg-white/5"
+                  onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/login')">Выйти</button>
+        {% elif is_partner %}
+          <a href="/partner/company" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Моя компания</a>
+          <a href="/partner/training/create" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold">Создать курс</a>
+          <hr class="my-2 border-white/10">
+          <button class="text-left px-3 py-2 rounded-lg hover:bg-white/5"
+                  onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>location.href='/partner/login')">Выйти (партнёр)</button>
+        {% elif is_admin %}
+          <a href="/partner/requests" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Заявки</a>
+          <a href="/partner/reports" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Отчёты по задачам</a>
+          <a href="{{ url_for('page_admin_dashboard') }}" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold">Админ-панель</a>
+          <hr class="my-2 border-white/10">
+          <button class="text-left px-3 py-2 rounded-lg hover:bg-white/5"
+                  onclick="fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">Выйти (админ)</button>
+        {% else %}
+          <a href="/login" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10">Войти</a>
+          <a href="/register" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold">Регистрация</a>
+          <a href="{{ url_for('page_admin_login') }}" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Вход для админа</a>
+          <a href="/partner/login" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Вход партнёра</a>
+        {% endif %}
+      </nav>
+      <div class="mt-auto p-3 border-t border-white/10">
+        <button class="w-full rounded-lg border border-slate-300 dark:border-white/10 px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5"
+                @click="toggleTheme()">Сменить тему</button>
       </div>
-    </div>
-
-  {% elif is_admin %}
-    {# админ: только кнопка выхода админа #}
-    <form onsubmit="event.preventDefault(); fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">
-      <button class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Выйти (админ)</button>
-    </form>
-
-  {% else %}
-    {# никто не залогинен: показываем вход/регистрацию и вход для админа #}
-    <a href="/login" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10">Войти</a>
-    <a href="/register" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold">Регистрация</a>
-    <a href="{{ url_for('page_admin_login') }}" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Вход для админа</a>
-    {# вход партнёра уже есть в левом меню, но можно и тут продублировать, если хочешь: #}
-    <a href="/partner/login" class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Вход партнёра</a>
-  {% endif %}
-</div>
-
-      </div>
-    </div>
+    </aside>
   </header>
 
   <main class="min-h-[80vh]">
@@ -159,7 +401,7 @@
   </footer>
 
   <!-- Toasts -->
-  <div class="fixed top-3 right-3 z-[100] space-y-3 w-80" aria-live="polite">
+  <div class="fixed top-3 right-3 z-[100] space-y-3 w-[92vw] max-w-80" aria-live="polite">
     <template x-for="t in $store.toasts?.items || []" :key="t.id">
       <div x-show="t.show" x-transition.opacity.duration.200ms
            class="rounded-xl border border-white/10 shadow-xl bg-slate-900/90 p-4 flex gap-3">
@@ -175,19 +417,75 @@
 
   <!-- Confetti canvas -->
   <canvas id="confetti" class="pointer-events-none fixed inset-0 z-[90]"></canvas>
-  {% block scripts %}{% endblock %}
-<script>
-function notifMenu(){ return {
-  open:false, items:[], unreadCount:0,
-  async toggle(){ this.open=!this.open; if(this.open){ await this.load(); } },
-  async load(){
-    const r = await fetch('/api/notifications'); if(!r.ok) return;
-    const d = await r.json(); this.items = d.notifications || [];
-    this.unreadCount = this.items.filter(x=>!x.is_read).length;
-  },
-  async markAllRead(){ await fetch('/api/notifications/read',{method:'POST'}); await this.load(); }
-}}
-</script>
-</body>
 
+  <!-- Кнопка "вверх" -->
+  <button x-data="scrollTopBtn()" x-show="visible" x-transition.opacity
+          @click="go()" aria-label="Наверх"
+          class="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-40
+                 rounded-full p-3 bg-indigo-600 hover:bg-indigo-500 text-white shadow-soft float">
+    ↑
+  </button>
+
+  {% block scripts %}{% endblock %}
+
+  <script>
+    // Header logic: shadow on scroll, mobile drawer, theme toggle
+    function headerUI(){
+      return {
+        mobileOpen:false,
+        toggleMobile(){ this.mobileOpen = !this.mobileOpen },
+        closeMobile(){ this.mobileOpen = false },
+        toggleTheme(){ window.__setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark') }
+      }
+    }
+
+    // Sticky header shadow on scroll
+    (function(){
+      const hdr = document.querySelector('header.sticky');
+      if(!hdr) return;
+      const onScroll = () => {
+        const sc = window.scrollY || document.documentElement.scrollTop;
+        hdr.style.boxShadow = sc > 4 ? '0 8px 24px -18px rgba(0,0,0,.35)' : 'none';
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+
+    // "Наверх" btn
+    function scrollTopBtn(){
+      return {
+        visible:false,
+        init(){
+          const onScroll = () => { this.visible = (window.scrollY || document.documentElement.scrollTop) > 400; };
+          window.addEventListener('scroll', onScroll, { passive: true });
+          onScroll();
+        },
+        go(){ window.scrollTo({top:0, behavior:'smooth'}); }
+      }
+    }
+
+    // Уведомления (оставляем твою логику)
+    function notifMenu(){ return {
+      open:false, items:[], unreadCount:0, loading:false, tab:'all',
+      get filtered(){
+        if (this.tab==='all') return this.items;
+        const key = this.tab;
+        return this.items.filter(n => (n.type||n.category||'').toLowerCase() === key);
+      },
+      async toggle(){ this.open=!this.open; if(this.open){ await this.load(); } },
+      async load(){
+        this.loading = true;
+        try{
+          const r = await fetch('/api/notifications'); if(!r.ok) return;
+          const d = await r.json();
+          this.items = d.notifications || [];
+          this.unreadCount = this.items.filter(x=>!x.is_read).length;
+        } finally {
+          this.loading = false;
+        }
+      },
+      async markAllRead(){ await fetch('/api/notifications/read',{method:'POST'}); await this.load(); }
+    }}
+  </script>
+</body>
 </html>

@@ -1,0 +1,1275 @@
+{% extends "base.html" %}
+{% set title = "Онбординг" %}
+
+{% block content %}
+
+<style>
+  :root{
+    --glass-bg: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+    --glass-brd: rgba(255,255,255,.12);
+    --glass-brd-soft: rgba(255,255,255,.10);
+    --glass-shadow: 0 30px 90px rgba(0,0,0,.55);
+    --ring-emerald: #22c55e;
+    --ring-indigo: #6366f1;
+  }
+  .glass-card{
+    border-radius: 24px;
+    border:1px solid var(--glass-brd);
+    background:
+      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.18), transparent 60%),
+      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.18), transparent 60%),
+      var(--glass-bg);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.08);
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+  .card-glow {
+    position:absolute; inset:0 auto auto 0; height:4px; width:100%;
+    background: linear-gradient(90deg, #22c55e, #06b6d4, #6366f1, #22c55e);
+    background-size: 200% 100%;
+    animation: glow 8s linear infinite;
+    opacity:.85;
+  }
+  @keyframes glow { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+
+  .input{
+    width:100%;
+    border-radius: 14px;
+    background: rgba(255,255,255,.08);
+    border:1px solid var(--glass-brd-soft);
+    padding:.6rem .8rem;
+    color:#fff;
+    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .06s ease;
+    outline: none;
+  }
+  .input::placeholder{ color: rgba(255,255,255,.55); }
+  .input:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18); }
+  .input:focus{
+    border-color: rgba(34,197,94,.55);
+    box-shadow: 0 0 0 4px rgba(34,197,94,.18);
+    transform: translateY(-1px);
+  }
+
+  .btn{
+    border-radius: 14px;
+    padding: .6rem 1rem;
+    font-weight: 600;
+    transition: transform .06s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    border:1px solid var(--glass-brd);
+    background: rgba(255,255,255,.08);
+    color:#fff;
+  }
+  .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.20); }
+  .btn:active{ transform: translateY(0); }
+  .btn[disabled]{ opacity:.6; cursor:not-allowed; }
+
+  .btn-primary{
+    background: linear-gradient(180deg, rgba(34,197,94,.9), rgba(16,185,129,.85));
+    border-color: rgba(16,185,129,.55);
+  }
+  .btn-primary:hover{
+    background: linear-gradient(180deg, rgba(34,197,94,1), rgba(16,185,129,.95));
+    box-shadow: 0 8px 28px rgba(16,185,129,.35);
+  }
+
+  .btn-indigo{
+    background: linear-gradient(180deg, rgba(99,102,241,.92), rgba(79,70,229,.9));
+    border-color: rgba(99,102,241,.55);
+  }
+  .btn-indigo:hover{
+    background: linear-gradient(180deg, rgba(99,102,241,1), rgba(79,70,229,.98));
+    box-shadow: 0 8px 28px rgba(99,102,241,.35);
+  }
+
+  .btn-ghost{ background: rgba(255,255,255,.06); }
+
+  .chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    border-radius: 14px; padding:.45rem .75rem;
+    background: rgba(255,255,255,.08);
+    border:1px solid var(--glass-brd-soft);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
+  }
+
+  .progress-rail{
+    height: 10px; border-radius: 999px;
+    background: rgba(255,255,255,.08);
+    border:1px solid var(--glass-brd-soft);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .progress-bar{
+    height: 8px; margin: 1px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e, #06b6d4, #6366f1, #22c55e);
+    background-size: 200% 100%;
+    animation: glow 8s linear infinite;
+    box-shadow: 0 6px 18px rgba(34,197,94,.35);
+  }
+
+  .fade-up { opacity:0; transform: translateY(8px); animation: fadeUp .38s ease .05s forwards; }
+  .fade-up-2 { opacity:0; transform: translateY(8px); animation: fadeUp .38s ease .12s forwards; }
+  .fade-up-3 { opacity:0; transform: translateY(8px); animation: fadeUp .38s ease .18s forwards; }
+  .fade-up-4 { opacity:0; transform: translateY(8px); animation: fadeUp .38s ease .24s forwards; }
+  @keyframes fadeUp { to { opacity:1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce){
+    .glass-card, .card-glow, .fade-up, .fade-up-2, .fade-up-3, .fade-up-4{ animation: none; transition: none; }
+  }
+
+  .modal-backdrop{
+    position:fixed; inset:0; z-index:10000;
+    background: rgba(2,6,23,.6);
+    backdrop-filter: blur(10px);
+  }
+  .modal-panel{
+    position:fixed; inset:0; z-index:10001;
+    display:grid; place-items:center; padding: 1.25rem;
+  }
+  .modal-card{
+    width: 100%; max-width: 880px;
+    border-radius: 24px;
+    border:1px solid var(--glass-brd);
+    background:
+      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.18), transparent 60%),
+      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.18), transparent 60%),
+      var(--glass-bg);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.08);
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+  .modal-glow { /* no-op in plain CSS, safe */ }
+  .modal-x{
+    position:absolute; top:.75rem; right:.75rem;
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 44px; height:44px; border-radius:14px;
+    background: rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);
+    color: rgba(255,255,255,.95);
+    transition: transform .12s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+  }
+  .modal-x:hover{ background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.20); transform: scale(1.03); }
+  .modal-x:active{ transform: scale(.96); }
+  .confetti-canvas{ position:absolute; inset:0; z-index:2; pointer-events:none; }
+
+  .tile{
+    position:relative; border-radius: 18px; border:1px solid var(--glass-brd-soft);
+    background: rgba(255,255,255,.06); padding: 0.5rem; text-align:left;
+    transition: transform .08s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    cursor:pointer;
+  }
+  .tile:hover{ background: rgba(255,255,255,.10); transform: translateY(-1px); }
+  .tile.active{ box-shadow: 0 0 0 4px rgba(99,102,241,.25); border-color: rgba(99,102,241,.6); }
+
+  .avatar-card{
+    border-radius: 24px;
+    border:1px solid var(--glass-brd);
+    background:
+      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.12), transparent 60%),
+      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.12), transparent 60%),
+      var(--glass-bg);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(12px);
+  }
+  .bubble{
+    position:absolute; top:-10px; right:-10px; max-width: 260px;
+    border-radius:16px; padding:12px 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.08));
+    border: 1px solid rgba(255,255,255,.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,.45);
+    backdrop-filter: blur(8px);
+    font-size: .9rem;
+  }
+
+  /* === Interest selector — rich cards === */
+  .only-one-badge{
+    display:inline-flex; align-items:center; gap:.5rem;
+    padding:.5rem .8rem; border-radius:999px;
+    background: linear-gradient(90deg, rgba(34,197,94,.18), rgba(99,102,241,.18));
+    border:1px solid rgba(255,255,255,.22);
+    box-shadow: 0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.12);
+    font-weight: 700; letter-spacing:.2px;
+  }
+
+  .option-card{
+    position:relative; text-align:left;
+    padding:1rem; border-radius:18px;
+    background: rgba(255,255,255,.06);
+    border:1px solid var(--glass-brd-soft);
+    transition: transform .12s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+    will-change: transform;
+  }
+  .option-card:hover{ transform: translateY(-2px); background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); }
+  .option-card .title{ font-size:1.05rem; font-weight:700; }
+  .option-card .desc{ color:#cbd5e1; margin-top:.35rem; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+
+  .option-card.is-selected{
+    background: linear-gradient(180deg, rgba(99,102,241,.17), rgba(34,197,94,.12));
+    border-color: rgba(99,102,241,.55);
+    box-shadow: 0 10px 30px rgba(99,102,241,.25);
+  }
+  .option-card.is-selected::after{
+    content:"Выбрано"; position:absolute; top:.66rem; right:.66rem;
+    font-size:.7rem; font-weight:700; padding:.25rem .5rem; border-radius:999px;
+    background: rgba(34,197,94,.25); border:1px solid rgba(34,197,94,.55);
+  }
+  .option-card.is-disabled{
+    opacity:.55; filter: grayscale(25%);
+    pointer-events:none; cursor:not-allowed;
+  }
+
+  .opt-lock{
+    position:absolute; inset:0; border-radius:18px;
+    background: rgba(2,6,23,.25);
+    display:grid; place-items:center; color:#e5e7eb;
+  }
+
+  .details-card{
+    border-radius:20px; border:1px solid var(--glass-brd);
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  @keyframes pop-in { 0%{transform:scale(.98);opacity:0} 100%{transform:scale(1);opacity:1} }
+  .pop-in{ animation: pop-in .18s ease both; }
+
+  /* Spotlight вокруг блока деталей */
+  .spotlight-backdrop{
+    position:fixed; inset:0; z-index:10000;
+    background: rgba(2,6,23,.65);
+    backdrop-filter: blur(3px);
+  }
+  .spotlight-elevate{ position:relative; z-index:10001; }
+
+  @keyframes focusPulse{
+    0%{ box-shadow: 0 0 0 0 rgba(99,102,241,.55); }
+    70%{ box-shadow: 0 0 0 14px rgba(99,102,241,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+  }
+  .focus-pulse{ animation: focusPulse 1.2s ease-out 2; border-radius: 20px; }
+</style>
+
+<section class="max-w-7xl mx-auto px-4 py-10"
+         x-data="OnboardingPage('{{ slug }}', {{ 'true' if current_user else 'false' }})"
+         x-init="start()"
+         x-cloak
+         data-page="onboarding">
+
+  <!-- ГРИД-ЛЕЙАУТ: левый блок (этапы) и правый (профиль). 70/30 при авторизации -->
+  <div class="grid gap-6 lg:grid-cols-10">
+
+    <!-- LEFT: этапы — всегда рендерится; занимает 100% если не авторизован, 70% (7/10) если авторизован -->
+    <div :class="isAuthorized ? 'lg:col-span-7' : 'lg:col-span-10'">
+
+      <!-- Хедер -->
+      <div class="flex items-center justify-between mb-6 glass-card p-4">
+        <div class="flex items-center gap-3">
+          <div class="h-11 w-11 rounded-xl border border-white/10 bg-white/10 flex items-center justify-center text-lg font-bold">
+            SJ
+          </div>
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold leading-tight">Онбординг</h1>
+            <div class="text-slate-300 text-sm">Добро пожаловать в Sales Journey</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="chip max-w-[220px] sm:max-w-[280px]">
+            <span class="text-slate-400 text-xs">Компания</span>
+            <span class="font-semibold truncate" x-text="companyTitle || 'Компания'"></span>
+          </div>
+          <div class="chip">
+            <span>🪙</span>
+            <span class="text-slate-400 text-xs">Монеты</span>
+            <span class="font-bold text-lg" x-text="coins"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Пустой флоу -->
+      <template x-if="emptyFlow">
+        <div class="glass-card p-4 mb-6 text-sm">
+          <div class="card-glow"></div>
+          Онбординг пока не настроен: у этого флоу нет шагов. Свяжитесь с компанией или попробуйте позже.
+        </div>
+      </template>
+
+      <!-- Прогресс -->
+      <template x-if="!emptyFlow">
+        <div class="progress-rail mb-6">
+          <div class="progress-bar" :style="`width:${progressPercent()}%`"></div>
+        </div>
+      </template>
+
+      <!-- Текущий шаг -->
+      <template x-if="!emptyFlow && currentStep">
+        <div class="glass-card p-6">
+          <div class="card-glow"></div>
+          <h2 class="text-xl font-bold mb-4" x-text="currentStep.title || 'Шаг'"></h2>
+
+          <!-- intro_page -->
+          <div x-show="currentStep.type === 'intro_page'">
+            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
+            <template x-if="currentStep.media_url">
+              <div class="mt-4">
+                <template x-if="/youtube\.com|youtu\.be/.test(currentStep.media_url)">
+                  <iframe class="w-full aspect-video rounded-xl border border-white/10"
+                          :src="youtubeEmbed(currentStep.media_url)"
+                          frameborder="0" allowfullscreen></iframe>
+                </template>
+                <template x-if="!/youtube\.com|youtu\.be/.test(currentStep.media_url)">
+                  <video class="w-full rounded-xl border border-white/10" controls :src="currentStep.media_url"></video>
+                </template>
+              </div>
+            </template>
+            <div class="mt-6 flex justify-end">
+              <button @click="submitStep({})" class="btn btn-primary">Далее</button>
+            </div>
+          </div>
+
+          <!-- ask_input + bundled registration -->
+          <div x-show="currentStep.type === 'ask_input' || regStage.active">
+            <div class="text-sm text-slate-300 mb-3">Регистрация: заполните поля разом</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input type="text"  class="input" placeholder="Имя"                     x-model="bulkReg.first_name">
+              <input type="text"  class="input" placeholder="Фамилия"                 x-model="bulkReg.last_name">
+              <input type="text"  class="input sm:grid-cols-2" placeholder="Имя и фамилия" x-model="bulkReg.name">
+              <input type="email" class="input" placeholder="Email"                   x-model="bulkReg.email">
+              <input type="text"  class="input" placeholder="Телефон"                 x-model="bulkReg.phone">
+            </div>
+            <div class="mt-6 flex items-center justify-between">
+              <div class="text-xs text-slate-400">Все шаги регистрации будут отправлены одним действием</div>
+              <button @click="submitBulkRegistration()" class="btn btn-primary">Продолжить</button>
+            </div>
+          </div>
+
+          <!-- choice_one -->
+          <div x-show="currentStep.type === 'choice_one'">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <template x-for="opt in (currentStep.options || [])" :key="opt.key">
+                <button @click="submitStep({ key: opt.key })"
+                        class="text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition">
+                  <div class="text-lg font-semibold" x-text="opt.title"></div>
+                  <div class="text-slate-300 mt-1" x-html="md(opt.body_md || '')"></div>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- interest_selector -->
+          <div x-show="currentStep.type === 'interest_selector'">
+            <div class="flex items-center justify-between mb-3">
+              <div class="only-one-badge">⚠️ Можно выбрать только одно</div>
+              <div class="text-xs text-slate-400" x-show="selectedKeys.length">Выбор зафиксирован — остальные опции недоступны</div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <template x-for="opt in (currentStep.options || []).slice(0, 6)" :key="opt.key">
+                <button type="button"
+                        @click="chooseOption(opt.key)"
+                        :aria-pressed="selectedKeys[0] === opt.key"
+                        :aria-disabled="selectedKeys.length && selectedKeys[0] !== opt.key"
+                        class="option-card"
+                        :class="selectedKeys[0] === opt.key
+                                ? 'is-selected'
+                                : (selectedKeys.length ? 'is-disabled' : '')">
+                  <div class="title truncate" x-text="opt.title"></div>
+                  <div class="desc" x-html="md(opt.body_md || '')"></div>
+                  <div class="opt-lock" x-show="selectedKeys.length && selectedKeys[0] !== opt.key">
+                    🔒 Недоступно
+                  </div>
+                </button>
+              </template>
+            </div>
+
+            <!-- затемнение страницы для фокуса на деталях -->
+            <div class="spotlight-backdrop" x-show="showSpotlight" x-transition.opacity></div>
+
+            <!-- Детали выбранной опции -->
+            <template x-if="selectedOption()">
+              <div id="optDetails"
+                   x-ref="optDetails"
+                   tabindex="-1"
+                   class="mt-5 details-card p-5 pop-in spotlight-elevate"
+                   :class="showSpotlight ? 'focus-pulse ring-2 ring-indigo-500/50' : ''">
+                <div class="text-lg font-semibold mb-2" x-text="selectedOption().title"></div>
+                <div class="prose prose-invert max-w-none" x-html="md(selectedOption().body_md || '')"></div>
+
+                <template x-if="selectedOption().media_url">
+                  <div class="mt-3">
+                    <template x-if="/youtube\.com|youtu\.be/.test(selectedOption().media_url)">
+                      <iframe class="w-full aspect-video rounded-xl border border-white/10"
+                              :src="youtubeEmbed(selectedOption().media_url)"
+                              frameborder="0" allowfullscreen></iframe>
+                    </template>
+                    <template x-if="!/youtube\.com|youtu\.be/.test(selectedOption().media_url)">
+                      <video class="w-full rounded-xl border border-white/10" controls
+                             :src="selectedOption().media_url"></video>
+                    </template>
+                  </div>
+                </template>
+
+                <div class="mt-4 flex items-center justify-between gap-2">
+                  <div class="text-xs text-slate-400" x-show="!continueEnabled">Ознакомьтесь с содержанием — кнопка активируется через секунду</div>
+                  <div class="flex gap-2">
+                    <button @click="submitInterestSelection()"
+                            class="btn btn-primary"
+                            :disabled="!continueEnabled">Далее</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- interview_invite -->
+          <div x-show="currentStep.type === 'interview_invite'">
+            <template x-if="!interview">
+              <button @click="loadInterview()" class="btn btn-indigo">Показать приглашение</button>
+            </template>
+            <template x-if="interview">
+              <div class="space-y-3">
+                <div><span class="text-slate-400">Статус:</span> <span class="font-semibold" x-text="interview.status"></span></div>
+                <div x-show="interview.date_time"><span class="text-slate-400">Дата/время:</span> <span x-text="fmtDT(interview.date_time)"></span></div>
+                <div x-show="interview.location"><span class="text-slate-400">Локация:</span> <span x-text="interview.location"></span></div>
+                <div x-show="interview.message"><span class="text-slate-400">Сообщение:</span> <span x-text="interview.message"></span></div>
+                <div x-show="interview.assignment_text" class="pt-2">
+                  <div class="font-semibold">Задание</div>
+                  <div class="prose prose-invert max-w-none" x-html="md(interview.assignment_text)"></div>
+                </div>
+                <div class="pt-2 flex gap-2">
+                  <button x-show="interview.date_time" @click="downloadICS()" class="btn btn-ghost">Добавить в календарь (.ics)</button>
+                  <button @click="submitStep({})" class="btn btn-primary">Далее</button>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- assignment -->
+          <div x-show="currentStep.type === 'assignment'">
+            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
+            <div class="mt-6 flex justify-end">
+              <button @click="submitStep({})" class="btn btn-primary">Далее</button>
+            </div>
+          </div>
+
+          <!-- first_assignment -->
+          <div x-show="currentStep.type === 'first_assignment'">
+            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || currentStep.config?.task_text || '')"></div>
+            <div class="mt-4 p-4 rounded-xl border border-white/10 bg-white/5">
+              <div class="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <div class="text-slate-400 text-sm">Дата собеседования</div>
+                  <div class="font-semibold" x-text="firstAssignmentInterviewText()"></div>
+                </div>
+                <div>
+                  <div class="text-slate-400 text-sm">Награда</div>
+                  <div class="font-semibold"><span x-text="currentStep.coins_award || 0"></span> монет</div>
+                </div>
+              </div>
+              <div class="mt-3 text-sm text-slate-300">
+                Привяжите Telegram, чтобы мы смогли напомнить вам.
+                <a href="/settings/notifications" class="underline decoration-dotted underline-offset-4 hover:decoration-solid">Настроить уведомления</a>
+              </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+              <button @click="submitStep({})" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500">Далее</button>
+            </div>
+          </div>
+
+          <!-- registration_section -->
+          <div x-show="currentStep.type === 'registration_section'">
+            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input type="text" class="input" placeholder="Имя" x-model="regName">
+              <input type="email" class="input" placeholder="Email" x-model="regEmail">
+              <input type="password" class="input" placeholder="Пароль" x-model="regPassword">
+            </div>
+
+            <!-- Выбор пола -->
+            <div class="mt-6">
+  <div class="text-sm text-slate-300 mb-3">Выберите персонажа</div>
+  <div class="grid grid-cols-2 gap-4">
+    <!-- Мужской -->
+    <button type="button"
+            class="flex flex-col items-center justify-center p-4 rounded-xl border border-white/15 bg-white/5 transition hover:bg-white/10"
+            :class="{'ring-2 ring-emerald-400 shadow-lg': regGender==='male'}"
+            @click="regGender='male'">
+      <div class="w-24 h-24 rounded-full overflow-hidden mb-2">
+        <img :src="previewSrc('male')" @error="onPreviewError('male',$event)"
+             alt="Мужской аватар"
+             class="w-full h-full object-cover">
+      </div>
+      <div class="font-semibold">Мужской</div>
+    </button>
+
+    <!-- Женский -->
+    <button type="button"
+            class="flex flex-col items-center justify-center p-4 rounded-xl border border-white/15 bg-white/5 transition hover:bg-white/10"
+            :class="{'ring-2 ring-emerald-400 shadow-lg': regGender==='female'}"
+            @click="regGender='female'">
+      <div class="w-24 h-24 rounded-full overflow-hidden mb-2">
+        <img :src="previewSrc('female')" @error="onPreviewError('female',$event)"
+             alt="Женский аватар"
+             class="w-full h-full object-cover">
+      </div>
+      <div class="font-semibold">Женский</div>
+    </button>
+  </div>
+</div>
+
+
+            <!-- Согласие -->
+            <div class="mt-4 flex items-start gap-3">
+              <input id="terms" type="checkbox" x-model="regTermsAccepted" class="mt-1 h-4 w-4 rounded border-white/20 bg-white/5">
+              <label for="terms" class="text-sm">
+                Согласен с <a href="/terms" target="_blank" class="underline decoration-indigo-400 hover:opacity-80">офертой</a>
+              </label>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between">
+              <div class="text-sm text-slate-400">Аккаунт будет привязан к текущему прогрессу</div>
+              <div class="flex gap-2">
+                <button @click="registerFromSection()" class="btn btn-indigo">Зарегистрироваться и далее</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- reward_shop (финал) -->
+          <div x-show="currentStep.type === 'reward_shop'">
+            <template x-if="!prizes.length">
+              <div class="flex items-center gap-3">
+                <button @click="finish()" class="btn btn-primary">Показать призы</button>
+                <div class="text-slate-400">Финальный бонус будет учтён</div>
+              </div>
+            </template>
+
+            <template x-if="prizes.length">
+              <div>
+                <div class="text-slate-300 mb-2">Выберите <b>один</b> приз</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <template x-for="p in prizes" :key="p.id">
+                    <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                      <div class="font-semibold" x-text="p.title"></div>
+                      <div class="text-slate-400">Стоимость: <span x-text="p.cost_coins"></span> монет</div>
+                      <button :disabled="coins < p.cost_coins || picked"
+                              @click="pickReward(p.id, p.cost_coins)"
+                              class="mt-3 w-full btn"
+                              :class="coins < p.cost_coins || picked ? 'btn-ghost cursor-not-allowed' : 'btn-primary'">
+                        Выбрать
+                      </button>
+                    </div>
+                  </template>
+                </div>
+
+                {% if current_user %}
+                <div class="mt-6 text-slate-400">
+                  Вы вошли как <b>{{ current_user.display_name }}</b>. Приз будет привязан к вашему аккаунту.
+                </div>
+                {% else %}
+                <div class="mt-6 text-slate-400">
+                  Приз будет закреплён за вами после регистрации (регистрация выполняется на соответствующем шаге).
+                </div>
+                {% endif %}
+              </div>
+            </template>
+          </div>
+
+        </div>
+      </template>
+
+      <div x-show="!currentStep && !emptyFlow" class="text-slate-400 text-center py-10">Загрузка…</div>
+    </div>
+
+    <!-- RIGHT: профиль — появляется только когда пользователь авторизован. Занимает 30% (3/10). -->
+    <div x-show="isAuthorized"
+         x-transition.opacity
+         class="lg:col-span-3 space-y-6"
+         x-cloak>
+      <div class="avatar-card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold truncate" x-text="userNameForAvatar || 'Вы'"></div>
+          <div class="flex items-center gap-2">
+            <div class="chip"><span>🪙</span><span class="font-bold" x-text="coins"></span></div>
+            <div class="chip"><span>⭐</span><span class="font-bold" x-text="xp"></span></div>
+          </div>
+        </div>
+        <div class="relative">
+          <img :src="avatarUrl || ''" alt="Аватар"
+               class="w-full rounded-xl ring-1 ring-white/10 select-none pointer-events-none">
+          <div class="bubble" x-show="avatarIntro" x-transition.opacity.scale.origin-top-right>
+            Это ваш аватар — растёт вместе с уровнем 🌱
+          </div>
+        </div>
+
+        <!-- Уровень и прогресс -->
+        <div class="mt-4">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <div>Уровень</div>
+            <div x-text="levelLabel()"></div>
+          </div>
+          <div class="progress-rail mt-2">
+            <div class="progress-bar" :style="`width:${xpProgressPercent()}%`"></div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <a href="/profile" class="btn text-center">Профиль</a>
+          <a href="{{ url_for('page_training_list') }}" class="btn text-center">Курсы</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Приветственная модалка -->
+  <div x-cloak>
+    <div class="modal-backdrop" x-show="showWelcome" x-transition.opacity @click="closeWelcome()"></div>
+    <div class="modal-panel" x-show="showWelcome" x-transition.opacity.scale.origin-top @keydown.escape.window="closeWelcome()">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+        <div class="modal-glow"></div>
+        <canvas class="confetti-canvas" x-ref="confetti"></canvas>
+
+        <button type="button" class="modal-x" aria-label="Закрыть" @click="closeWelcome()">✕</button>
+
+        <div class="p-8 relative">
+          <div class="flex items-center gap-4 fade-up">
+            <div class="h-16 w-16 rounded-2xl bg-emerald-500/15 border border-emerald-400/25 flex items-center justify-center text-4xl">🎉</div>
+            <div>
+              <h3 id="welcome-title" class="text-2xl sm:text-3xl font-bold leading-tight">Ура! Приглашение принято</h3>
+              <p class="text-slate-300 text-sm mt-1">Добро пожаловать в <b>Sales Journey</b> — полёт начинается 🚀</p>
+            </div>
+          </div>
+
+          <div class="mt-6 grid sm:grid-cols-[1.2fr,0.8fr] gap-6 items-center">
+            <div class="fade-up-2">
+              <div class="flex items-center gap-3">
+                <div class="h-11 w-11 rounded-2xl border border-white/10 bg-white/10 flex items-center justify-center text-base font-bold">
+                  <span x-text="companyTitle ? companyTitle.charAt(0).toUpperCase() : 'S'"></span>
+                </div>
+                <div class="leading-tight">
+                  <div class="text-sm text-slate-400">Вас пригласила компания</div>
+                  <div class="text-lg font-semibold">
+                    <a :href="companyLink()"
+                       class="underline decoration-dotted underline-offset-4 hover:decoration-solid text-emerald-300 hover:text-emerald-200 transition-colors"
+                       x-text="companyTitle || 'Компания'"></a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="text-slate-200/95 font-medium">Как это работает:</div>
+                <ul class="mt-2 space-y-2 text-sm text-slate-300">
+                  <li class="flex items-start gap-2"><span class="mt-0.5">✅</span><span><b>Пройди мини-задание</b> (1–3 минуты) — покажи себя и разогрей интерес 😉</span></li>
+                  <li class="flex items-start gap-2"><span class="mt-0.5">📣</span><span><b>Дай знать работодателю о целеустремлённости</b> — мы автоматически отметим твой прогресс.</span></li>
+                  <li class="flex items-start gap-2"><span class="mt-0.5">🏅</span><span><b>В финале приз — ГАРАНТИРОВАННО!</b> Копи койны 🪙 уже сейчас и выбери подарок.</span></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="relative fade-up-3">
+              <div class="absolute -top-4 -right-2 text-2xl">✨</div>
+              <svg viewBox="0 0 300 220" class="w-full h-auto drop-shadow-[0_20px_40px_rgba(0,0,0,.35)]">
+                <defs><linearGradient id="g1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#6366f1" stop-opacity=".9"/><stop offset="1" stop-color="#22c55e" stop-opacity=".9"/></linearGradient></defs>
+                <ellipse cx="150" cy="160" rx="110" ry="18" fill="rgba(0,0,0,.25)"/>
+                <g>
+                  <rect x="28" y="26" rx="14" ry="14" width="90" height="64" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.15)"/>
+                  <rect x="184" y="36" rx="14" ry="14" width="88" height="58" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.15)"/>
+                  <rect x="92" y="110" rx="16" ry="16" width="116" height="72" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.15)"/>
+                  <circle cx="70" cy="58" r="10" fill="#f59e0b"/>
+                  <circle cx="222" cy="66" r="10" fill="#22c55e"/>
+                  <circle cx="150" cy="140" r="12" fill="#6366f1"/>
+                </g>
+                <g transform="translate(140,90) rotate(-18)">
+                  <path d="M0 0 C 30 -8, 60 -8, 100 0 C 86 20, 86 40, 100 60 C 60 68, 30 68, 0 60 C 14 40, 14 20, 0 0 Z" fill="url(#g1)" stroke="rgba(255,255,255,.35)"/>
+                  <circle cx="50" cy="32" r="12" fill="rgba(255,255,255,.35)"/>
+                  <path d="M-2 58 L -20 76 C -10 78, 4 74, 10 66 Z" fill="#ef4444" opacity=".85"/>
+                </g>
+                <g fill="#fff">
+                  <circle cx="30" cy="30" r="1.5" opacity=".7"/>
+                  <circle cx="268" cy="48" r="1.5" opacity=".7"/>
+                  <circle cx="256" cy="12" r="1.2" opacity=".5"/>
+                  <circle cx="210" cy="100" r="1.2" opacity=".5"/>
+                  <circle cx="66" cy="96" r="1.2" opacity=".5"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="mt-7 flex items-center justify-end gap-3 fade-up-4">
+            <button type="button" class="btn btn-ghost" @click="closeWelcome()">Продолжить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<script>
+  // Регистрация компонента как глобальной функции, чтобы Alpine точно нашёл его в x-data.
+  window.OnboardingPage = function(slug, initAuth=false) {
+    return {
+      /* -------- Состояние -------- */
+      slug,
+      isAuthorized: !!initAuth,
+
+      sessionId: null,
+      currentStep: null,
+      coins: 0, xp: 0,
+      prizes: [], picked: false,
+      interview: null,
+      inputValue: "",
+      stepsCache: [],
+      emptyFlow: false,
+
+      selectedKeys: [],
+      showSpotlight: false,
+      continueEnabled: false,
+
+      // регистрация
+      regName: "", regEmail: "", regPassword: "",
+      regGender: null, regTermsAccepted: false,
+
+      // ask_input bundle
+      bulkReg: { name: "", first_name: "", last_name: "", phone: "", email: "" },
+      regStage: { active: false, startedFromStepId: null },
+      regCompleted: false,
+
+      // профиль справа
+      avatarUrl: '',
+      userNameForAvatar: '',
+      avatarIntro: false,
+      currentUserId: null,
+
+      // превью гендера
+      _previewIdx: { male:0, female:0 },
+      _previewUrls: {
+        male: [
+          '/avatar_svg/preview?gender=male',
+          '/avatar_svg/default?gender=male',
+          '/avatar_svg?gender=male'
+        ],
+        female: [
+          '/avatar_svg/preview?gender=female',
+          '/avatar_svg/default?gender=female',
+          '/avatar_svg?gender=female'
+        ]
+      },
+
+      // приветственная модалка / компания
+      showWelcome: false,
+      companyTitle: "",
+      companySlug: "",
+
+      // локальное конфетти
+      confetti: { raf: null, t0: 0, duration: 1600, active: false, parts: [] },
+
+      /* -------- Инициализация -------- */
+      async start() {
+        this.companySlug = this.slug || "";
+        this.openWelcome();
+        this.resolveCompanyTitle().catch(()=>{});
+
+        if (this.isAuthorized) {
+          await this.loadCurrentUser().catch(()=>{});
+        }
+
+        try {
+          const r = await fetch('/api/reg/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ slug: this.slug })
+          });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j.description || 'Ошибка старта');
+
+          this.sessionId = j.session_id;
+
+          const fromStartName =
+            (j.company && j.company.name) || j.company_name ||
+            (j.flow && j.flow.company && j.flow.company.name) || j.flow_company_name || "";
+          if (fromStartName && !this.companyTitle) this.companyTitle = fromStartName;
+
+          const fromStartSlug =
+            (j.company && j.company.slug) || j.company_slug ||
+            (j.flow && j.flow.company && j.flow.company.slug) || j.flow_company_slug || "";
+          if (fromStartSlug) this.companySlug = fromStartSlug;
+
+          if (j.next_step) {
+            this.currentStep = j.next_step;
+            this.stepsCache = [j.next_step.id];
+
+            if (this.currentStep?.type === 'first_assignment' && !this.interview) {
+              this.loadInterview().catch(()=>{});
+            }
+            if (this.currentStep.type === 'ask_input') {
+              this.regStage.active = true;
+              this.regStage.startedFromStepId = this.currentStep.id;
+            }
+          } else {
+            this.emptyFlow = true;
+            this.currentStep = null;
+            this.stepsCache = [];
+          }
+        } catch (e) {
+          this.toast(e.message);
+        }
+
+        window.addEventListener('onboarding:registered', async () => {
+          await this.loadCurrentUser().catch(()=>{});
+          this.isAuthorized = true;
+          this.avatarIntro = true;
+          setTimeout(() => { this.avatarIntro = false; }, 2600);
+        });
+      },
+
+      /* -------- Interest selector -------- */
+      chooseOption(key){
+        this.selectedKeys = [key];
+        this.continueEnabled = false;
+        this.showSpotlight = true;
+
+        this.$nextTick(() => {
+          const el = this.$refs?.optDetails || document.getElementById('optDetails');
+          if (el){
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            try { el.focus({ preventScroll: true }); } catch(_){}
+          }
+          setTimeout(() => { this.continueEnabled = true; }, 700);
+        });
+      },
+      resetSelection(){
+        this.selectedKeys = [];
+        this.showSpotlight = false;
+        this.continueEnabled = false;
+      },
+      selectedOption() {
+        const key = this.selectedKeys[0];
+        return (this.currentStep?.options || []).find(o => o.key === key) || null;
+      },
+      submitInterestSelection() {
+        if (!this.selectedKeys.length || !this.continueEnabled){
+          this.toast('Сначала ознакомьтесь с содержанием 👀'); return;
+        }
+        this.showSpotlight = false;
+        this.submitStep({ key: this.selectedKeys[0] });
+      },
+
+      /* -------- helpers -------- */
+      toast(msg){ try { window.toast ? window.toast(msg) : alert(msg); } catch(_) { alert(msg); } },
+
+      avatarUserUrl(id){ return `/avatar_svg/${id}`; },
+      refreshAvatar(){
+        if(!this.currentUserId) return;
+        this.avatarUrl = this.avatarUserUrl(this.currentUserId) + `?t=${Date.now()}`;
+      },
+
+      async loadCurrentUser(){
+        const r = await fetch('/api/me', { headers: { 'X-Requested-With':'SPAFetch' }});
+        if(!r.ok) return;
+        const j = await r.json();
+        const u = j.user || j || {};
+        if (!u || !u.id) return;
+        this.currentUserId = u.id;
+        this.userNameForAvatar = u.display_name || u.name || u.email || 'Вы';
+        this.coins = (u.coins != null) ? u.coins : this.coins;
+        this.xp    = (u.xp    != null) ? u.xp    : this.xp;
+        this.refreshAvatar();
+      },
+
+      previewSrc(gender){
+        const list = this._previewUrls[gender] || [];
+        const i = this._previewIdx[gender] || 0;
+        if (!list.length) return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>';
+        return list[Math.min(i, list.length-1)];
+      },
+      onPreviewError(gender, ev){
+        const list = this._previewUrls[gender] || [];
+        let i = (this._previewIdx[gender] || 0) + 1;
+        if (i >= list.length){
+          ev.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';
+          return;
+        }
+        this._previewIdx[gender] = i;
+        ev.target.src = list[i];
+      },
+
+      animateAvatarIntro(){
+        this.avatarIntro = true;
+        setTimeout(() => { this.avatarIntro = false; }, 2600);
+      },
+
+      /* -------- шаги / переходы -------- */
+      async submitStep(payload) {
+        try {
+          const r = await fetch(`/api/reg/step/${this.currentStep.id}/submit`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ...(payload||{}), reg_session_id: this.sessionId })
+          });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j.description || 'Ошибка шага');
+
+          this.coins = j.coins || 0;
+          this.xp = j.xp || 0;
+          this.inputValue = "";
+
+          if (this.currentUserId) this.refreshAvatar();
+
+          if (j.next_step) {
+            this.currentStep = j.next_step;
+            if (this.currentStep?.type === 'first_assignment' && !this.interview) {
+              this.loadInterview().catch(()=>{});
+            }
+            this.stepsCache.push(j.next_step.id);
+
+            if (this.currentStep.type === 'ask_input') {
+              this.regStage.active = true;
+              this.regStage.startedFromStepId = this.currentStep.id;
+            }
+          } else {
+            this.currentStep = { type: 'reward_shop', title: 'Финальный бонус' };
+          }
+        } catch (e) { this.toast(e.message); }
+      },
+
+      async finish() {
+        try {
+          const r = await fetch(`/api/reg/finish`, { method: 'POST' });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j.description || 'Ошибка финала');
+          this.coins = j.coins_total || this.coins;
+          this.prizes = j.prizes || [];
+          if (this.currentUserId) this.refreshAvatar();
+        } catch (e) { this.toast(e.message); }
+      },
+
+      async pickReward(itemId, cost) {
+        try {
+          const r = await fetch(`/api/reg/reward/pick`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ store_item_id: itemId })
+          });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j.description || 'Нельзя выбрать приз');
+          this.picked = true;
+          this.coins = this.coins - (cost || 0);
+          this.toast('Приз выбран!');
+          if (this.currentUserId) this.refreshAvatar();
+        } catch (e) { this.toast(e.message); }
+      },
+
+      async loadInterview() {
+        try {
+          const r = await fetch(`/api/reg/interview`);
+          const j = await r.json();
+          if (!r.ok) throw new Error(j.description || 'Ошибка приглашения');
+          this.interview = j;
+        } catch (e) { this.toast(e.message); }
+      },
+
+      /* -------- регистрация -------- */
+      async registerFromSection() {
+        if (!this.regName || !this.regEmail || !this.regPassword) {
+          this.toast('Заполните имя, email и пароль'); return;
+        }
+        if (!this.regGender) {
+          this.toast('Пожалуйста, выберите вашего персонажа'); return;
+        }
+        if (!this.regTermsAccepted) {
+          this.toast('Необходимо принять условия оферты'); return;
+        }
+
+        try {
+          const r = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              email: this.regEmail,
+              password: this.regPassword,
+              display_name: this.regName,
+              reg_session_id: this.sessionId,
+              gender: this.regGender
+            })
+          });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j.description || 'Ошибка регистрации');
+
+          const user = j.user || {};
+          this.currentUserId = user.id || 0;
+          this.userNameForAvatar = user.display_name || this.regName;
+          this.coins = user.coins != null ? user.coins : this.coins;
+          this.xp = user.xp != null ? user.xp : this.xp;
+          this.isAuthorized = true;
+
+          try { if (window.Alpine?.store('auth')) { Alpine.store('auth').setUser(user); } } catch(_) {}
+          window.dispatchEvent(new Event('onboarding:registered'));
+
+          this.refreshAvatar();
+          this.animateAvatarIntro();
+          this.toast('Аккаунт создан и прогресс привязан! 🎉');
+
+          await this.submitStep({});
+
+        } catch (e) { this.toast(e.message); }
+      },
+
+      /* -------- утилиты -------- */
+      md(src) {
+        if (!src) return '';
+        return src
+          .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')   // FIX: убрана лишняя скобка
+          .replace(/\*(.+?)\*/g, '<i>$1</i>')
+          .replace(/\n/g, '<br/>');
+      },
+      fmtDT(iso) { try { return new Date(iso).toLocaleString(); } catch { return iso; } },
+      youtubeEmbed(u) {
+        try {
+          if (!u) return '';
+          const m1 = u.match(/youtu\.be\/([\w-]+)/);
+          const m2 = u.match(/[?&]v=([\w-]+)/);
+          const id = (m1 && m1[1]) || (m2 && m2[1]) || '';
+          return id ? `https://www.youtube.com/embed/${id}` : u;
+        } catch (e) { return u; }
+      },
+
+      downloadICS(){
+        try{
+          const dtStr = this.interview?.date_time || this.currentStep?.config?.date_time;
+          if(!dtStr){ this.toast('Дата собеседования не указана'); return; }
+          const start = new Date(dtStr);
+          const end = new Date(start.getTime() + 60*60*1000);
+          const fmt = (d)=> d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+          const lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Sales Journey//Onboarding//RU',
+            'BEGIN:VEVENT',
+            `UID:${(this.sessionId || Date.now())}@salesjourney`,
+            `DTSTAMP:${fmt(new Date())}`,
+            `DTSTART:${fmt(start)}`,
+            `DTEND:${fmt(end)}`,
+            `SUMMARY:${(this.currentStep?.title || 'Интервью').replace(/[\r\n]/g,' ')}`,
+            this.interview?.location ? `LOCATION:${this.interview.location.replace(/[\r\n]/g,' ')}` : '',
+            this.interview?.message ? `DESCRIPTION:${this.interview.message.replace(/\r?\n/g,'\\n')}` : '',
+            'END:VEVENT',
+            'END:VCALENDAR'
+          ].filter(Boolean).join('\r\n');
+
+          const blob = new Blob([lines], { type: 'text/calendar;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'interview.ics';
+          document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(url);
+        }catch(e){ this.toast('Не удалось сформировать .ics'); }
+      },
+
+      async submitBulkRegistration() {
+        if (!this.regStage.active) {
+          this.regStage.active = true;
+        }
+        if (!this.bulkReg.name || !this.bulkReg.email) {
+          this.toast('Укажите имя и email'); return;
+        }
+
+        try {
+          let step = this.currentStep;
+          const values = {
+            first_name: this.bulkReg.first_name?.trim(),
+            last_name:  this.bulkReg.last_name?.trim(),
+            name:       this.bulkReg.name?.trim(),
+            phone:      this.bulkReg.phone?.trim(),
+            email:      this.bulkReg.email?.trim(),
+          };
+
+          while (step && step.type === 'ask_input') {
+            const field = step.ask_field || 'name';
+            const value = values[field] ?? '';
+            if (!value) { this.toast(`Заполните поле: ${field}`); return; }
+
+            const r = await fetch(`/api/reg/step/${step.id}/submit`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ value, reg_session_id: this.sessionId })
+            });
+            const j = await r.json();
+            if (!r.ok) throw new Error(j.description || `Ошибка шага (${field})`);
+            this.coins = j.coins || this.coins;
+            this.xp    = j.xp    || this.xp;
+
+            step = j.next_step || null;
+            if (step) this.stepsCache.push(step.id);
+          }
+
+          this.regStage.active = false;
+          this.regCompleted = true;
+
+          this.currentStep = step ? step : { type: 'reward_shop', title: 'Финальный бонус' };
+        } catch (e) { this.toast(e.message); }
+      },
+
+      selectLimit() { return 1; },
+      toggleSelect(key) { this.selectedKeys = [key]; }, // на будущее
+
+      firstAssignmentInterviewText(){
+        const cfgDt = this.currentStep?.config?.date_time || null;
+        const invDt = this.interview?.date_time || null;
+        const raw = cfgDt || invDt;
+        if(!raw) return '—';
+        const dt = new Date(raw);
+        const now = new Date();
+        return (dt.getTime() > now.getTime()) ? this.fmtDT(dt.toISOString()) : 'Время собеседования уточните у рекрутера';
+      },
+
+      progressPercent() {
+        if (this.emptyFlow) return 0;
+        const total = 3;
+        let done = 0;
+        if (this.stepsCache.length > 0) done = 1;
+        if (this.regCompleted) done = 2;
+        if (!this.regStage.active && this.currentStep && this.currentStep.type === 'reward_shop') done = 3;
+        const p = Math.round((done / total) * 100);
+        return Math.max(5, Math.min(p, 100));
+      },
+
+      // Уровни и прогресс
+      level(){
+        const base = Math.floor((this.xp || 0) / 100) + 1;
+        return Math.max(1, base);
+      },
+      xpProgressPercent(){
+        const xp = this.xp || 0;
+        const lvlStart = Math.floor(xp / 100) * 100;
+        const pct = ((xp - lvlStart) / 100) * 100;
+        return Math.max(0, Math.min(100, Math.round(pct)));
+      },
+      levelLabel(){
+        return `Lv ${this.level()} · ${this.xp} XP`;
+      },
+
+      companyLink(){ return this.companySlug ? `/company/${this.companySlug}` : '#'; },
+      async resolveCompanyTitle(){
+        const tryEndpoints = [
+          `/api/reg/link/${encodeURIComponent(this.slug)}`,
+          `/api/reg/link?slug=${encodeURIComponent(this.slug)}`,
+          `/api/reg/resolve?slug=${encodeURIComponent(this.slug)}`,
+          `/api/reg/info?slug=${encodeURIComponent(this.slug)}`
+        ];
+        for (const url of tryEndpoints){
+          try{
+            const r = await fetch(url);
+            if (!r.ok) continue;
+            const j = await r.json().catch(()=>null);
+            const name =
+              (j && j.company && j.company.name) || j?.company_name || j?.name || "";
+            const slug =
+              (j && j.company && j.company.slug) || j?.company_slug || j?.slug || this.slug || "";
+            if (name) this.companyTitle = name;
+            if (slug) this.companySlug = slug;
+            if (name || slug) break;
+          }catch(_e){}
+        }
+        if (!this.companyTitle) this.companyTitle = 'Компания';
+      },
+      openWelcome(){
+        this.showWelcome = true;
+        document.body.style.overflow = 'hidden';
+        this.$nextTick(() => {
+          const btn = document.querySelector('.modal-x');
+          btn && btn.focus && btn.focus();
+          this.launchConfetti();
+        });
+      },
+      closeWelcome(){
+        this.showWelcome = false;
+        document.body.style.overflow = '';
+        this.stopConfetti(true);
+      },
+      launchConfetti(){
+        const canvas = this.$refs?.confetti;
+        if (!canvas) return;
+
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const colors = ['#22c55e', '#06b6d4', '#6366f1', '#f59e0b', '#ef4444', '#10b981'];
+        const w = rect.width, h = rect.height;
+        const N = 160;
+        const parts = [];
+        const rand = (a,b)=> a + Math.random()*(b-a);
+
+        for (let i=0;i<N;i++){
+          const angle = rand(-Math.PI/3, -2*Math.PI/3);
+          const speed = rand(4, 9);
+          parts.push({
+            x: w/2 + rand(-60,60),
+            y: h*0.75 + rand(-10,10),
+            vx: Math.cos(angle)*speed,
+            vy: Math.sin(angle)*speed,
+            g: rand(0.18, 0.28),
+            w: rand(6, 12),
+            h: rand(8, 16),
+            rot: rand(0, Math.PI*2),
+            vr: rand(-0.25, 0.25),
+            color: colors[Math.floor(Math.random()*colors.length)],
+            alpha: 1,
+            va: rand(-0.005, -0.002),
+            shape: Math.random() < 0.2 ? 'circle' : 'rect'
+          });
+        }
+
+        this.confetti.parts = parts;
+        this.confetti.active = true;
+        this.confetti.t0 = performance.now();
+
+        const step = (t)=>{
+          if (!this.confetti.active) return;
+          const w2 = rect.width, h2 = rect.height;
+          ctx.clearRect(0,0,w2,h2);
+          for (const p of this.confetti.parts){
+            p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+            p.alpha += p.va; if (p.alpha < 0) p.alpha = 0;
+
+            ctx.save(); ctx.globalAlpha = p.alpha; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+            ctx.fillStyle = p.color;
+            if (p.shape === 'circle'){ ctx.beginPath(); ctx.arc(0, 0, p.w*0.6, 0, Math.PI*2); ctx.fill(); }
+            else { ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); }
+            ctx.restore();
+          }
+          const dt = t - this.confetti.t0;
+          if (dt > this.confetti.duration || this.confetti.parts.every(p => p.alpha <= 0.02 || p.y > h2+40)){
+            this.stopConfetti(); return;
+          }
+          this.confetti.raf = requestAnimationFrame(step);
+        };
+        this.confetti.raf = requestAnimationFrame(step);
+      },
+      stopConfetti(clearOnly){
+        this.confetti.active = false;
+        if (this.confetti.raf){ cancelAnimationFrame(this.confetti.raf); this.confetti.raf = null; }
+        if (clearOnly){
+          const canvas = this.$refs?.confetti;
+          if (canvas){
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            ctx.clearRect(0,0,rect.width, rect.height);
+          }
+        }
+      },
+    };
+  };
+</script>
+{% endblock %}

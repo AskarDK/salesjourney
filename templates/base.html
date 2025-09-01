@@ -77,29 +77,30 @@
       --overlay: rgba(2,6,23,.60);
     }
 
-    /* Глобальная адаптация тёмных классов под светлую тему */
-    .theme-auto .bg-slate-900\/60{ background-color: var(--bg-card) !important; }
-    .theme-auto .bg-slate-900\/95{ background-color: var(--bg-dropdown) !important; }
-    .theme-auto .bg-black\/30{     background-color: var(--bg-card) !important; }
-    .theme-auto .bg-black\/40{     background-color: var(--bg-card) !important; }
-    .theme-auto .bg-white\/10{     background-color: var(--bg-chip) !important; }
-    .theme-auto .border-white\/10{ border-color: var(--bd) !important; }
-    .theme-auto .text-slate-300{   color: var(--muted) !important; }
-    .theme-auto .text-slate-400{   color: var(--muted) !important; }
-    .theme-auto .text-slate-100{   color: var(--txt)   !important; }
-    .theme-auto .hover\:bg-white\/5:hover{  background-color: rgba(0,0,0,.05) !important; }
-    .theme-auto .hover\:bg-white\/10:hover{ background-color: rgba(0,0,0,.08) !important; }
-    .theme-auto .bg-slate-900\/80{ background-color: var(--bg-dropdown) !important; }
-    .theme-auto .bg-slate-900\/90{ background-color: var(--bg-dropdown) !important; }
-    .theme-auto input.bg-black\/40,
-    .theme-auto textarea.bg-black\/40,
-    .theme-auto select.bg-black\/40{
+    /* Адаптация "тёмных" классов под светлую тему — ТОЛЬКО в light */
+    html:not(.dark) .theme-auto .bg-slate-900\/60{ background-color: var(--bg-card) !important; }
+    html:not(.dark) .theme-auto .bg-slate-900\/95{ background-color: var(--bg-dropdown) !important; }
+    html:not(.dark) .theme-auto .bg-black\/30{     background-color: var(--bg-card) !important; }
+    html:not(.dark) .theme-auto .bg-black\/40{     background-color: var(--bg-card) !important; }
+    html:not(.dark) .theme-auto .bg-white\/10{     background-color: var(--bg-chip) !important; }
+    html:not(.dark) .theme-auto .border-white\/10{ border-color: var(--bd) !important; }
+    html:not(.dark) .theme-auto .text-slate-300{   color: var(--muted) !important; }
+    html:not(.dark) .theme-auto .text-slate-400{   color: var(--muted) !important; }
+    html:not(.dark) .theme-auto .text-slate-100{   color: var(--txt)   !important; }
+    html:not(.dark) .theme-auto .hover\:bg-white\/5:hover{  background-color: rgba(0,0,0,.05) !important; }
+    html:not(.dark) .theme-auto .hover\:bg-white\/10:hover{ background-color: rgba(0,0,0,.08) !important; }
+    html:not(.dark) .theme-auto .bg-slate-900\/80{ background-color: var(--bg-dropdown) !important; }
+    html:not(.dark) .theme-auto .bg-slate-900\/90{ background-color: var(--bg-dropdown) !important; }
+    html:not(.dark) .theme-auto input.bg-black\/40,
+    html:not(.dark) .theme-auto textarea.bg-black\/40,
+    html:not(.dark) .theme-auto select.bg-black\/40{
       background-color: var(--bg-surface) !important;
       color: var(--txt) !important;
       border-color: var(--bd) !important;
     }
-    .theme-auto .bg-slate-900\/50{ background-color: var(--bg-card) !important; }
+    html:not(.dark) .theme-auto .bg-slate-900\/50{ background-color: var(--bg-card) !important; }
 
+    /* Доп. страховка: любые слейтовые/чёрные bg в light → карточные */
     html:not(.dark) .theme-auto [class*="bg-slate-900/"],
     html:not(.dark) .theme-auto [class~="bg-slate-900"],
     html:not(.dark) .theme-auto [class*="bg-slate-950"],
@@ -130,6 +131,11 @@
     @media (prefers-reduced-motion: reduce){
       * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
     }
+
+    /* === SPA прогресс-бар и анимация появления контента === */
+    #spa-bar{position:fixed;left:0;top:0;height:3px;width:0;z-index:9999;transition:width .25s ease; background:linear-gradient(90deg,#6366f1,#22d3ee,#22c55e)}
+    .spa-fade-enter{opacity:0;transform:translateY(4px)}
+    .spa-fade-enter-active{transition:opacity .18s ease, transform .18s ease;opacity:1;transform:none}
   </style>
 
   <!-- Наши stores/эффекты: ПЕРЕД Alpine -->
@@ -152,10 +158,15 @@
 </head>
 
 <body class="theme-auto min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+  <!-- SPA progress bar -->
+  <div id="spa-bar" aria-hidden="true"></div>
+
   <!-- HEADER -->
   <header x-data="headerUI()" class="sticky top-0 z-40 backdrop-blur border-b border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-950/70 transition-shadow">
     <div class="h-0.5 grad-anim"></div>
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+
+      <!-- ЛЕВАЯ ЧАСТЬ (бренд/бургер) -->
       <div class="flex items-center gap-3">
         <!-- Burger (mobile) -->
         <button class="md:hidden p-2 rounded-lg border border-white/10 hover:bg-white/10"
@@ -199,8 +210,8 @@
         {% endif %}
       </nav>
 
-      <!-- RIGHT -->
-      <div class="flex items-center gap-3">
+      <!-- ПРАВАЯ ЧАСТЬ НАВБАРА (auth-slot для реактивной замены) -->
+      <div class="flex items-center gap-3" data-nav-auth data-auth-slot>
         <!-- Theme switch -->
         <button class="rounded-xl border border-slate-300 dark:border-white/10 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
                 @click="toggleTheme()" aria-label="Сменить тему">
@@ -291,7 +302,7 @@
               <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/partner/reports" role="menuitem">Отчёты по задачам</a>
               {% endif %}
               <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5"
-                      onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/login')" role="menuitem">
+                      onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/login'}})))" role="menuitem">
                 Выйти
               </button>
             </div>
@@ -310,14 +321,14 @@
               <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/partner/company" role="menuitem">Моя компания</a>
               <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/partner/training/create" role="menuitem">Создать курс</a>
               <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5"
-                onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>location.href='/partner/login')" role="menuitem">
+                onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/partner/login'}})))" role="menuitem">
                 Выйти (партнёр)
               </button>
             </div>
           </div>
 
         {% elif is_admin %}
-          <form onsubmit="event.preventDefault(); fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">
+          <form onsubmit="event.preventDefault(); fetch('/api/admin/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/admin/login'}})))">
             <button class="px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5">Выйти (админ)</button>
           </form>
 
@@ -360,20 +371,20 @@
           <hr class="my-2 border-white/10">
           <a href="/profile" class="px-3 py-2 rounded-lg hover:bg-white/5">Профиль</a>
           <button class="text-left px-3 py-2 rounded-lg hover:bg-white/5"
-                  onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/login')">Выйти</button>
+                  onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/login'}})))">Выйти</button>
         {% elif is_partner %}
           <a href="/partner/company" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Моя компания</a>
           <a href="/partner/training/create" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold">Создать курс</a>
           <hr class="my-2 border-white/10">
           <button class="text-left px-3 py-2 rounded-lg hover:bg-white/5"
-                  onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>location.href='/partner/login')">Выйти (партнёр)</button>
+                  onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/partner/login'}})))">Выйти (партнёр)</button>
         {% elif is_admin %}
           <a href="/partner/requests" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Заявки</a>
           <a href="/partner/reports" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10">Отчёты по задачам</a>
           <a href="{{ url_for('page_admin_dashboard') }}" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold">Админ-панель</a>
           <hr class="my-2 border-white/10">
           <button class="text-left px-3 py-2 rounded-lg hover:bg-white/5"
-                  onclick="fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">Выйти (админ)</button>
+                  onclick="fetch('/api/admin/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/admin/login'}})))">Выйти (админ)</button>
         {% else %}
           <a href="/login" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10">Войти</a>
           <a href="/register" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold">Регистрация</a>
@@ -388,7 +399,8 @@
     </aside>
   </header>
 
-  <main class="min-h-[80vh]">
+  <!-- PJAX-ROOT: центральный контент будет подменяться без перезагрузки -->
+  <main id="pjax-root" data-pjax-root class="min-h-[80vh]">
     {% block content %}{% endblock %}
   </main>
 
@@ -486,6 +498,211 @@
       },
       async markAllRead(){ await fetch('/api/notifications/read',{method:'POST'}); await this.load(); }
     }}
+
+    /* ======================= SPA (PJAX) НАВИГАЦИЯ ======================== */
+    (()=>{
+      const PJAX_SELECTOR='[data-pjax-root]';
+      const AUTH_SLOT_SELECTOR='[data-auth-slot]';
+      const bar=document.getElementById('spa-bar');
+
+      function startBar(){ if(bar){ bar.style.width='20%'; requestAnimationFrame(()=>bar.style.width='60%'); } }
+      function finishBar(){ if(bar){ bar.style.width='100%'; setTimeout(()=>{ bar.style.width='0'; },180);} }
+
+      function sameOrigin(url){
+        try{ const u=new URL(url, location.href); return u.origin===location.origin; }catch(_){return false;}
+      }
+
+      function extract(html){
+        const doc=new DOMParser().parseFromString(html,'text/html');
+        const next=doc.querySelector(PJAX_SELECTOR);
+        const title=doc.querySelector('title');
+        return { next, titleText: title ? title.textContent : document.title, doc };
+      }
+
+      function executeScripts(el){
+        const scripts=el.querySelectorAll('script');
+        scripts.forEach(s=>{
+          const n=document.createElement('script');
+          if(s.src){ n.src=s.src; n.defer=s.defer; n.async=s.async; }
+          else{ n.textContent=s.textContent; }
+          for(const a of s.attributes) n.setAttribute(a.name,a.value);
+          s.replaceWith(n);
+        });
+      }
+
+      async function pjaxNavigate(url, push=true){
+        try{
+          startBar();
+          const res=await fetch(url,{ headers:{ 'X-Requested-With':'SPAFetch' }});
+          if(res.redirected) return pjaxNavigate(res.url, push);
+          const text=await res.text();
+          const { next, titleText }=extract(text);
+          const root=document.querySelector(PJAX_SELECTOR);
+          if(!next || !root){ location.href=url; return; }
+
+          next.classList.add('spa-fade-enter');
+          root.replaceWith(next);
+          requestAnimationFrame(()=>next.classList.add('spa-fade-enter-active'));
+          setTimeout(()=>next.classList.remove('spa-fade-enter','spa-fade-enter-active'), 200);
+
+          executeScripts(next);
+          try{ if(window.Alpine) Alpine.initTree(next); }catch(_){}
+          document.title=titleText;
+          if(push) history.pushState({url},'',url);
+
+          window.dispatchEvent(new CustomEvent('spa:navigated',{ detail:{ url } }));
+        }catch(e){
+          console.error('SPA nav error', e);
+          location.href=url;
+        }finally{ finishBar(); }
+      }
+
+      // Экспортируем goto для обработчиков logout и т.п.
+      window.addEventListener('spa:goto',(e)=>{
+        const url=e.detail?.url||'/';
+        pjaxNavigate(url,true);
+      });
+
+      // Перехват кликов по ссылкам
+      document.addEventListener('click', (e)=>{
+        const a=e.target.closest('a');
+        if(!a) return;
+        if(a.hasAttribute('download') || a.target==='_blank' || a.getAttribute('rel')==='external' || a.dataset.noSpa!==undefined) return;
+        const href=a.getAttribute('href');
+        if(!href || href.startsWith('#')) return;
+        if(!sameOrigin(href)) return;
+
+        e.preventDefault();
+        const url=new URL(href, location.href).href;
+        pjaxNavigate(url, true);
+      }, { capture:true });
+
+      // Перехват отправки форм (только тех, что помечены data-ajax)
+      document.addEventListener('submit', async (e)=>{
+        const form=e.target;
+        if(!(form instanceof HTMLFormElement)) return;
+        if(!form.closest(PJAX_SELECTOR)) return;
+        if(!form.hasAttribute('data-ajax')) return;
+
+        e.preventDefault();
+        startBar();
+
+        const url=form.action || location.href;
+        const method=(form.method || 'POST').toUpperCase();
+        const enctype=form.enctype || 'application/x-www-form-urlencoded';
+        let body, headers={'X-Requested-With':'SPAFetch'};
+
+        if(enctype.includes('multipart/form-data')){
+          body=new FormData(form);
+        }else{
+          body=new URLSearchParams(new FormData(form));
+          headers['Content-Type']='application/x-www-form-urlencoded;charset=UTF-8';
+        }
+
+        try{
+          const res=await fetch(url,{ method, body, headers, redirect:'follow' });
+          const ctype=res.headers.get('Content-Type')||'';
+          if(ctype.includes('application/json')){
+            const j=await res.json();
+            if(j.user && window.Alpine?.store('auth')) Alpine.store('auth').setUser(j.user);
+            if(j.redirect){ await pjaxNavigate(j.redirect,true); return; }
+            // иначе остаёмся на странице
+            return;
+          }
+          // HTML — PJAX-подмена
+          const html=await res.text();
+          const { next, titleText }=extract(html);
+          const root=document.querySelector(PJAX_SELECTOR);
+          if(next && root){
+            next.classList.add('spa-fade-enter');
+            root.replaceWith(next);
+            requestAnimationFrame(()=>next.classList.add('spa-fade-enter-active'));
+            setTimeout(()=>next.classList.remove('spa-fade-enter','spa-fade-enter-active'), 200);
+            executeScripts(next);
+            try{ if(window.Alpine) Alpine.initTree(next); }catch(_){}
+            document.title=titleText;
+            history.pushState({url},'',url);
+            window.dispatchEvent(new CustomEvent('spa:navigated',{ detail:{ url } }));
+          }else{
+            location.href=url;
+          }
+        }catch(err){
+          console.error('SPA form error', err);
+          location.href=url;
+        }finally{ finishBar(); }
+      });
+
+      // Работа back/forward
+      window.addEventListener('popstate',(e)=>{
+        const url=(e.state && e.state.url) ? e.state.url : location.href;
+        pjaxNavigate(url, false);
+      });
+
+      /* ---------- Гидратация auth-слота (профиль без перезагрузки) ---------- */
+      function renderAuthSlotForUser(user){
+        const el=document.querySelector(AUTH_SLOT_SELECTOR);
+        if(!el || !user) return;
+        const name = user.display_name || user.name || user.email || 'Профиль';
+        const t = Math.floor(Date.now()/1000);
+        const avatar = `/avatar_svg/${user.id}?part=head&t=${t}`;
+        el.innerHTML = `
+          <button class="rounded-xl border border-slate-300 dark:border-white/10 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
+                  onclick="window.__setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark')" aria-label="Сменить тему">
+            <span class="dark:hidden">🌙 Тёмная</span>
+            <span class="hidden dark:inline">☀️ Светлая</span>
+          </button>
+
+          <div class="relative" x-data="{open:false}" @keydown.escape="open=false">
+            <button class="flex items-center gap-3 group" @click="open=!open" :aria-expanded="open.toString()" aria-haspopup="menu">
+              <img src="${avatar}" alt="avatar" class="w-9 h-9 rounded-full ring-2 ring-white/10 transition group-hover:ring-white/20">
+              <span class="font-semibold">${name}</span>
+            </button>
+            <div x-show="open" x-transition
+                 class="absolute right-0 mt-2 w-52 rounded-xl border border-white/10 bg-slate-900/95 p-2 shadow-soft"
+                 @click.outside="open=false" x-cloak role="menu">
+              <a class="block px-3 py-2 rounded-lg hover:bg-white/5" href="/profile" role="menuitem">Профиль</a>
+              <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5"
+                      onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/login'}})))" role="menuitem">
+                Выйти
+              </button>
+            </div>
+          </div>
+        `;
+        try{ if(window.Alpine) Alpine.initTree(el); }catch(_){}
+      }
+
+      async function hydrateFromAPI(){
+        try{
+          const r=await fetch('/api/me',{ headers:{'X-Requested-With':'SPAFetch'} });
+          if(!r.ok) return;
+          const j=await r.json();
+          if(j && j.user) renderAuthSlotForUser(j.user);
+        }catch(_){}
+      }
+
+      // Alpine store 'auth' — если его нет, создаём минимальный
+      document.addEventListener('alpine:init', ()=>{
+        if(!Alpine.store('auth')){
+          Alpine.store('auth', {
+            user:null,
+            setUser(u){ this.user=u; renderAuthSlotForUser(u); }
+          });
+        }
+      });
+
+      // После регистрации в онбординге
+      window.addEventListener('onboarding:registered', ()=>{
+        try{
+          const u = window.Alpine?.store('auth')?.user;
+          if(u) renderAuthSlotForUser(u);
+          else hydrateFromAPI();
+        }catch(_){ hydrateFromAPI(); }
+      });
+
+      // На каждую SPA-навигацию можно при желании проверять сессию
+      window.addEventListener('spa:navigated', ()=>{ /* при необходимости: hydrateFromAPI(); */ });
+
+    })();
   </script>
 </body>
 </html>

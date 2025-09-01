@@ -2,122 +2,849 @@
 {% set title = "Моя компания — Sales Journey" %}
 
 {% block content %}
+
+<!-- design tokens + animations (safe to inline) -->
+<style>
+  :root{
+    --sj-radius: 16px;
+    --sj-radius-lg: 20px;
+    --sj-radius-xl: 24px;
+    --sj-glass: rgba(15,23,42,.7);
+    --sj-border: rgba(255,255,255,.12);
+    --sj-ring: 70, 97, 230;  /* indigo */
+  }
+
+  .glass-card{
+    position: relative;
+    border-radius: var(--sj-radius-xl);
+    background: var(--sj-glass);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--sj-border);
+    box-shadow:
+      0 10px 30px rgba(2,6,23,.35),
+      inset 0 1px 0 rgba(255,255,255,.06);
+  }
+
+  .glass-gradient{
+    position: relative;
+    border-radius: var(--sj-radius-xl);
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(99,102,241,.35), rgba(168,85,247,.25), rgba(16,185,129,.25));
+  }
+  .glass-gradient > .glass-inner{
+    border-radius: inherit;
+    background: var(--sj-glass);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--sj-border);
+  }
+
+  .btn {
+    border-radius: var(--sj-radius);
+    padding: .6rem 1rem;
+    font-weight: 600;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
+    border: 1px solid rgba(255,255,255,.12);
+    will-change: transform;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-primary{
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 10px 25px rgba(99,102,241,.25);
+  }
+  .btn-primary:hover{ filter: brightness(1.05); }
+  .btn-ghost{
+    background: rgba(255,255,255,.06);
+    color: #e2e8f0;
+  }
+  .btn-ghost:hover{ background: rgba(255,255,255,.1); }
+  .btn-success{
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color:#062c22;
+    border-color: transparent;
+  }
+  .btn-danger{
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    color:#fff;
+    border-color: transparent;
+  }
+  .btn-outline{
+    background: transparent;
+    border-color: var(--sj-border);
+    color:#e2e8f0;
+  }
+
+  .input, .select, .textarea{
+    width: 100%;
+    background: rgba(2,6,23,.55);
+    border: 1px solid var(--sj-border);
+    color: #e5e7eb;
+    border-radius: var(--sj-radius);
+    padding: .65rem .85rem;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .textarea{ min-height: 3.5rem; }
+  .input:focus, .select:focus, .textarea:focus{
+    outline: none;
+    border-color: rgba(var(--sj-ring), .45);
+    box-shadow: 0 0 0 3px rgba(var(--sj-ring), .18);
+    background: rgba(2,6,23,.7);
+  }
+
+  @keyframes fade-slide-up {
+    from { opacity: 0; transform: translateY(6px) scale(.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+  }
+  .animate-in{ animation: fade-slide-up .25s ease both; }
+
+  @keyframes soft-pop {
+    0% { transform: scale(.98); }
+    60%{ transform: scale(1.015); }
+    100%{ transform: scale(1); }
+  }
+  .pop{ animation: soft-pop .22s ease both; }
+
+  .toggle{
+    --w: 38px; --h: 22px;
+    width: var(--w); height: var(--h);
+    background: rgba(148,163,184,.2);
+    border: 1px solid var(--sj-border);
+    border-radius: var(--h);
+    position: relative;
+    cursor: pointer; transition: background .2s ease, border-color .2s ease;
+  }
+  .toggle::after{
+    content:""; position:absolute; top: 2px; left: 2px;
+    width: calc(var(--h) - 4px); height: calc(var(--h) - 4px);
+    background: #fff; border-radius: 999px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    transition: transform .2s cubic-bezier(.22,.61,.36,1), background .2s ease;
+  }
+  .toggle.is-on{ background: rgba(16,185,129,.32); border-color: rgba(16,185,129,.5);}
+  .toggle.is-on::after{ transform: translateX(calc(var(--w) - var(--h))); background: #d1fae5; }
+
+  .spinner {
+    width: 16px; height: 16px; border-radius: 999px;
+    border: 2px solid rgba(255,255,255,.2);
+    border-top-color: rgba(255,255,255,.9);
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .aurora{
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--sj-radius-xl);
+  }
+
+  [x-cloak]{ display:none !important; }
+
+  .aurora::before, .aurora::after{
+    content:""; position:relative; inset:-20%;
+    background:
+      radial-gradient(1200px 600px at 10% 0%, rgba(99,102,241,.15), transparent 60%),
+      radial-gradient(1200px 600px at 90% 10%, rgba(168,85,247,.15), transparent 60%),
+      radial-gradient(1000px 600px at 50% 100%, rgba(16,185,129,.12), transparent 60%);
+    filter: blur(14px);
+  }
+</style>
+
 <section class="max-w-7xl mx-auto px-4 py-8"
-x-data="window.partnerCompanyPage({{ company_id if company_id is not none else 'null' }})"
+         x-data="window.partnerCompanyPage({{ company_id if company_id is not none else 'null' }})"
          x-init="init()"
          x-cloak>
-<div class="flex items-center justify-between">
-  <div>
-    <h1 class="text-3xl font-extrabold">Моя компания</h1>
-    <p class="text-slate-400" x-text="headerSubtitle"></p>
-  </div>
 
-  <div class="flex items-center gap-2">
-    <template x-if="companyId">
-      <div class="flex items-center gap-2">
-        <a href="/partner/requests" class="rounded-xl px-4 py-2 border border-white/10 hover:bg-white/5">Заявки</a>
-        <a href="/partner/reports"  class="rounded-xl px-4 py-2 border border-white/10 hover:bg-white/5">Отчёты по задачам</a>
-      </div>
-    </template>
+  <!-- Header with aurora -->
+  <div class="aurora glass-gradient mb-6">
+    <div class="glass-inner px-5 py-5 sm:px-6 sm:py-6">
+      <div class="flex items-start sm:items-center justify-between gap-4">
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Моя компания</h1>
+          <p class="text-slate-300/80 text-sm sm:text-base mt-1" x-text="headerSubtitle"></p>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button @click="openOnbDrawer()" class="btn btn-primary pop">Редактор онбординга</button>
 
-    <template x-if="!companyId">
-      <a href="/partner/company/create" class="rounded-xl px-4 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold">Создать компанию</a>
-    </template>
-  </div>
-</div>
-
-  <!-- INVITE MODAL -->
-  <div x-show="inviteModal" x-transition.opacity x-cloak
-       class="fixed inset-0 z-50 flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/60" @click="inviteModal=false"></div>
-
-    <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 text-slate-900"
-         @click.stop>
-      <div class="flex items-center justify-between">
-        <div class="text-lg font-bold">Приглашение в компанию</div>
-        <button class="text-slate-400 hover:text-slate-600"
-                @click="inviteModal=false">&times;</button>
-      </div>
-
-      <div class="mt-4 space-y-3">
-        <template x-if="invite?.active">
-          <div class="space-y-3">
-            <div>
-              <div class="text-sm text-slate-500">Код</div>
-              <div class="flex items-center gap-2">
-                <input class="w-full rounded-lg border px-3 py-2" :value="invite.code" readonly>
-                <button class="rounded-lg px-3 py-2 border hover:bg-slate-50"
-                        @click="copy(invite.code)">Скопировать</button>
-              </div>
-            </div>
-
-            <div>
-              <div class="text-sm text-slate-500">Персональная ссылка</div>
-              <div class="flex items-center gap-2">
-                <input class="w-full rounded-lg border px-3 py-2" :value="invite.invite_url" readonly>
-                <button class="rounded-lg px-3 py-2 border hover:bg-slate-50"
-                        @click="copy(invite.invite_url)">Скопировать</button>
-              </div>
-              <div class="text-xs text-slate-500 mt-1">
-                Эту ссылку можно отправить кандидату — код активируется автоматически.
-              </div>
-            </div>
+          <div class="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5"
+               x-show="onb.activeFlow"
+               x-transition
+               x-tooltip="onb.activeFlow?.name">
+            <span class="text-sm font-medium" x-text="onb.activeFlow?.name"></span>
+            <span class="text-slate-400">•</span>
+            <span class="text-xs text-slate-300" x-text="onb.steps.length + ' шаг(ов)'"></span>
           </div>
-        </template>
 
-        <template x-if="!invite?.active">
-          <div class="rounded-lg border border-dashed p-4 text-slate-500">
-            Активного кода нет. Нажмите «Сгенерировать код».
-          </div>
-        </template>
-      </div>
-
-      <div class="mt-6 flex items-center justify-between">
-        <button class="rounded-lg px-3 py-2 border hover:bg-slate-50"
-                @click="deactivateInvite()">Сбросить код</button>
-        <div class="space-x-2">
-          <button class="rounded-lg px-3 py-2 border hover:bg-slate-50"
-                  @click="inviteModal=false">Закрыть</button>
-          <button class="rounded-lg px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-500"
-                  @click="regenerateInvite()">Сгенерировать код</button>
+          <template x-if="companyId">
+            <div class="hidden md:flex items-center gap-2">
+              <a href="/partner/requests" class="btn btn-ghost">Заявки</a>
+              <a href="/partner/reports"  class="btn btn-ghost">Отчёты по задачам</a>
+            </div>
+          </template>
+          <template x-if="!companyId">
+            <a href="/partner/company/create" class="btn btn-success pop">Создать компанию</a>
+          </template>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- === LEFT DRAWER (Option editor + Flow stats) === -->
+  <div x-show="optDrawer.open" x-cloak>
+    <div class="fixed inset-0 bg-black/60 backdrop-blur z-40"
+         x-transition.opacity
+         @click="closeOptDrawer()"></div>
+
+    <aside class="fixed inset-y-0 left-0 w-[620px] max-w-[95vw] z-50
+                  bg-slate-900/85 backdrop-blur-xl border-r border-white/10
+                  shadow-2xl rounded-r-3xl"
+           x-transition:enter="transform transition ease-out duration-250"
+           x-transition:enter-start="-translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           x-transition:leave="transform transition ease-in duration-200"
+           x-transition:leave-start="translate-x-0"
+           x-transition:leave-end="-translate-x-full"
+           @click.stop>
+
+      <!-- Drawer header -->
+      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <div class="min-w-0">
+          <div class="text-lg font-semibold truncate"
+               x-text="onb.statsOpen ? 'Статистика флоу' : 'Редактор элемента'"></div>
+
+          <!-- подзаголовок для редактора опций -->
+          <template x-if="!onb.statsOpen && onb.optEditor">
+            <div class="text-xs text-slate-400 mt-0.5">
+              Опция: <span class="font-mono" x-text="onb.optEditor?.key || '—'"></span>
+              <span class="mx-1 text-slate-600">•</span>
+              Шаг ID: <span class="font-mono" x-text="onb.optEditor?.step_id"></span>
+            </div>
+          </template>
+
+          <!-- подзаголовок для статистики -->
+          <template x-if="onb.statsOpen && onb.activeFlow">
+            <div class="text-xs text-slate-400 mt-0.5">
+              Флоу: <span class="font-mono" x-text="onb.activeFlow?.name"></span>
+              <span class="mx-1 text-slate-600">•</span>
+              ID: <span class="font-mono" x-text="onb.activeFlow?.id"></span>
+            </div>
+          </template>
+        </div>
+        <div class="flex items-center gap-2">
+          <button x-show="!onb.statsOpen && onb.optEditor?.id" @click="deleteOption({id:onb.optEditor.id})" class="btn btn-danger">Удалить</button>
+          <button @click="closeOptDrawer()" class="btn btn-ghost px-3" aria-label="Закрыть">✕</button>
+        </div>
+      </div>
+
+      <!-- Drawer body -->
+      <div class="h-[calc(100vh-64px)] overflow-y-auto overscroll-contain p-4 space-y-4">
+        <!-- режим редактирования опции -->
+        <template x-if="!onb.statsOpen && onb.optEditor">
+          <div class="glass-card p-4 space-y-3">
+            <div>
+              <label class="text-xs text-slate-400">Ключ</label>
+              <input class="input mt-1" x-model="onb.optEditor.key" disabled>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Заголовок</label>
+              <input class="input mt-1" x-model="onb.optEditor.title" placeholder="Название опции">
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Текст (Markdown)</label>
+              <textarea class="textarea mt-1" rows="6" x-model="onb.optEditor.body_md" placeholder="Описание / контент опции"></textarea>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Медиа (YouTube URL или mp4)</label>
+              <input class="input mt-1" x-model="onb.optEditor.media_url" placeholder="https://youtu.be/... или https://.../video.mp4">
+            </div>
+
+            <!-- Preview -->
+            <div class="rounded-xl border border-white/10 p-3 bg-white/5" x-show="onb.optEditor.media_url">
+              <div class="text-xs text-slate-400 mb-2">Предпросмотр медиа</div>
+              <template x-if="/youtube\.com|youtu\.be/.test(onb.optEditor.media_url||'')">
+                <div class="rounded-xl overflow-hidden border border-white/10">
+                  <iframe class="w-full aspect-video" :src="youtubeEmbed(onb.optEditor.media_url)" frameborder="0" allowfullscreen></iframe>
+                </div>
+              </template>
+              <template x-if="!/youtube\.com|youtu\.be/.test(onb.optEditor.media_url||'')">
+                <video class="w-full rounded-xl border border-white/10" controls :src="onb.optEditor.media_url"></video>
+              </template>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button class="btn btn-ghost" @click="closeOptDrawer()">Отмена</button>
+              <button class="btn btn-primary" :disabled="saving" @click="saveOption()">
+                <span x-show="!saving">Сохранить</span>
+                <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Сохранение…</span>
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <!-- режим статистики флоу -->
+        <template x-if="onb.statsOpen">
+          <div class="space-y-4">
+            <!-- фильтры -->
+            <div class="glass-card p-4">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs text-slate-400">Окно (дней)</label>
+                  <select class="select mt-1" x-model.number="onb.statsDays" @change="loadFlowStats(onb.activeFlow.id); loadFlowSessions(onb.activeFlow.id, 1)">
+                    <option :value="7">7</option>
+                    <option :value="14">14</option>
+                    <option :value="30">30</option>
+                    <option :value="90">90</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs text-slate-400">Поиск по пользователю</label>
+                  <input class="input mt-1" placeholder="имя или email"
+                         x-model.debounce.400ms="onb.sessionsQuery"
+                         @input="debouncedLoadSessions()">
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI -->
+            <div class="grid grid-cols-3 gap-3">
+              <div class="p-4 rounded-xl bg-white/5">
+                <div class="text-slate-400 text-sm">Начали</div>
+                <div class="text-2xl font-bold" x-text="onb.stats?.started ?? 0"></div>
+              </div>
+              <div class="p-4 rounded-xl bg-white/5">
+                <div class="text-slate-400 text-sm">Завершили</div>
+                <div class="text-2xl font-bold" x-text="onb.stats?.completed ?? 0"></div>
+              </div>
+              <div class="p-4 rounded-xl bg-white/5">
+                <div class="text-slate-400 text-sm">Завершение</div>
+                <div class="text-2xl font-bold" x-text="(onb.stats?.completion_rate ?? 0) + '%'"></div>
+              </div>
+            </div>
+
+            <div class="glass-card p-4">
+              <div class="text-sm text-slate-400 mb-2">
+                Отток по шагам (последний достигнутый шаг у незавершённых; -1 = до первого шага)
+              </div>
+              <table class="w-full text-sm">
+                <thead class="text-slate-400">
+                  <tr>
+                    <th class="text-left py-2">Шаг</th>
+                    <th class="text-left py-2">Название</th>
+                    <th class="text-right py-2">Отток</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in (onb.stats?.funnel || [])" :key="row.order_index">
+                    <tr class="border-t border-white/5">
+                      <td class="py-2">#<span x-text="row.order_index"></span></td>
+                      <td class="py-2" x-text="row.title || row.type || '—'"></td>
+                      <td class="py-2 text-right" x-text="row.drop_count"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <div class="text-xs text-slate-400 mt-2">
+                Среднее время до завершения:
+                <b x-text="Math.round((onb.stats?.avg_time_to_complete_sec||0)/60) + ' мин'"></b>
+              </div>
+            </div>
+
+            <!-- Список прохождений -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold">Прохождения</div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-slate-400 flex items-center gap-1">
+                    <input type="checkbox" class="rounded" x-model="onb.onlyActive" @change="loadFlowSessions(onb.activeFlow.id, 1)"> Только активные
+                  </label>
+                  <label class="text-xs text-slate-400 flex items-center gap-1">
+                    <input type="checkbox" class="rounded" x-model="onb.onlyCompleted" @change="loadFlowSessions(onb.activeFlow.id, 1)"> Только завершённые
+                  </label>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <template x-for="it in onb.sessions?.items || []" :key="it.session_id">
+                  <div class="rounded-xl border border-white/10 bg-black/25 p-3">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="font-medium truncate" x-text="(it.user?.display_name || it.user?.email || ('Сессия #' + it.session_id))"></div>
+                        <div class="text-xs text-slate-400">
+                          <span>Старт: <span x-text="it.started_at ? new Date(it.started_at).toLocaleString() : '—'"></span></span>
+                          <span class="mx-2">•</span>
+                          <span>Статус: <b x-text="it.state"></b></span>
+                          <template x-if="it.finished_at">
+                            <span>
+                              <span class="mx-2">•</span> Финиш:
+                              <span x-text="new Date(it.finished_at).toLocaleString()"></span>
+                            </span>
+                          </template>
+                        </div>
+                      </div>
+                      <div class="shrink-0 text-right">
+                        <div class="text-sm">Прогресс: <b x-text="(it.progress?.percent ?? 0) + '%'"></b></div>
+                        <div class="w-40 h-2 rounded bg-white/10 mt-1 overflow-hidden">
+                          <div class="h-2 bg-emerald-400" :style="`width:${Math.max(0, Math.min(100, it.progress?.percent||0))}%`"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <div x-show="!onb.sessions?.items?.length" class="text-slate-400 text-sm py-4 text-center">
+                  Нет данных за выбранный период.
+                </div>
+              </div>
+
+              <!-- пагинация -->
+              <div class="flex items-center justify-between mt-3" x-show="(onb.sessions?.total||0) > (onb.sessions?.per_page||20)">
+                <button class="btn btn-ghost text-sm py-1.5" :disabled="onb.sessions?.page<=1" @click="loadFlowSessions(onb.activeFlow.id, onb.sessions.page-1)">← Назад</button>
+                <div class="text-xs text-slate-400">
+                  Стр. <b x-text="onb.sessions?.page||1"></b> / <b x-text="Math.ceil((onb.sessions?.total||0)/(onb.sessions?.per_page||20))"></b>
+                </div>
+                <button class="btn btn-ghost text-sm py-1.5"
+                        :disabled="(onb.sessions?.page||1) >= Math.ceil((onb.sessions?.total||0)/(onb.sessions?.per_page||20))"
+                        @click="loadFlowSessions(onb.activeFlow.id, onb.sessions.page+1)">Вперёд →</button>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- пустое состояние -->
+        <div x-show="!onb.statsOpen && !onb.optEditor" class="text-slate-400 text-sm">Ничего не выбрано.</div>
+      </div>
+    </aside>
+  </div>
+  <!-- === /LEFT DRAWER === -->
+
+  <!-- === RIGHT DRAWER (Onboarding Editor) === -->
+  <div x-show="onbDrawer.open" x-cloak>
+    <div class="fixed inset-0 bg-black/60 backdrop-blur z-40"
+         x-transition.opacity
+         @click="closeOnbDrawer()"></div>
+
+    <aside class="fixed inset-y-0 right-0 w-[620px] max-w-[95vw] z-50
+                  bg-slate-900/85 backdrop-blur-xl border-l border-white/10
+                  shadow-2xl rounded-l-3xl"
+           x-transition:enter="transform transition ease-out duration-250"
+           x-transition:enter-start="translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           x-transition:leave="transform transition ease-in duration-200"
+           x-transition:leave-start="translate-x-0"
+           x-transition:leave-end="translate-x-full"
+           @click.stop>
+
+      <!-- Drawer header -->
+      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <div class="min-w-0">
+          <div class="text-lg font-semibold truncate" x-text="onb.activeFlow?.name || 'Онбординг — флоу'"></div>
+          <div class="text-xs text-slate-400" x-show="onb.activeFlow">
+            ID: <span x-text="onb.activeFlow?.id"></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button x-show="onb.activeFlow" @click="deleteFlow(onb.activeFlow.id)" class="btn btn-danger">Удалить</button>
+          <button @click="createFlowQuick()" class="btn btn-success">Быстрый флоу</button>
+          <button @click="createFlow()" class="btn btn-outline">Пустой флоу</button>
+          <button @click="closeOnbDrawer()" class="btn btn-ghost px-3" aria-label="Закрыть">✕</button>
+        </div>
+      </div>
+
+      <!-- Drawer body -->
+      <div class="h-[calc(100vh-64px)] overflow-y-auto overscroll-contain p-4 space-y-4">
+
+        <!-- Flows list -->
+        <div class="glass-card animate-in">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <div class="font-semibold">Флоу компании</div>
+            <div class="flex items-center gap-2">
+              <span x-show="onbLoading" class="text-xs text-slate-400 flex items-center gap-2">
+                <span class="spinner"></span> Загрузка…
+              </span>
+              <button class="btn btn-ghost text-sm py-1.5" :disabled="onbLoading" @click="loadFlows()">Обновить</button>
+            </div>
+          </div>
+          <div class="p-3">
+            <template x-if="onbLoading">
+              <div class="space-y-2">
+                <div class="h-14 rounded-xl bg-white/5 animate-pulse"></div>
+                <div class="h-14 rounded-xl bg-white/5 animate-pulse"></div>
+              </div>
+            </template>
+
+            <template x-if="!onbLoading && !onb.flows.length">
+              <div class="text-slate-400 text-sm py-3">Флоу пока нет.</div>
+            </template>
+
+            <div class="grid gap-2" x-show="!onbLoading && onb.flows.length">
+              <template x-for="f in onb.flows" :key="f.id">
+                <div class="group flex items-center justify-between rounded-xl border border-white/10 bg-white/5/50 backdrop-blur px-3 py-2 hover:bg-white/10 transition">
+                  <div class="min-w-0">
+                    <div class="font-medium truncate group-hover:text-white/95 transition" x-text="f.name"></div>
+                    <div class="text-xs text-slate-400">
+                      Бонус: <span x-text="f.final_bonus_coins || 0"></span> монет
+                      <span class="mx-2">•</span>
+                      <span x-text="f.is_active ? 'активен' : 'не активен'"></span>
+                    </div>
+                  </div>
+                  <div class="shrink-0 flex items-center gap-3">
+                    <button @click="openFlow(f.id)" class="btn btn-ghost text-sm py-1.5">Открыть</button>
+                    <div class="toggle" :class="f.is_active ? 'is-on' : ''" @click="setFlowActive(f, !f.is_active)"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flow meta -->
+        <template x-if="onb.activeFlow">
+          <div class="glass-card animate-in">
+            <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+              <div class="font-semibold">Настройки флоу</div>
+              <div class="flex items-center gap-2">
+                <button class="btn btn-ghost text-sm py-1.5" @click="openFlowStats(onb.activeFlow.id)">Статистика</button>
+              </div>
+            </div>
+
+            <div class="p-4 space-y-4">
+              <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                  <div class="toggle" :class="onb.activeFlow.is_active ? 'is-on' : ''" @click="setFlowActive(onb.activeFlow, !onb.activeFlow.is_active)"></div>
+                  <span class="text-sm text-slate-300">Активен</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input type="number" class="input w-28" x-model.number="onb.activeFlow.final_bonus_coins" placeholder="Бонус">
+                  <button @click="saveFlowMeta()" class="btn btn-success" :disabled="saving">
+                    <span x-show="!saving">Сохранить</span>
+                    <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Сохранение…</span>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="text-xs text-slate-400">Название</label>
+                <input type="text" class="input mt-1" x-model="onb.activeFlow.name" placeholder="Название флоу">
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Links -->
+        <template x-if="onb.activeFlow">
+          <div class="glass-card animate-in">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <div class="font-semibold">Ссылки</div>
+              <button @click="generateLink()" class="btn btn-ghost text-sm py-1.5">Создать ссылку</button>
+            </div>
+            <div class="p-3 space-y-2" x-show="onb.links.length">
+              <template x-for="l in onb.links" :key="l.id">
+                <div class="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 hover:bg-white/10 transition">
+                  <div class="text-sm">
+                    <div class="font-medium"><b>/r/<span x-text="l.slug"></span></b></div>
+                    <div class="text-slate-400 text-xs">
+                      Исп.: <span x-text="l.uses_count || 0"></span>,
+                      Макс: <span x-text="l.max_uses ?? '—'"></span>,
+                      До: <span x-text="l.expires_at || '—'"></span>
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <a :href="`/r/${l.slug}`" target="_blank" class="btn btn-primary text-sm py-1.5">Открыть</a>
+                    <button @click="deleteLink(l.id)" class="btn btn-danger text-sm py-1.5">Удалить</button>
+                  </div>
+                </div>
+              </template>
+            </div>
+            <div class="p-3 text-slate-400 text-sm" x-show="!onb.links.length">Ссылок пока нет.</div>
+          </div>
+        </template>
+
+        <!-- Steps -->
+        <template x-if="onb.activeFlow">
+          <div class="glass-card animate-in">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <div class="font-semibold">Шаги флоу</div>
+              <div class="flex items-center gap-2">
+                <button @click="addStepDialog=true" class="btn btn-ghost text-sm py-1.5">Добавить шаг</button>
+                <button @click="saveOrder()" class="btn btn-success text-sm py-1.5" :disabled="saving">
+                  <span x-show="!saving">Сохранить порядок</span>
+                  <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Сохранение…</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="p-3">
+              <template x-if="!onb.steps.length">
+                <div class="text-slate-400 text-sm">Шагов пока нет.</div>
+              </template>
+
+              <div class="space-y-3">
+                <template x-for="(s,idx) in onb.steps" :key="s.id">
+                  <div class="p-4 rounded-xl border border-white/10 bg-white/5 group transition hover:bg-white/10 animate-in"
+                       x-transition:enter="transition ease-out duration-200"
+                       x-transition:enter-start="opacity-0 translate-y-1"
+                       x-transition:enter-end="opacity-100 translate-y-0">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="text-xs text-slate-400">
+                          #<span x-text="s.order_index"></span> • <span x-text="s.type"></span>
+                        </div>
+                        <div class="font-semibold truncate" x-text="s.title || '(без названия)'"></div>
+
+                        <!-- Media -->
+                        <template x-if="s.media_url">
+                          <div class="mt-2">
+                            <template x-if="/youtube\.com|youtu\.be/.test(s.media_url)">
+                              <div class="rounded-xl overflow-hidden border border-white/10">
+                                <iframe class="w-full aspect-video" :src="youtubeEmbed(s.media_url)" frameborder="0" allowfullscreen></iframe>
+                              </div>
+                            </template>
+                            <template x-if="!/youtube\.com|youtu\.be/.test(s.media_url)">
+                              <video class="w-full rounded-xl border border-white/10" controls :src="s.media_url"></video>
+                            </template>
+                          </div>
+                        </template>
+                      </div>
+                      <div class="shrink-0 flex items-center gap-2">
+                        <div class="toggle" :class="s.is_active ? 'is-on' : ''" @click="toggleStepActive(s, !s.is_active)"></div>
+                        <button @click="moveStep(idx,-1)" :disabled="s.is_immutable" class="btn btn-ghost px-2 disabled:opacity-40">↑</button>
+                        <button @click="moveStep(idx, 1)" :disabled="s.is_immutable" class="btn btn-ghost px-2 disabled:opacity-40">↓</button>
+                        <button x-show="!s.is_immutable" @click="editStep(s)" class="btn btn-primary text-sm py-1.5">Редакт.</button>
+                        <button x-show="!s.is_immutable" @click="deleteStep(s.id)" class="btn btn-danger text-sm py-1.5">Удалить</button>
+                        <span x-show="s.is_immutable" class="text-xs text-slate-400 px-2 py-1 border border-white/10 rounded-lg">неизменяемый</span>
+                      </div>
+                    </div>
+
+                    <!-- Options (interest_selector & choice_one) -->
+                    <div x-show="s.type==='interest_selector' || s.type==='choice_one'" class="mt-3">
+                      <div class="text-sm font-semibold mb-2">Опции</div>
+
+                      <div class="space-y-2" x-show="s.options && s.options.length">
+                        <template x-for="o in s.options" :key="o.id || o.key">
+                          <div class="flex items-start justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2 gap-3 hover:bg-white/10 transition">
+                            <button class="min-w-0 text-left" @click="editOption(o, s.id)">
+                              <div class="font-medium truncate" x-text="o.title"></div>
+                              <div class="text-slate-400 text-xs" x-text="o.key"></div>
+                              <div class="text-xs text-slate-300 mt-1 line-clamp-2" x-show="o.body_md" x-text="o.body_md"></div>
+                              <div class="text-[11px] text-slate-400 mt-1" x-show="o.media_url">медиа: <span class="underline" x-text="o.media_url"></span></div>
+                            </button>
+                            <div class="shrink-0 flex items-center gap-2">
+                              <button @click="editOption(o, s.id)" class="btn btn-ghost text-sm py-1.5">Редакт.</button>
+                              <button @click="deleteOption(o, s.id)" class="btn btn-danger text-sm py-1.5">Удалить</button>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+
+                      <!-- Add option -->
+                      <div class="mt-3 grid gap-2 md:grid-cols-[120px,1fr]">
+                        <input type="text" class="input" placeholder="key" x-model="onb.tmpOpt.key">
+                        <input type="text" class="input" placeholder="Название" x-model="onb.tmpOpt.title">
+                        <textarea class="textarea md:col-span-2" rows="2" placeholder="Описание (опционально)" x-model="onb.tmpOpt.body_md"></textarea>
+                        <div class="md:col-span-2 flex justify-end">
+                          <button @click="addOption(s.id)" class="btn btn-ghost text-sm py-1.5">Добавить</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Add step dialog -->
+              <div x-show="addStepDialog" x-cloak class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 animate-in">
+                <div class="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-sm text-slate-400">Тип</label>
+                    <select class="select mt-1" x-model="formStep.type">
+                      <option value="intro_page">intro_page</option>
+                      <option value="registration_section">registration_section</option>
+                      <option value="interest_selector">interest_selector</option>
+                      <option value="ask_input">ask_input</option>
+                      <option value="choice_one">choice_one</option>
+                      <option value="interview_invite">interview_invite</option>
+                      <option value="assignment">assignment</option>
+                      <option value="first_assignment">first_assignment</option>
+                      <option value="reward_shop">reward_shop</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-sm text-slate-400">Заголовок</label>
+                    <input class="input mt-1" x-model="formStep.title" placeholder="Заголовок шага">
+                  </div>
+
+                  <div x-show="formStep.type==='ask_input'">
+                    <label class="text-sm text-slate-400">Поле</label>
+                    <select class="select mt-1" x-model="formStep.ask_field">
+                      <option value="first_name">first_name</option>
+                      <option value="last_name">last_name</option>
+                      <option value="phone">phone</option>
+                      <option value="email">email</option>
+                      <option value="name">name</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="text-sm text-slate-400">Награда (coins/xp)</label>
+                    <div class="flex gap-2 mt-1">
+                      <input type="number" class="input w-28" x-model.number="formStep.coins_award" placeholder="coins">
+                      <input type="number" class="input w-28" x-model.number="formStep.xp_award" placeholder="xp">
+                    </div>
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <label class="text-sm text-slate-400">Текст (Markdown)</label>
+                    <textarea class="textarea mt-1" rows="4" x-model="formStep.body_md" placeholder="Описание шага"></textarea>
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <label class="text-sm text-slate-400">Видео (YouTube URL или mp4)</label>
+                    <input type="text" class="input mt-1" placeholder="https://youtu.be/..." x-model="formStep.media_url">
+                  </div>
+
+                  <div class="md:col-span-2" x-show="formStep.type==='interview_invite'">
+                    <label class="text-sm text-slate-400">Интервью (config)</label>
+                    <div class="grid md:grid-cols-3 gap-2 mt-1">
+                      <input type="datetime-local" class="input" x-model="formStep.cfg_date_time">
+                      <input type="text" class="input" placeholder="Локация" x-model="formStep.cfg_location">
+                      <input type="text" class="input" placeholder="Сообщение" x-model="formStep.cfg_message">
+                    </div>
+                  </div>
+
+                  <div class="md:col-span-2" x-show="formStep.type==='first_assignment'">
+                    <label class="text-sm text-slate-400">Дата собеседования (опционально)</label>
+                    <input type="datetime-local" class="input mt-1" x-model="formStep.cfg_date_time">
+                    <p class="text-xs text-slate-400 mt-1">Текст задачи — из поля «Текст (Markdown)».</p>
+                  </div>
+
+                  <div class="md:col-span-2" x-show="formStep.type==='interest_selector'">
+                    <label class="text-sm text-slate-400">Лимит выбора интересов</label>
+                    <input type="number" min="1" class="input mt-1 w-28" x-model.number="formStep.cfg_select_limit" placeholder="1">
+                  </div>
+
+                  <div class="md:col-span-2 flex items-center justify-end gap-2">
+                    <button @click="addStepDialog=false" class="btn btn-ghost">Отмена</button>
+                    <button @click="saveNewStep()" class="btn btn-success" :disabled="saving">
+                      <span x-show="!saving">Сохранить шаг</span>
+                      <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Создание…</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Edit step dialog -->
+              <div x-show="editStepDialog" x-transition.opacity x-cloak
+                   id="edit-step-panel"
+                   class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 animate-in">
+                <div class="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-sm text-slate-400">Тип</label>
+                    <select class="select mt-1" x-model="formStep.type" :disabled="formStep.is_immutable">
+                      <option value="intro_page">intro_page</option>
+                      <option value="registration_section">registration_section</option>
+                      <option value="interest_selector">interest_selector</option>
+                      <option value="ask_input">ask_input</option>
+                      <option value="choice_one">choice_one</option>
+                      <option value="interview_invite">interview_invite</option>
+                      <option value="assignment">assignment</option>
+                      <option value="reward_shop">reward_shop</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-sm text-slate-400">Заголовок</label>
+                    <input class="input mt-1" x-model="formStep.title" placeholder="Заголовок шага">
+                  </div>
+
+                  <div x-show="formStep.type==='ask_input'">
+                    <label class="text-sm text-slate-400">Поле</label>
+                    <select class="select mt-1" x-model="formStep.ask_field">
+                      <option value="first_name">first_name</option>
+                      <option value="last_name">last_name</option>
+                      <option value="name">name</option>
+                      <option value="phone">phone</option>
+                      <option value="email">email</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="text-sm text-slate-400">Награда</label>
+                    <div class="flex gap-2 mt-1">
+                      <input type="number" class="input w-28" x-model.number="formStep.coins_award">
+                      <input type="number" class="input w-28" x-model.number="formStep.xp_award">
+                    </div>
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <label class="text-sm text-slate-400">Текст (Markdown)</label>
+                    <textarea class="textarea mt-1" rows="4" x-model="formStep.body_md" placeholder="Описание шага"></textarea>
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <label class="text-sm text-slate-400">Видео (YouTube URL или mp4)</label>
+                    <input type="text" class="input mt-1" placeholder="https://youtu.be/..." x-model="formStep.media_url">
+                  </div>
+
+                  <div class="md:col-span-2" x-show="formStep.type==='interview_invite'">
+                    <label class="text-sm text-slate-400">Интервью (config)</label>
+                    <div class="grid md:grid-cols-3 gap-2 mt-1">
+                      <input type="datetime-local" class="input" x-model="formStep.cfg_date_time">
+                      <input type="text" class="input" placeholder="Локация" x-model="formStep.cfg_location">
+                      <input type="text" class="input" placeholder="Сообщение" x-model="formStep.cfg_message">
+                    </div>
+                  </div>
+
+                  <div class="md:col-span-2" x-show="formStep.type==='first_assignment'">
+                    <label class="text-sm text-slate-400">Дата собеседования (опционально)</label>
+                    <input type="datetime-local" class="input mt-1" x-model="formStep.cfg_date_time">
+                  </div>
+
+                  <div class="md:col-span-2" x-show="formStep.type==='interest_selector'">
+                    <label class="text-sm text-slate-400">Лимит выбора интересов</label>
+                    <input type="number" min="1" class="input mt-1 w-28" x-model.number="formStep.cfg_select_limit" placeholder="1">
+                  </div>
+
+                  <div class="md:col-span-2 flex items-center justify-end gap-2">
+                    <button @click="editStepDialog=false" class="btn btn-ghost">Отмена</button>
+                    <button @click="updateStep()" class="btn btn-primary" :disabled="saving">
+                      <span x-show="!saving">Обновить</span>
+                      <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Сохранение…</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <!-- /Edit step dialog -->
+            </div>
+          </div>
+        </template>
+      </div>
+    </aside>
+  </div>
+  <!-- === /RIGHT DRAWER === -->
+
   <template x-if="companyId">
-    <div>
-      <!-- LAYOUT: Left content + Right company info -->
-      <div class="mt-8 grid md:grid-cols-[1fr,380px] gap-4">
+    <div class="animate-in">
+      <div class="mt-6 grid md:grid-cols-[1fr,380px] gap-4">
 
         <!-- LEFT -->
-        <div>
+        <div class="space-y-4">
           <div class="flex gap-2 text-sm">
             <button :class="tabBtn('feed')"  @click="tab='feed'">Лента</button>
             <button :class="tabBtn('tasks')" @click="tab='tasks'">Задачи</button>
           </div>
 
           <!-- FEED -->
-          <div x-show="tab==='feed'" x-transition.opacity class="mt-4">
-            <!-- Новый пост (только партнёр/менеджер) -->
-            <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4 mb-4"
-                 x-show="canPost">
+          <div x-show="tab==='feed'" x-transition.opacity class="space-y-4">
+            <div class="glass-card p-4" x-show="canPost">
               <div class="font-semibold mb-2">Новый пост</div>
-              <textarea x-model="newPost"
-                        class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 h-28"
-                        placeholder="Текст объявления..."></textarea>
+              <textarea x-model="newPost" class="textarea" placeholder="Текст объявления..."></textarea>
 
-              <!-- загрузка картинки -->
               <div class="mt-2">
                 <input type="file" accept="image/*" x-ref="newPostImageInput"
                        class="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-white/10 file:bg-white/5 file:px-3 file:py-1.5 file:hover:bg-white/10"
                        @change="onNewPostFile($event)">
                 <div x-show="newPostPreview" class="mt-2">
-                  <img :src="newPostPreview" alt=""
-                       class="max-h-48 rounded-lg border border-white/10 object-contain">
-                  <button type="button"
-                          class="mt-2 text-xs text-slate-300 underline hover:opacity-80"
-                          @click="clearNewPostFile()">Убрать изображение</button>
+                  <img :src="newPostPreview" alt="" class="max-h-56 rounded-xl border border-white/10 object-contain">
+                  <button type="button" class="mt-2 text-xs text-slate-300 underline hover:opacity-80" @click="clearNewPostFile()">Убрать изображение</button>
                 </div>
               </div>
 
@@ -125,26 +852,22 @@ x-data="window.partnerCompanyPage({{ company_id if company_id is not none else '
                 <input type="checkbox" x-model="newPinned" class="rounded"> Закрепить
               </label>
 
-              <button class="mt-3 w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 py-2 font-semibold"
-                      @click="createPost()">Опубликовать</button>
+              <button class="mt-3 w-full btn btn-primary" @click="createPost()">Опубликовать</button>
             </div>
 
-            <!-- Лента -->
             <div class="space-y-3">
               <template x-for="p in feed" :key="p.id">
-                <div class="rounded-xl border border-white/10 bg-black/30 p-4">
-                  <div class="text-xs text-slate-400"
-                       x-text="new Date(p.created_at).toLocaleString()"></div>
-                  <div class="font-semibold mt-1">
+                <div class="glass-card p-4 group">
+                  <div class="text-xs text-slate-400" x-text="new Date(p.created_at).toLocaleString()"></div>
+                  <div class="font-semibold mt-1 flex items-center gap-2">
                     <span class="text-emerald-400" x-text="p.author"></span>
-                    <span class="text-slate-500 text-xs"
-                          x-text="p.type==='partner'?'(партнёр)':'(менеджер)'"></span>
+                    <span class="text-slate-500 text-xs" x-text="p.type==='partner'?'(партнёр)':'(менеджер)'"></span>
                     <span x-show="p.pinned" class="ml-2 text-amber-300">📌</span>
                   </div>
                   <div class="mt-1 text-slate-200 whitespace-pre-line" x-text="p.text"></div>
                   <template x-if="(p.image_url || p.photo_url || p.image)">
                     <img :src="p.image_url || p.photo_url || p.image"
-                         class="mt-2 rounded-lg border border-white/10 max-h-80 object-contain"
+                         class="mt-2 rounded-xl border border-white/10 max-h-80 object-contain"
                          loading="lazy" alt="">
                   </template>
                 </div>
@@ -154,208 +877,174 @@ x-data="window.partnerCompanyPage({{ company_id if company_id is not none else '
           </div>
 
           <!-- TASKS -->
-          <div x-show="tab==='tasks'" x-transition.opacity class="mt-4">
-            <div class="space-y-3">
-              <template x-for="t in tasks" :key="t.id">
-                <div class="rounded-xl border border-white/10 bg-black/30 p-4 flex items-start justify-between gap-4">
-                  <!-- левый столбец карточки -->
-                  <div>
-                    <div class="font-semibold" x-text="t.title"></div>
-                    <div class="flex items-center gap-2 mt-1">
-                      <span class="text-[11px] px-2 py-0.5 rounded-full border border-white/10"
-                            :class="{
-                              'text-emerald-300': t.priority==='low',
-                              'text-sky-300':     t.priority==='normal',
-                              'text-amber-300':   t.priority==='high',
-                              'text-rose-300':    t.priority==='critical',
-                            }"
-                            x-text="'приоритет: ' + (t.priority || 'normal')"></span>
-                      <span class="text-[11px] text-slate-400"
-                            x-text="t.require_proof ? 'требуется отчёт' : 'без отчёта'"></span>
-                    </div>
-
-                    <div class="text-sm text-slate-300 mt-1" x-text="t.description"></div>
-
-                    <div class="text-xs text-slate-400 mt-1">
-                      Награда:
-                      <span class="text-emerald-300" x-text="t.points_xp + ' XP'"></span>,
-                      <span class="text-amber-300"   x-text="t.coins + ' 🪙'"></span>
-                      <span x-show="t.due_at"> · дедлайн:
-                        <span x-text="new Date(t.due_at).toLocaleDateString()"></span>
-                      </span>
-                      <span x-show="t.due_at" class="ml-2"
-                            :class="t.is_due_passed ? 'text-rose-300' : 'text-emerald-300'"
-                            x-text="t.is_due_passed ? 'срок истёк' : 'срок не истёк'"></span>
-                    </div>
-
-                    <div class="text-xs mt-1"
-                         :class="{'text-sky-300': t.assign_status==='assigned', 'text-emerald-300': t.assign_status==='approved', 'text-rose-300': t.assign_status==='rejected'}"
-                         x-show="t.assign_status"
-                         x-text="t.assign_status==='assigned' ? 'Назначена' : (t.assign_status==='approved' ? 'Зачтена' : 'Отклонена')">
-                    </div>
+          <div x-show="tab==='tasks'" x-transition.opacity class="space-y-3">
+            <template x-for="t in tasks" :key="t.id">
+              <div class="glass-card p-4 flex items-start justify-between gap-4">
+                <div>
+                  <div class="font-semibold" x-text="t.title"></div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                          :class="{
+                            'text-emerald-300': t.priority==='low',
+                            'text-sky-300':     t.priority==='normal',
+                            'text-amber-300':   t.priority==='high',
+                            'text-rose-300':    t.priority==='critical',
+                          }"
+                          x-text="'приоритет: ' + (t.priority || 'normal')"></span>
+                    <span class="text-[11px] text-slate-400" x-text="t.require_proof ? 'требуется отчёт' : 'без отчёта'"></span>
                   </div>
 
-                  <div class="shrink-0 flex items-center gap-2">
-                    <template x-if="canCreateTasks">
-                      <button class="rounded-lg border border-white/10 px-3 py-2 hover:bg-white/5"
-                              @click="openTaskModal('edit', t)">Изменить</button>
-                    </template>
+                  <div class="text-sm text-slate-300 mt-1" x-text="t.description"></div>
 
-                    <!-- Кнопка отправки видна только когда backend выдал submittable=true -->
-                    <template x-if="t.submittable">
-                      <div class="flex items-center gap-2">
-                        <input type="file" class="hidden" :id="'proof_'+t.id"
-                               @change="submitProof(t.id, $event)">
-                        <button class="rounded-lg border border-white/10 px-3 py-2 hover:bg-white/5"
-                                @click="document.getElementById('proof_'+t.id).click()">Отправить отчёт</button>
-                      </div>
-                    </template>
+                  <div class="text-xs text-slate-400 mt-1">
+                    Награда:
+                    <span class="text-emerald-300" x-text="t.points_xp + ' XP'"></span>,
+                    <span class="text-amber-300"   x-text="t.coins + ' 🪙'"></span>
+                    <span x-show="t.due_at"> · дедлайн:
+                      <span x-text="new Date(t.due_at).toLocaleDateString()"></span>
+                    </span>
+                    <span x-show="t.due_at" class="ml-2"
+                          :class="t.is_due_passed ? 'text-rose-300' : 'text-emerald-300'"
+                          x-text="t.is_due_passed ? 'срок истёк' : 'срок не истёк'"></span>
+                  </div>
+
+                  <div class="text-xs mt-1"
+                       :class="{'text-sky-300': t.assign_status==='assigned', 'text-emerald-300': t.assign_status==='approved', 'text-rose-300': t.assign_status==='rejected'}"
+                       x-show="t.assign_status"
+                       x-text="t.assign_status==='assigned' ? 'Назначена' : (t.assign_status==='approved' ? 'Зачтена' : 'Отклонена')">
                   </div>
                 </div>
-              </template>
-              <div x-show="tasks.length===0" class="text-slate-400 text-sm">Активных задач нет.</div>
-            </div>
 
-            <!-- Кнопка открытия модала создания -->
-            <div class="flex justify-end mt-4" x-show="canCreateTasks">
-              <button class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 font-semibold"
-                      @click="openTaskModal('create')">+ Создать задачу</button>
+                <div class="shrink-0 flex items-center gap-2">
+                  <template x-if="canCreateTasks">
+                    <button class="btn btn-ghost" @click="openTaskModal('edit', t)">Изменить</button>
+                  </template>
+
+                  <template x-if="t.submittable">
+                    <div class="flex items-center gap-2">
+                      <input type="file" class="hidden" :id="'proof_'+t.id" @change="submitProof(t.id, $event)">
+                      <button class="btn btn-outline" @click="document.getElementById('proof_'+t.id).click()">Отправить отчёт</button>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+            <div x-show="tasks.length===0" class="text-slate-400 text-sm">Активных задач нет.</div>
+
+            <div class="flex justify-end" x-show="canCreateTasks">
+              <button class="btn btn-primary" @click="openTaskModal('create')">+ Создать задачу</button>
             </div>
           </div>
 
-          <!-- TASK MODAL (create/edit) -->
+          <!-- TASK MODAL -->
           <div x-show="taskModal.open" x-transition.opacity x-cloak>
-            <div class="fixed inset-0 bg-black/60 z-40" @click="closeTaskModal()"></div>
+            <div class="fixed inset-0 bg-black/60 backdrop-blur z-40" @click="closeTaskModal()"></div>
 
-            <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50
-                        rounded-2xl border border-white/10 bg-slate-900/95 p-5"
+            <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 glass-gradient pop"
                  @click.stop>
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold"
-                    x-text="taskModal.mode==='create' ? 'Новая задача' : 'Изменить задачу'"></h3>
-                <button class="rounded-lg border border-white/10 px-2 py-1 hover:bg-white/5"
-                        @click="closeTaskModal()">✕</button>
-              </div>
+              <div class="glass-inner rounded-2xl p-5">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-lg font-semibold" x-text="taskModal.mode==='create' ? 'Новая задача' : 'Изменить задачу'"></h3>
+                  <button class="btn btn-ghost px-3" @click="closeTaskModal()">✕</button>
+                </div>
 
-              <div class="px-5 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
-                <!-- ФОРМА ЗАДАЧИ -->
-                <div class="mt-4 grid gap-3">
-                  <input x-model="taskModal.form.title"
-                         class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2"
-                         placeholder="Заголовок">
+                <div class="px-1 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
+                  <div class="mt-2 grid gap-3">
+                    <input x-model="taskModal.form.title" class="input" placeholder="Заголовок">
+                    <textarea x-model="taskModal.form.description" class="textarea h-28" placeholder="Описание"></textarea>
 
-                  <textarea x-model="taskModal.form.description"
-                            class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 h-28"
-                            placeholder="Описание"></textarea>
-
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="text-xs text-slate-400">XP</label>
-                      <input x-model.number="taskModal.form.points_xp" type="number"
-                             class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+                    <div class="grid grid-cols-2 gap-2">
+                      <div>
+                        <label class="text-xs text-slate-400">XP</label>
+                        <input x-model.number="taskModal.form.points_xp" type="number" class="input">
+                      </div>
+                      <div>
+                        <label class="text-xs text-slate-400">Коины</label>
+                        <input x-model.number="taskModal.form.coins" type="number" class="input">
+                      </div>
                     </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                      <div>
+                        <label class="text-xs text-slate-400">Приоритет</label>
+                        <select x-model="taskModal.form.priority" class="select">
+                          <option value="low">low</option>
+                          <option value="normal">normal</option>
+                          <option value="high">high</option>
+                          <option value="critical">critical</option>
+                        </select>
+                      </div>
+                      <div class="flex items-end">
+                        <label class="inline-flex items-center gap-2 text-xs text-slate-400">
+                          <input type="checkbox" x-model="taskModal.form.require_proof" class="rounded"> Требуется отчёт с фото
+                        </label>
+                      </div>
+                    </div>
+
                     <div>
-                      <label class="text-xs text-slate-400">Коины</label>
-                      <input x-model.number="taskModal.form.coins" type="number"
-                             class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
+                      <label class="text-xs text-slate-400">Дедлайн (дата, опционально)</label>
+                      <input type="date" x-model="taskModal.form._due_date" class="input">
+                    </div>
+
+                    <div>
+                      <label class="text-xs text-slate-400">ID ачивки (опционально)</label>
+                      <input x-model.number="taskModal.form.reward_achievement_id" type="number" class="input" placeholder="Напр., 3">
                     </div>
                   </div>
 
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="text-xs text-slate-400">Приоритет</label>
-                      <select x-model="taskModal.form.priority"
-                              class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
-                        <option value="low">low</option>
-                        <option value="normal">normal</option>
-                        <option value="high">high</option>
-                        <option value="critical">critical</option>
-                      </select>
-                    </div>
-                    <div class="flex items-end">
-                      <label class="inline-flex items-center gap-2 text-xs text-slate-400">
-                        <input type="checkbox" x-model="taskModal.form.require_proof" class="rounded">
-                        Требуется отчёт с фото
-                      </label>
-                    </div>
-                  </div>
+                  <!-- Members select -->
+                  <div class="mt-5">
+                    <div class="text-sm font-semibold">Назначить сотрудникам</div>
 
-                  <div>
-                    <label class="text-xs text-slate-400">Дедлайн (дата, опционально)</label>
-                    <input type="date" x-model="taskModal.form._due_date"
-                           class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
-                  </div>
+                    <div class="mt-2 flex flex-wrap gap-2" x-show="taskModal.selectedIds.length">
+                      <template x-for="uid in taskModal.selectedIds" :key="uid">
+                        <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border border-white/10 bg-black/30">
+                          <span x-text="nameById(uid)"></span>
+                          <button class="hover:text-rose-400" @click="tmUnselect(uid)">✕</button>
+                        </span>
+                      </template>
+                    </div>
 
-                  <div>
-                    <label class="text-xs text-slate-400">ID ачивки (опционально)</label>
-                    <input x-model.number="taskModal.form.reward_achievement_id" type="number"
-                           class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2"
-                           placeholder="Напр., 3">
+                    <div class="mt-2">
+                      <input x-model="taskModal.query" @input="tmSearchMembers" placeholder="Поиск по имени или email" class="input">
+                    </div>
+
+                    <div class="mt-3 max-h-64 overflow-auto divide-y divide-white/5">
+                      <template x-for="m in taskModal.members" :key="m.id">
+                        <label class="flex items-center gap-3 py-2 px-1 cursor-pointer">
+                          <input type="checkbox"
+                                 :value="String(m.id)"
+                                 :checked="taskModal.selectedIds.includes(String(m.id))"
+                                 @change="tmToggleSelect(m.id)">
+                          <div class="leading-tight">
+                            <div class="font-medium" x-text="m.display_name"></div>
+                            <div class="text-xs text-slate-400" x-text="m.email"></div>
+                          </div>
+                        </label>
+                      </template>
+                      <div class="text-sm text-slate-400 py-6 text-center" x-show="!taskModal.members.length">Ничего не найдено</div>
+                    </div>
                   </div>
                 </div>
 
-                <!-- ВЫБОР СОТРУДНИКОВ -->
-                <div class="mt-5">
-                  <div class="text-sm font-semibold">Назначить сотрудникам</div>
-
-                  <!-- выбранные чипсы -->
-                  <div class="mt-2 flex flex-wrap gap-2" x-show="taskModal.selectedIds.length">
-                    <template x-for="uid in taskModal.selectedIds" :key="uid">
-                      <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full
-                                    border border-white/10 bg-black/30">
-                        <span x-text="nameById(uid)"></span>
-                        <button class="hover:text-rose-400" @click="tmUnselect(uid)">✕</button>
-                      </span>
-                    </template>
-                  </div>
-
-                  <!-- поиск -->
-                  <div class="mt-2">
-                    <input x-model="taskModal.query" @input="tmSearchMembers"
-                           placeholder="Поиск по имени или email"
-                           class="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2">
-                  </div>
-
-                  <!-- список с чекбоксами -->
-                  <div class="mt-3 max-h-64 overflow-auto divide-y divide-white/5">
-                    <template x-for="m in taskModal.members" :key="m.id">
-                      <label class="flex items-center gap-3 py-2 px-1 cursor-pointer">
-                        <input type="checkbox"
-                               :value="String(m.id)"
-                               :checked="taskModal.selectedIds.includes(String(m.id))"
-                               @change="tmToggleSelect(m.id)">
-                        <div class="leading-tight">
-                          <div class="font-medium" x-text="m.display_name"></div>
-                          <div class="text-xs text-slate-400" x-text="m.email"></div>
-                        </div>
-                      </label>
-                    </template>
-                    <div class="text-sm text-slate-400 py-6 text-center"
-                         x-show="!taskModal.members.length">Ничего не найдено</div>
-                  </div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-white/10">
+                  <button class="btn btn-ghost" @click="closeTaskModal()">Отмена</button>
+                  <button class="btn btn-primary disabled:opacity-50"
+                          :disabled="!taskModal.form.title?.trim()"
+                          @click="saveTask()"
+                          x-text="taskModal.mode==='create' ? 'Создать' : 'Сохранить'">
+                  </button>
                 </div>
-              </div>
-
-              <div class="sticky bottom-0 z-10 flex justify-end gap-2 px-5 py-3 border-t border-white/10
-                          bg-slate-900/95/80 backdrop-blur">
-                <button class="rounded-xl border border-white/10 px-4 py-2 hover:bg-white/5"
-                        @click="closeTaskModal()">Отмена</button>
-                <button class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 font-semibold disabled:opacity-50"
-                        :disabled="!taskModal.form.title?.trim()"
-                        @click="saveTask()"
-                        x-text="taskModal.mode==='create' ? 'Создать' : 'Сохранить'">
-                </button>
               </div>
             </div>
           </div>
-        </div> <!-- /LEFT -->
+        </div>
 
         <!-- RIGHT -->
-        <aside class="space-y-4 md:pt-11">
-          <!-- Паспорт компании -->
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+        <aside class="space-y-4 md:pt-1">
+          <div class="glass-card p-5">
             <div class="flex items-center gap-4">
-              <div class="h-16 w-16 rounded-full border border-white/10 bg-indigo-600/20 flex items-center justify-center text-xl font-bold">
+              <div class="h-16 w-16 rounded-2xl border border-white/10 bg-indigo-600/20 flex items-center justify-center text-xl font-bold shadow-inner">
                 <span x-text="(company && company.name ? company.name.charAt(0).toUpperCase() : 'C')"></span>
               </div>
               <div>
@@ -364,13 +1053,12 @@ x-data="window.partnerCompanyPage({{ company_id if company_id is not none else '
               </div>
             </div>
 
-            <!-- KPI мини-карточки -->
             <div class="mt-4 grid grid-cols-3 gap-2">
               <div class="rounded-xl border border-white/10 bg-black/30 p-3 text-center">
                 <div class="text-[11px] text-slate-400">Участники</div>
                 <div class="text-lg font-bold" x-text="kpi.members ?? '—'"></div>
               </div>
-              <div class="rounded-2xl border border-white/10 bg-black/30 p-3 text-center">
+              <div class="rounded-xl border border-white/10 bg-black/30 p-3 text-center">
                 <div class="text-[11px] text-slate-400">Уровень</div>
                 <div class="text-lg font-bold" x-text="kpi.avg_level ?? '—'"></div>
               </div>
@@ -381,40 +1069,37 @@ x-data="window.partnerCompanyPage({{ company_id if company_id is not none else '
             </div>
           </div>
 
-          <!-- Краткий обзор -->
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-sm text-slate-300">
-            Добро пожаловать в панель компании. Используй «Лента» для объявлений, «Задачи» — для микро-квестов, «Лидерборд» — для прогресса за 30 дней.
+          <div class="glass-card p-4 text-sm text-slate-300">
+            Добро пожаловать в панель компании. «Лента» — для объявлений, «Задачи» — для микро-квестов, «Лидерборд» — прогресс за 30 дней.
           </div>
 
-          <!-- Лидерборд (30 дней) -->
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+          <div class="glass-card p-4">
             <div class="text-sm text-slate-400 mb-2">Лидерборд · 30 дней</div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead class="text-slate-400">
-                <tr>
-                  <th class="text-left py-2">#</th>
-                  <th class="text-left">Сотрудник</th>
-                  <th class="text-right">XP</th>
-                </tr>
+                  <tr>
+                    <th class="text-left py-2">#</th>
+                    <th class="text-left">Сотрудник</th>
+                    <th class="text-right">XP</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <template x-for="(row,idx) in leaderboard" :key="row.user_id || row.id">
-                  <tr class="border-t border-white/5">
-                    <td class="py-2" x-text="idx+1"></td>
-                    <td x-text="row.display_name"></td>
-                    <td class="text-right font-semibold" x-text="row.xp_30d"></td>
-                  </tr>
-                </template>
+                  <template x-for="(row,idx) in leaderboard" :key="row.user_id || row.id">
+                    <tr class="border-t border-white/5 hover:bg-white/5">
+                      <td class="py-2" x-text="idx+1"></td>
+                      <td x-text="row.display_name"></td>
+                      <td class="text-right font-semibold" x-text="row.xp_30d"></td>
+                    </tr>
+                  </template>
                 </tbody>
               </table>
-              <div x-show="leaderboard.length===0"
-                   class="text-slate-400 text-sm py-2">Пока нет данных.</div>
+              <div x-show="leaderboard.length===0" class="text-slate-400 text-sm py-2">Пока нет данных.</div>
             </div>
           </div>
         </aside>
 
-      </div> <!-- /grid -->
+      </div>
     </div>
   </template>
 </section>
@@ -422,349 +1107,725 @@ x-data="window.partnerCompanyPage({{ company_id if company_id is not none else '
 
 {% block scripts %}
 <script>
+/* ==== API client ==== */
+function createApi(){
+  const withCreds = { credentials:'same-origin' };
+  async function parse(r){
+    let j=null; try{ j=await r.json(); }catch(_){}
+    if(!r.ok){ throw new Error(j?.description || j?.detail || j?.message || `HTTP ${r.status}`); }
+    return j ?? {};
+  }
+  async function get(u){ return parse(await fetch(u, withCreds)); }
+  async function del(u){ return parse(await fetch(u, {...withCreds, method:'DELETE'})); }
+  async function post(u, body){
+    const opts={...withCreds, method:'POST'};
+    if(body instanceof FormData){ opts.body=body; }
+    else { opts.headers={'Content-Type':'application/json'}; opts.body=JSON.stringify(body||{}); }
+    return parse(await fetch(u, opts));
+  }
+  async function put(u, body){
+    const opts={...withCreds, method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{})};
+    return parse(await fetch(u, opts));
+  }
+  async function createFlowLink(flowId, payload){
+    try{ return await post(`/api/partners/onboarding/flows/${flowId}/links`, payload); }
+    catch(_e){ return await post(`/api/partners/onboarding/flows/${flowId}/link`, payload); }
+  }
+  return {get, post, put, del, createFlowLink};
+}
+const API = createApi();
+
+/* ==== normalizers ==== */
+function normFlowList(raw){
+  const arr = raw?.flows || raw?.data || raw || [];
+  return Array.isArray(arr) ? arr.map(normFlow) : [];
+}
+function normFlow(f){
+  if(!f || typeof f!=='object') return {id:null, name:'', is_active:false, final_bonus_coins:0};
+  return { id:f.id, name:f.name ?? '', is_active:!!(f.is_active ?? f.active), final_bonus_coins:Number(f.final_bonus_coins ?? f.bonus ?? 0) };
+}
+function normStepsPayload(j){
+  const flow = normFlow(j?.flow || j?.data?.flow || j);
+
+
+  const steps = (j?.steps || j?.data?.steps || []).map(s => {
+    const options = (s.options || []).map(o => {
+
+  // внутри normStepsPayload, в map(o => ({ ... }))
+const id  = o.id ?? o.option_id ?? o.pk ?? o.uuid ?? o.option?.id ?? o.option?.option_id ?? o.option?.pk ?? o.option?.uuid ?? null;
+const key = o.key ?? o.option?.key ?? o.slug ?? '';
+return {
+  id, key,
+  title:    o.title    ?? o.option?.title    ?? '',
+  body_md:  o.body_md  ?? o.option?.body_md  ?? '',
+  media_url:o.media_url?? o.option?.media_url?? null,
+  step_id: s.id
+};
+
+});
+
+
+    return {
+      id: s.id,
+      type: s.type,
+      title: s.title || '',
+      ask_field: s.ask_field || null,
+      body_md: s.body_md || null,
+      media_url: s.media_url || null,
+      coins_award: Number(s.coins_award || 0),
+      xp_award: Number(s.xp_award || 0),
+      order_index: Number(s.order_index || 0),
+      is_active: !!(s.is_active ?? true),
+      is_immutable: !!s.is_immutable,
+      config: s.config || {},
+      options
+    };
+  }).sort((a,b)=>a.order_index-b.order_index);
+
+  const links = (j?.links||j?.data?.links||[]).map(l=>({
+    id:l.id, slug:l.slug, uses_count:l.uses_count||0, max_uses:l.max_uses??null, expires_at:l.expires_at||null
+  }));
+
+  return {flow, steps, links};
+}
+
+
+
+
+/* ==== app ==== */
 window.partnerCompanyPage = function(initialCompanyId){
   return {
-    /* ---------- helpers ---------- */
-    toLocalInputDate(iso){
-      if(!iso) return '';
-      const d = new Date(iso);
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,'0');
-      const day = String(d.getDate()).padStart(2,'0');
-      return `${y}-${m}-${day}`;
-    },
-    isoFromLocalDateEnd(dateStr){
-      if(!dateStr) return null;
-      const dt = new Date(`${dateStr}T23:59:59`);
-      return dt.toISOString();
-    },
-    tabBtn(kind){ return `px-3 py-1 rounded-lg border ${this.tab===kind?'bg-white/10 border-white/20':'border-white/10 hover:bg-white/5'}`; },
+    toLocalInputDate(iso){ if(!iso) return ''; const d=new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; },
+    isoFromLocalDateEnd(s){ if(!s) return null; const dt=new Date(`${s}T23:59:59`); return dt.toISOString(); },
+    tabBtn(kind){ return `px-3 py-1 rounded-full border ${this.tab===kind?'bg-white/10 border-white/20 shadow':'border-white/10 hover:bg-white/5'}`; },
+    toast(msg, emoji='ℹ️'){ const s=Alpine.store?.('toasts'); if(s?.push) s.push({title:String(msg), emoji}); else alert(msg); },
+    err(j){ this.toast(j?.description || j?.detail || 'Ошибка', '⛔'); },
+    youtubeEmbed(u){ try{ if(!u) return ''; const m1=u.match(/youtu\.be\/([\w-]+)/); const m2=u.match(/[?&]v=([\w-]+)/); const id=(m1&&m1[1])||(m2&&m2[1])||''; return id?`https://www.youtube.com/embed/${id}`:u; }catch(e){ return u; } },
 
-    /* ---------- state ---------- */
-    companyId: initialCompanyId,
-    company: null,
-    kpi: {},
-    feed: [],
-    tasks: [],
-    leaderboard: [],
-    tab: 'feed',
+    companyId: initialCompanyId, company:null, kpi:{}, feed:[], tasks:[], leaderboard:[], tab:'feed',
+    canPost:false, canCreateTasks:false, saving:false,
 
-    canPost: false,
-    canCreateTasks: false,
+    newPost:'', newPinned:false, newPostFile:null, newPostPreview:'',
+    inviteModal:false, invite:null,
 
-    // feed create
-    newPost: '',
-    newPinned: false,
-    newPostFile: null,
-    newPostPreview: '',
-
-    // invite modal
-    inviteModal: false,
-    invite: null,
-
-    // task modal state
-    taskModal: {
-      open:false, mode:'create', taskId:null,
-      form: { title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null, _due_date:'' },
-      query:'', members:[], selectedIds:[],
-      _byId: Object.create(null)
+    taskModal:{ open:false, mode:'create', taskId:null,
+      form:{ title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null, _due_date:'' },
+      query:'', members:[], selectedIds:[], _byId:Object.create(null)
     },
 
-    get headerSubtitle(){
-      return this.company ? `${this.company.name} (${this.company.slug})` : 'Нет компаний'
+// ЗАМЕНИТЕ ВАШ resolveOptionId на этот
+async resolveOptionId(stepId, key) {
+  const norm = v => String(v ?? '').trim().toLowerCase();
+  const eqId = (a, b) => String(a) === String(b);
+  const flowId = this.onb?.activeFlow?.id;
+  const companyId = this.companyId;
+  const k = norm(key);
+
+  // локально по уже загруженным шагам
+  const localStep = this.onb.steps.find(s => eqId(s.id, stepId));
+  const localOpt = localStep?.options?.find(o => norm(o.key ?? o.option?.key ?? o.slug) === k);
+  const localId = localOpt?.id ?? localOpt?.option_id ?? localOpt?.pk ?? localOpt?.option?.id ?? localOpt?.option?.option_id;
+  if (localId) return localId;
+
+  // кандидаты URL для получения опций/шага
+  const urls = [
+    `/api/partners/onboarding/steps/${stepId}`,
+    `/api/partners/onboarding/steps/${stepId}/options`,
+    flowId ? `/api/partners/onboarding/flows/${flowId}/steps` : null,
+    companyId ? `/api/partners/company/${companyId}/onboarding/steps/${stepId}` : null,
+    companyId ? `/api/partners/company/${companyId}/onboarding/steps/${stepId}/options` : null,
+    (flowId && companyId) ? `/api/partners/company/${companyId}/onboarding/flows/${flowId}/steps` : null,
+  ].filter(Boolean);
+
+  for (const u of urls) {
+    try {
+      const j = await API.get(u);
+      const stepsArr = Array.isArray(j?.steps) ? j.steps : Array.isArray(j) ? j : [j];
+      const step = stepsArr.find(ss => eqId(ss?.id, stepId)) || (eqId(j?.id, stepId) ? j : null);
+      const opts = step?.options || j?.options || [];
+      const found = (Array.isArray(opts) ? opts : []).find(o => norm(o.key ?? o.option?.key ?? o.slug) === k);
+      const oid = found?.id ?? found?.option_id ?? found?.pk ?? found?.option?.id ?? found?.option?.option_id ?? null;
+      if (oid) return oid;
+    } catch (_) {}
+  }
+  return null;
+},
+
+
+    onbDrawer:{ open:false },
+    optDrawer:{ open:false }, // левый дровер для опций/статистики
+
+    onb:{ flows:[], activeFlow:null, steps:[], links:[],
+      tmpOpt:{key:'', title:'', body_md:''},
+      optEditor:null,
+      /* === статистика флоу === */
+      statsOpen:false,
+      stats:null,
+      statsDays:30,
+      sessions:null,       // {page, per_page, total, items:[]}
+      sessionsQuery:'',
+      onlyActive:false,
+      onlyCompleted:false
     },
 
-    /* ---------- invite ---------- */
-    async openInviteModal(){
-      this.inviteModal = true;
-      const r = await fetch(`/api/partners/company/${this.companyId}/invite`, {credentials:'same-origin'});
-      if (r.ok) this.invite = await r.json().catch(()=>null);
-    },
-    async regenerateInvite(){
-      const r = await fetch(`/api/partners/company/${this.companyId}/invite/regenerate`, {
-        method:'POST', credentials:'same-origin'
-      });
-      if (r.ok) this.invite = await r.json().catch(()=>null);
-    },
-    async deactivateInvite(){
-      const r = await fetch(`/api/partners/company/${this.companyId}/invite/deactivate`, {
-        method:'POST', credentials:'same-origin'
-      });
-      if (r.ok) this.invite = await r.json().catch(()=>null);
-    },
-    copy(v){
-      navigator.clipboard?.writeText(v).then(()=> {
-        Alpine.store('toasts')?.push?.({title:'Скопировано', emoji:'📋'});
-      });
-    },
+    onbLoading:false,
 
-    /* ---------- proof submit ---------- */
+    addStepDialog:false, editStepDialog:false,
+    formStep:{ id:null, type:'intro_page', title:'', ask_field:'', coins_award:0, xp_award:0, body_md:'', media_url:'', cfg_date_time:'', cfg_location:'', cfg_message:'', cfg_select_limit:1, is_immutable:false },
+
+    get headerSubtitle(){ return this.company ? `${this.company.name} (${this.company.slug})` : 'Нет компаний' },
+
+    /* ===== tasks, feed ===== */
     async submitProof(taskId, ev){
-      const input = ev.target;
-      const file = input.files?.[0];
-      if(!file) return;
-
-      const fd = new FormData();
-      fd.append('photo', file);
-
+      const input=ev.target; const file=input.files?.[0]; if(!file) return;
+      const fd=new FormData(); fd.append('photo', file);
       try{
-        const r = await fetch(`/api/company/tasks/${taskId}/submit`, {
-          method:'POST', body: fd, credentials: 'same-origin'
-        });
-        if(!r.ok){
-          const err = await r.json().catch(()=>null);
-          alert(err?.description || 'Не удалось отправить отчёт');
-          return;
-        }
-        Alpine.store('toasts')?.push?.({title:'Отчёт отправлен', emoji:'📤'});
-        input.value = '';
-        await this.loadDashboard();
-      }catch(_e){
-        alert('Сеть недоступна');
-      }
+        const r=await fetch(`/api/company/tasks/${taskId}/submit`, {method:'POST', body:fd, credentials:'same-origin'});
+        if(!r.ok){ let err=null; try{ err=await r.json(); }catch(_){ } this.toast(err?.description||'Не удалось отправить отчёт','⛔'); return; }
+        this.toast('Отчёт отправлен','📤'); input.value=''; await this.loadDashboard();
+      }catch(_e){ this.toast('Сеть недоступна','⛔'); }
     },
-
-    /* ---------- task modal open/close ---------- */
     openTaskModal(mode, task=null){
-      this.taskModal.open = true;
-      document.body.style.overflow = 'hidden';
-      this.taskModal.mode = mode;
-      this.taskModal.taskId = null;
-
-      // reset form
-      this.taskModal.form = { title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null, _due_date:'' };
-      this.taskModal.selectedIds = [];
-      this.taskModal.query = '';
-      this.taskModal.members = [];
-      this.taskModal._byId = Object.create(null);
-
-      if (mode === 'edit' && task){
-        this.taskModal.taskId = task.id;
-        this.taskModal.form = {
-          title: task.title || '',
-          description: task.description || '',
-          points_xp: task.points_xp ?? 20,
-          coins: task.coins ?? 5,
-          due_at: task.due_at || '',
-          _due_date: task.due_at ? this.toLocalInputDate(task.due_at) : '',
-          priority: task.priority || 'normal',
-          require_proof: !!task.require_proof,
-          reward_achievement_id: task.reward_achievement_id ?? null
-        };
-
-        const preset = this.extractAssignedIds(task);
-        this.taskModal.selectedIds = preset.length ? preset : [];
-        if (!preset.length) this.tryFetchAssignees(task.id);
+      this.taskModal.open=true; document.body.style.overflow='hidden';
+      this.taskModal.mode=mode; this.taskModal.taskId=null;
+      this.taskModal.form={ title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null, _due_date:'' };
+      this.taskModal.selectedIds=[]; this.taskModal.query=''; this.taskModal.members=[]; this.taskModal._byId=Object.create(null);
+      if(mode==='edit' && task){
+        this.taskModal.taskId=task.id;
+        this.taskModal.form={ title:task.title||'', description:task.description||'', points_xp:task.points_xp??20, coins:task.coins??5, due_at:task.due_at||'', _due_date:task.due_at?this.toLocalInputDate(task.due_at):'', priority:task.priority||'normal', require_proof:!!task.require_proof, reward_achievement_id:task.reward_achievement_id??null };
+        const preset=this.extractAssignedIds(task); this.taskModal.selectedIds=preset.length?preset:[]; if(!preset.length) this.tryFetchAssignees(task.id);
       }
-
       this.tmFetchMembers();
     },
-    closeTaskModal(){
-      this.taskModal.open = false;
-      document.body.style.overflow = '';
-      this.taskModal.taskId = null;
-    },
-
+    closeTaskModal(){ this.taskModal.open=false; document.body.style.overflow=''; this.taskModal.taskId=null; },
     extractAssignedIds(task){
-      const out = [];
-      if (task) {
-        if (Array.isArray(task.assigned_user_ids)) out.push(...task.assigned_user_ids);
-        else if (Array.isArray(task.assignees))     out.push(...task.assignees.map(a => (typeof a === 'object' ? (a.id ?? a.user_id) : a)));
-        else if (Array.isArray(task.assigned))      out.push(...task.assigned);
-        else if (Array.isArray(task.assigned_ids))  out.push(...task.assigned_ids);
+      const out=[]; if(task){
+        if(Array.isArray(task.assigned_user_ids)) out.push(...task.assigned_user_ids);
+        else if(Array.isArray(task.assignees)) out.push(...task.assignees.map(a=> (typeof a==='object' ? (a.id??a.user_id) : a)));
+        else if(Array.isArray(task.assigned)) out.push(...task.assigned);
+        else if(Array.isArray(task.assigned_ids)) out.push(...task.assigned_ids);
       }
-      return out.map(x => String(x));
+      return out.map(x=>String(x));
     },
     async tryFetchAssignees(taskId){
-      const cid = this.companyId;
-      const candidates = [
+      const cid=this.companyId;
+      const urls=[
         `/api/partners/company/${cid}/tasks/${taskId}/assign`,
         `/api/partners/company/${cid}/tasks/${taskId}/assignees`,
         `/api/partners/company/${cid}/tasks/${taskId}?with=assignees=1`,
       ];
-      for (const url of candidates){
+      for(const u of urls){
         try{
-          const r = await fetch(url, { credentials: 'same-origin' });
-          if(!r.ok) continue;
-          const d = await r.json().catch(()=>null);
-          const ids =
-            Array.isArray(d?.assigned_user_ids) ? d.assigned_user_ids :
-            Array.isArray(d?.assignees)        ? d.assignees.map(a => a.id ?? a.user_id ?? a) :
-            Array.isArray(d)                   ? d.map(a => a.id ?? a.user_id ?? a) :
-            null;
-          if (ids && ids.length){
-            this.taskModal.selectedIds = ids.map(x => String(x));
-            break;
-          }
+          const j=await API.get(u);
+          const ids= Array.isArray(j?.assigned_user_ids)?j.assigned_user_ids
+            : Array.isArray(j?.assignees)? j.assignees.map(a=>a.id??a.user_id??a)
+            : Array.isArray(j)? j.map(a=>a.id??a.user_id??a) : null;
+          if(ids && ids.length){ this.taskModal.selectedIds=ids.map(x=>String(x)); break; }
         }catch(_e){}
       }
     },
-
-    /* ---------- members search/select ---------- */
     async tmFetchMembers(){
-      const url = `/api/partners/company/${this.companyId}/members` + (this.taskModal.query ? `?query=${encodeURIComponent(this.taskModal.query)}` : '');
-      const r = await fetch(url, { credentials: 'same-origin' });
-      if(!r.ok) return;
-      const d = await r.json().catch(()=>({}));
-      this.taskModal.members = d.members || [];
-      this.taskModal._byId = Object.create(null);
-      for (const m of this.taskModal.members){
-        this.taskModal._byId[String(m.id)] = m;
-      }
+      try{
+        const d=await API.get(`/api/partners/company/${this.companyId}/members`+(this.taskModal.query?`?query=${encodeURIComponent(this.taskModal.query)}`:''));
+        this.taskModal.members=d.members||[]; this.taskModal._byId=Object.create(null);
+        for(const m of this.taskModal.members){ this.taskModal._byId[String(m.id)]=m; }
+      }catch(e){ this.toast(e.message,'⛔'); }
     },
-    tmSearchMembers(){
-      clearTimeout(this._tmTimer);
-      this._tmTimer = setTimeout(()=> this.tmFetchMembers(), 250);
-    },
-    tmToggleSelect(id){
-      id = String(id);
-      const i = this.taskModal.selectedIds.indexOf(id);
-      if(i===-1) this.taskModal.selectedIds.push(id);
-      else this.taskModal.selectedIds.splice(i,1);
-    },
-    tmUnselect(id){
-      id = String(id);
-      const i = this.taskModal.selectedIds.indexOf(id);
-      if(i!==-1) this.taskModal.selectedIds.splice(i,1);
-    },
-    nameById(id){
-      id = String(id);
-      return this.taskModal._byId[id]?.display_name || `#${id}`;
-    },
-
-    /* ---------- create/update task ---------- */
+    tmSearchMembers(){ clearTimeout(this._tmTimer); this._tmTimer=setTimeout(()=>this.tmFetchMembers(), 250); },
+    tmToggleSelect(id){ id=String(id); const i=this.taskModal.selectedIds.indexOf(id); if(i===-1) this.taskModal.selectedIds.push(id); else this.taskModal.selectedIds.splice(i,1); },
+    tmUnselect(id){ id=String(id); const i=this.taskModal.selectedIds.indexOf(id); if(i!==-1) this.taskModal.selectedIds.splice(i,1); },
+    nameById(id){ id=String(id); return this.taskModal._byId[id]?.display_name || `#${id}`; },
     async saveTask(){
-      const cid = this.companyId;
-      const body = {...this.taskModal.form};
-
-      if (body._due_date && body._due_date.trim()){
-        body.due_at = this.isoFromLocalDateEnd(body._due_date.trim());
-      } else {
-        body.due_at = null;
-      }
-      delete body._due_date;
-
-      if(this.taskModal.mode === 'create'){
-        // 1) создаём задачу
-        const r = await fetch(`/api/partners/company/${cid}/tasks`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(body),
-          credentials: 'same-origin'
-        });
-        if(!r.ok){ alert('Не удалось создать задачу'); return; }
-        const created = await r.json().catch(()=>null);
-        const taskId = created?.task_id || created?.id;
-
-        // 2) назначаем выбранных (replace)
-        if(taskId && this.taskModal.selectedIds.length){
-          const ra = await fetch(`/api/partners/company/${cid}/tasks/${taskId}/assign`,{
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ user_ids: this.taskModal.selectedIds.map(Number), replace: true }),
-            credentials: 'same-origin'
-          });
-          if(!ra.ok){ alert('Создано, но не удалось назначить сотрудников'); }
+      const cid=this.companyId; const body={...this.taskModal.form};
+      body.due_at = (body._due_date && body._due_date.trim()) ? this.isoFromLocalDateEnd(body._due_date.trim()) : null; delete body._due_date;
+      try{
+        if(this.taskModal.mode==='create'){
+          const created=await API.post(`/api/partners/company/${cid}/tasks`, body);
+          const taskId=created?.task_id || created?.id;
+          if(taskId && this.taskModal.selectedIds.length){
+            try{ await API.post(`/api/partners/company/${cid}/tasks/${taskId}/assign`, { user_ids:this.taskModal.selectedIds.map(Number), replace:true }); }
+            catch(e){ this.toast('Создано, но не удалось назначить сотрудников','⚠️'); }
+          }
+          this.toast('Задача создана','✅');
+        }else{
+          const taskId=this.taskModal.taskId; if(!taskId) return;
+          await API.put(`/api/partners/company/${cid}/tasks/${taskId}`, body);
+          try{ await API.post(`/api/partners/company/${cid}/tasks/${taskId}/assign`, { user_ids:this.taskModal.selectedIds.map(Number), replace:true }); }
+          catch(e){ this.toast('Сохранено, но не удалось обновить назначения','⚠️'); }
+          this.toast('Изменения сохранены','💾');
         }
-        Alpine.store('toasts')?.push?.({title:'Задача создана', emoji:'✅'});
-      } else {
-        // редактирование
-        const taskId = this.taskModal.taskId;
-        if(!taskId) return;
-
-        const ru = await fetch(`/api/partners/company/${cid}/tasks/${taskId}`, {
-          method:'PUT',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(body),
-          credentials: 'same-origin'
-        });
-        if(!ru.ok){ alert('Не удалось сохранить изменения'); return; }
-
-        const ra = await fetch(`/api/partners/company/${cid}/tasks/${taskId}/assign`,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ user_ids: this.taskModal.selectedIds.map(Number), replace: true }),
-          credentials: 'same-origin'
-        });
-        if(!ra.ok){ alert('Сохранено, но не удалось обновить назначения'); }
-
-        Alpine.store('toasts')?.push?.({title:'Изменения сохранены', emoji:'💾'});
-      }
-
-      this.closeTaskModal();
-      await this.loadDashboard();
+      }catch(e){ this.toast(e.message,'⛔'); }
+      this.closeTaskModal(); await this.loadDashboard();
     },
 
-    /* ---------- feed create ---------- */
+    /* ===== onboarding flows ===== */
+    openOnbDrawer(){ this.onbDrawer.open=true; document.body.style.overflow='hidden'; if(!this.onb.flows.length) this.loadFlows(); },
+    closeOnbDrawer(){ this.onbDrawer.open=false; document.body.style.overflow=''; },
+
+    async loadFlows(){
+      if(!this.companyId) return;
+      this.onbLoading=true;
+      try{
+        const j=await API.get(`/api/partners/company/${this.companyId}/onboarding/flows`);
+        this.onb.flows=normFlowList(j);
+        if(!this.onb.activeFlow && this.onb.flows.length){ await this.openFlow(this.onb.flows[0].id); }
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.onbLoading=false; }
+    },
+    async createFlow(){
+      const name=prompt('Название флоу', 'Онбординг кандидата'); if(!name) return;
+      try{
+        const j=await API.post(`/api/partners/company/${this.companyId}/onboarding/flows`, { name, final_bonus_coins:50 });
+        await this.loadFlows(); await this.openFlow(j.id);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async createFlowQuick(){
+      const name=prompt('Название флоу','Онбординг (3 шага)'); if(!name) return;
+      try{
+        const flow=await API.post(`/api/partners/company/${this.companyId}/onboarding/flows`, { name, final_bonus_coins:50, is_active:true });
+        const flowId=flow.id;
+        const steps=[
+          {type:'intro_page', title:'Добро пожаловать!', body_md:'Здесь вы быстро пройдёте регистрацию и выберете, хотите ли познакомиться с компанией прямо сейчас.', is_required:false, coins_award:5, xp_award:5, order_index:0, config:{}, media_url:null},
+          {type:'registration_section', title:'Регистрация', body_md:'Заполните контактные данные одним экраном: имя, email, телефон.', is_required:true, coins_award:5, xp_award:5, order_index:1, config:{}, media_url:null},
+          {type:'choice_one', title:'Познакомимся с компанией?', body_md:'Выберите действие: посмотреть о компании сейчас или продолжить.', is_required:false, coins_award:5, xp_award:5, order_index:2, config:{}, media_url:null},
+          {type:'reward_shop', title:'Финальный бонус', body_md:'После завершения можно выбрать приз.', is_required:false, coins_award:0, xp_award:0, order_index:3, config:{}, media_url:null}
+        ];
+        const created=[]; for(const s of steps){ created.push(await API.post(`/api/partners/onboarding/flows/${flowId}/steps`, s)); }
+        const choice=created[2];
+        if(choice?.id){
+          await API.post(`/api/partners/onboarding/steps/${choice.id}/options`, {key:'intro_now', title:'Да, показать сейчас', body_md:'Показать информацию о компании.'});
+          await API.post(`/api/partners/onboarding/steps/${choice.id}/options`, {key:'later', title:'Позже', body_md:'Перейти к завершению.'});
+        }
+        this.toast('Флоу создан','✨'); await this.loadFlows(); await this.openFlow(flowId);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+
+    async openFlow(flowId){
+      try{
+        const j=await API.get(`/api/partners/onboarding/flows/${flowId}/steps`);
+        const {flow, steps, links}=normStepsPayload(j);
+        this.onb.activeFlow=flow; this.onb.steps=steps; this.onb.links=links;
+        if(this.onb.statsOpen){ this.loadFlowStats(flowId); this.loadFlowSessions(flowId, 1); }
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+
+    async saveFlowMeta(){
+      if(!this.onb.activeFlow) return; this.saving=true;
+      try{
+        const f=this.onb.activeFlow;
+        await API.put(`/api/partners/onboarding/flows/${f.id}`, { name:f.name, final_bonus_coins:Number(f.final_bonus_coins||0), is_active:!!f.is_active });
+        this.toast('Сохранено','💾');
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
+    },
+    async setFlowActive(flow, value){
+      const prev=!!flow.is_active; flow.is_active=!!value;
+      try{
+        await API.put(`/api/partners/onboarding/flows/${flow.id}`, { is_active:!!value });
+        if(this.onb.activeFlow && this.onb.activeFlow.id===flow.id) this.onb.activeFlow.is_active=!!value;
+      }catch(e){ flow.is_active=prev; this.toast(e.message,'⛔'); }
+    },
+    async deleteFlow(id){
+      if(!confirm('Удалить флоу целиком? Это действие нельзя отменить.')) return;
+      try{
+        await API.del(`/api/partners/onboarding/flows/${id}`);
+        this.toast('Флоу удалён','🗑️'); await this.loadFlows();
+        if(this.onb.activeFlow?.id===id){ this.onb.activeFlow=null; this.onb.steps=[]; this.onb.links=[]; }
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+
+    moveStep(idx, delta){
+      const arr=this.onb.steps; const j=idx+delta; if(j<0||j>=arr.length) return;
+      if(arr[idx].is_immutable || arr[j].is_immutable) return;
+      [arr[idx], arr[j]]=[arr[j], arr[idx]]; arr.forEach((s,i)=> s.order_index=i);
+    },
+    async saveOrder(){
+      if(!this.onb.activeFlow) return; this.saving=true;
+      try{ await API.post(`/api/partners/onboarding/flows/${this.onb.activeFlow.id}/reorder`, { order:this.onb.steps.map(s=>s.id) }); this.toast('Порядок сохранён','✅'); }
+      catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
+    },
+
+    resetFormStep(){ this.formStep={ id:null, type:'intro_page', title:'', ask_field:'', coins_award:0, xp_award:0, body_md:'', media_url:'', cfg_date_time:'', cfg_location:'', cfg_message:'', cfg_select_limit:1, is_immutable:false }; },
+    async saveNewStep(){
+      if(!this.onb.activeFlow) return; this.saving=true;
+      try{
+        let cfg = {};
+        if (this.formStep.type === 'interview_invite') {
+          cfg = { date_time: this.formStep.cfg_date_time || null, location: this.formStep.cfg_location || null, message: this.formStep.cfg_message || null };
+        } else if (this.formStep.type === 'interest_selector') {
+          cfg = { select_limit: Number(this.formStep.cfg_select_limit || 1) };
+        } else if (this.formStep.type === 'first_assignment') {
+          cfg = { date_time: this.formStep.cfg_date_time || null };
+        }
+        const body = {
+          type:this.formStep.type, title:this.formStep.title, ask_field:this.formStep.ask_field||null,
+          body_md:this.formStep.body_md||null, media_url:this.formStep.media_url||null,
+          is_required:(this.formStep.type==='ask_input'||this.formStep.type==='registration_section'),
+          coins_award:Number(this.formStep.coins_award||0), xp_award:Number(this.formStep.xp_award||0),
+          order_index:this.onb.steps.length, config:cfg
+        };
+        await API.post(`/api/partners/onboarding/flows/${this.onb.activeFlow.id}/steps`, body);
+        this.addStepDialog=false; this.resetFormStep(); await this.openFlow(this.onb.activeFlow.id);
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
+    },
+    editStep(s){
+      this.addStepDialog = false;
+      this.formStep = {
+        id: s.id, type: s.type, title: s.title || '', ask_field: s.ask_field || '',
+        coins_award: s.coins_award || 0, xp_award: s.xp_award || 0,
+        body_md: s.body_md || '', media_url: s.media_url || '',
+        cfg_date_time: (s.config && s.config.date_time) ? s.config.date_time : '',
+        cfg_location: (s.config && s.config.location) ? s.config.location : '',
+        cfg_message: (s.config && s.config.message) ? s.config.message : '',
+        cfg_select_limit: (s.config && s.config.select_limit) ? s.config.select_limit : 1,
+        is_immutable: !!s.is_immutable
+      };
+      this.editStepDialog = true;
+      this.$nextTick(() => {
+        const el = this.$root.querySelector('#edit-step-panel');
+        el && el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    },
+    async updateStep(){
+      const id=this.formStep.id; if(!id) return; this.saving=true;
+      try{
+        const cfg=this.formStep.type==='interview_invite' ? { date_time:this.formStep.cfg_date_time||null, location:this.formStep.cfg_location||null, message:this.formStep.cfg_message||null }
+                   : this.formStep.type==='interest_selector' ? { select_limit:Number(this.formStep.cfg_select_limit||1) } : {};
+        const body={ type:this.formStep.type, title:this.formStep.title, ask_field:this.formStep.ask_field||null, body_md:this.formStep.body_md||null, media_url:this.formStep.media_url||null, coins_award:Number(this.formStep.coins_award||0), xp_award:Number(this.formStep.xp_award||0), config:cfg };
+        await API.put(`/api/partners/onboarding/steps/${id}`, body);
+        this.editStepDialog=false; await this.openFlow(this.onb.activeFlow.id);
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
+    },
+    async toggleStepActive(s, checked){
+      const prev=!!s.is_active; s.is_active=!!checked;
+      try{ await API.put(`/api/partners/onboarding/steps/${s.id}`, { is_active:!!checked }); }
+      catch(e){ s.is_active=prev; this.toast(e.message,'⛔'); }
+    },
+    async deleteStep(stepId){
+      if(!confirm('Удалить шаг?')) return;
+      try{ await API.del(`/api/partners/onboarding/steps/${stepId}`); await this.openFlow(this.onb.activeFlow.id); }
+      catch(e){ this.toast(e.message,'⛔'); }
+    },
+
+    /* === Links helpers === */
+    async generateLink(){
+      if(!this.onb.activeFlow?.id) return;
+      const maxUsesStr = prompt('Максимум использований (пусто = без лимита):','');
+      const max_uses = maxUsesStr && !isNaN(+maxUsesStr) ? Number(maxUsesStr) : null;
+      const expStr = prompt('Дата истечения в формате ГГГГ-ММ-ДД (пусто = без даты):','');
+      const expires_at = (expStr && /^\d{4}-\d{2}-\d{2}$/.test(expStr)) ? (new Date(`${expStr}T23:59:59`)).toISOString() : null;
+      try{
+        await API.createFlowLink(this.onb.activeFlow.id, { max_uses, expires_at });
+        this.toast('Ссылка создана','🔗');
+        await this.openFlow(this.onb.activeFlow.id);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async deleteLink(linkId){
+      if(!linkId) return;
+      if(!confirm('Удалить ссылку?')) return;
+      const flowId = this.onb.activeFlow?.id;
+      const tries = [
+        `/api/partners/onboarding/links/${linkId}`,
+        flowId ? `/api/partners/onboarding/flows/${flowId}/links/${linkId}` : null,
+        `/api/partners/onboarding/flow-links/${linkId}`,
+        `/api/partners/onboarding/links/${linkId}/delete`,
+      ].filter(Boolean);
+      let ok=false, lastErr=null;
+      for(const u of tries){
+        try{ await API.del(u); ok=true; break; }catch(e){ lastErr=e; }
+      }
+      if(ok){ this.toast('Ссылка удалена','🗑️'); await this.openFlow(flowId); }
+      else { this.toast(lastErr?.message || 'Не удалось удалить ссылку','⛔'); }
+    },
+
+    /* === LEFT option editor & stats API === */
+   /* === LEFT option editor & stats API === */
+async editOption(o, stepId){
+  this.onb.statsOpen = false;
+  this.optDrawer.open = true;
+
+  const optId = (o.id ?? o.option_id ?? o.pk ?? o.option?.id ?? o.option?.option_id ?? null);
+
+  this.onb.optEditor = {
+    step_id: stepId,
+    id: optId,
+    key: o.key ?? o.option?.key ?? o.slug ?? '',
+    title: o.title ?? o.option?.title ?? '',
+    body_md: o.body_md ?? o.option?.body_md ?? '',
+    media_url: o.media_url ?? o.option?.media_url ?? ''
+  };
+
+  if (!this.onb.optEditor.id && this.onb.optEditor.key) {
+    const rid = await this.resolveOptionId(stepId, this.onb.optEditor.key);
+    if (rid) this.onb.optEditor.id = rid;
+  }
+},
+
+openFlowStats(flowId){
+
+      if(!flowId) return;
+      this.onb.statsOpen = true;
+      this.onb.optEditor = null;
+      this.optDrawer.open = true;
+      this.loadFlowStats(flowId);
+      this.loadFlowSessions(flowId, 1);
+    },
+    closeOptDrawer(){
+      this.optDrawer.open = false;
+      this.onb.optEditor = null;
+      this.onb.statsOpen = false;
+    },
+    async loadFlowStats(flowId){
+      try{
+        const days = this.onb.statsDays || 30;
+        this.onb.stats = await API.get(`/api/partners/onboarding/flows/${flowId}/stats?days=${days}`);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async loadFlowSessions(flowId, page=1){
+      try{
+        const params = new URLSearchParams();
+        params.set('days', String(this.onb.statsDays||30));
+        params.set('page', String(page||1));
+        params.set('per_page', '20');
+        if(this.onb.sessionsQuery?.trim()) params.set('q', this.onb.sessionsQuery.trim());
+        if(this.onb.onlyActive && !this.onb.onlyCompleted) params.set('only_active','1');
+        if(this.onb.onlyCompleted && !this.onb.onlyActive) params.set('only_completed','1');
+        this.onb.sessions = await API.get(`/api/partners/onboarding/flows/${flowId}/sessions?`+params.toString());
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    debouncedLoadSessions(){
+      clearTimeout(this._debSess);
+      this._debSess = setTimeout(()=>{ if(this.onb.activeFlow?.id) this.loadFlowSessions(this.onb.activeFlow.id, 1); }, 350);
+    },
+
+async ensureOptionId(stepId, key){
+  const norm = v => String(v ?? '').trim().toLowerCase();
+  const isEq  = (a,b) => String(a) === String(b);
+
+  const fromLocal = () => {
+    const step = this.onb.steps.find(s => isEq(s.id, stepId));
+    const hit  = step?.options?.find(o => norm(o.key ?? o.slug) === norm(key));
+    return hit?.id ?? hit?.option_id ?? hit?.pk ?? hit?.uuid ?? null;
+  };
+
+  // 1) локально
+  let id = fromLocal();
+  if(id) return id;
+
+  // 2) быстрый рефреш всего флоу (без закрытия редактора)
+  try{
+    const j = await API.get(`/api/partners/onboarding/flows/${this.onb.activeFlow.id}/steps?ts=${Date.now()}`);
+    const {steps} = normStepsPayload(j);
+    this.onb.steps = steps; // гидратация локали актуальными id
+    id = fromLocal();
+    if(id) return id;
+  }catch(_){}
+
+  // 3) точечные эндпоинты шага (если доступны)
+  const tryGet = async (u) => { try{ return await API.get(u); }catch(_){ return null; } };
+
+  const cand = [
+    `/api/partners/onboarding/steps/${stepId}?ts=${Date.now()}`,
+    `/api/partners/onboarding/steps/${stepId}/options?ts=${Date.now()}`
+  ];
+
+  for(const u of cand){
+    const j = await tryGet(u);
+    const rawOpts = j?.options || j?.choices || j?.variants || Array.isArray(j) ? j : [];
+    const hit = (rawOpts || []).find(o => norm(o.key ?? o.option?.key ?? o.slug) === norm(key));
+    const got = hit?.id ?? hit?.option_id ?? hit?.pk ?? hit?.uuid ?? hit?.option?.id ?? hit?.option?.option_id ?? hit?.option?.pk ?? hit?.option?.uuid ?? null;
+    if(got){
+      // синхронизируем локально
+      const step = this.onb.steps.find(s => isEq(s.id, stepId));
+      if(step){
+        const loc = step.options?.find(o => norm(o.key ?? o.slug) === norm(key));
+        if(loc) loc.id = got;
+      }
+      return got;
+    }
+  }
+
+  return null;
+},
+
+async saveOption(){
+  const e = this.onb.optEditor;
+  if(!e){ this.toast('Редактор опции не инициализирован','⛔'); return; }
+
+  // Перед сохранением гарантированно получаем id
+  if(!e.id && e.step_id && e.key){
+    e.id = await this.ensureOptionId(e.step_id, e.key);
+  }
+
+  if(!e.id){
+    this.toast('Не смогли получить ID опции даже после автообновления шагов. Обновление остановлено, чтобы не создать дубль.','⛔');
+    return;
+  }
+
+  const payload = { title: e.title, body_md: e.body_md || null, media_url: e.media_url || null };
+  const flowId = this.onb?.activeFlow?.id;
+  const companyId = this.companyId;
+  const updUrls = [
+    `/api/partners/onboarding/options/${e.id}`,
+    `/api/partners/onboarding/steps/${e.step_id}/options/${e.id}`,
+    flowId    ? `/api/partners/onboarding/flows/${flowId}/steps/${e.step_id}/options/${e.id}` : null,
+    companyId ? `/api/partners/company/${companyId}/onboarding/options/${e.id}` : null,
+    companyId ? `/api/partners/company/${companyId}/onboarding/steps/${e.step_id}/options/${e.id}` : null,
+  ].filter(Boolean);
+
+  const tryReq = async (method, url, body) => {
+    const r = await fetch(url, {
+      method, credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body||{})
+    });
+    let j=null; try{ j=await r.json(); }catch(_){}
+    if(!r.ok){ throw new Error(j?.description || j?.detail || j?.message || `HTTP ${r.status}`); }
+    return j ?? {};
+  };
+
+  this.saving = true;
+  try{
+    // 1) пробуем обновить по id (PUT → PATCH → POST на тот же {id})
+    for(const u of updUrls){ try{ await API.put(u, payload);  this.toast('Опция обновлена','💾'); await this.openFlow(flowId); this.closeOptDrawer(); return; }catch{} }
+    for(const u of updUrls){ try{ await tryReq('PATCH', u, payload); this.toast('Опция обновлена','💾'); await this.openFlow(flowId); this.closeOptDrawer(); return; }catch{} }
+    for(const u of updUrls){ try{ await tryReq('POST',  u, payload); this.toast('Опция обновлена','💾'); await this.openFlow(flowId); this.closeOptDrawer(); return; }catch{} }
+
+    // 2) если ни один апдейт-роут не существует — останавливаемся (НЕ создаём дубль)
+    throw new Error('Не найден endpoint для обновления опции по id');
+  }catch(err){
+    this.toast(err?.message || 'Не удалось обновить опцию','⛔');
+  }finally{
+    this.saving = false;
+  }
+},
+
+    async addOption(stepId){
+      const o=this.onb.tmpOpt; if(!o.key || !o.title){ this.toast('Укажите key и название','⚠️'); return; }
+      try{
+        const res = await API.post(`/api/partners/onboarding/steps/${stepId}/options`, {
+          key:o.key, title:o.title, body_md:o.body_md||null
+        });
+        this.onb.tmpOpt={key:'', title:'', body_md:''};
+        await this.openFlow(this.onb.activeFlow.id);
+        // авто-открыть левый редактор только что созданной опции
+        const createdId = res?.id || res?.option_id;
+        const step = this.onb.steps.find(x=>x.id===stepId);
+        const opt = step?.options?.find(x=>x.id===createdId) || step?.options?.find(x=>x.key===o.key);
+        if(opt){ this.editOption(opt, stepId); }
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async deleteOption(o){
+      if(!o?.id){ this.toast('Не найдена опция','⚠️'); return; }
+      if(!confirm('Удалить опцию?')) return;
+      try{
+        await API.del(`/api/partners/onboarding/options/${o.id}`);
+        if(this.onb.optEditor && this.onb.optEditor.id===o.id){ this.closeOptDrawer(); }
+        await this.openFlow(this.onb.activeFlow.id);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+
+    /* ===== init & dashboard ===== */
+    async openInviteModal(){ this.inviteModal=true; try{ this.invite = await API.get(`/api/partners/company/${this.companyId}/invite`);}catch(e){ this.toast(e.message,'⛔'); } },
+    async regenerateInvite(){ try{ this.invite = await API.post(`/api/partners/company/${this.companyId}/invite/regenerate`,{});}catch(e){ this.toast(e.message,'⛔'); } },
+    async deactivateInvite(){ try{ this.invite = await API.post(`/api/partners/company/${this.companyId}/invite/deactivate`,{});}catch(e){ this.toast(e.message,'⛔'); } },
+    copy(v){ navigator.clipboard?.writeText(v).then(()=> Alpine.store('toasts')?.push?.({title:'Скопировано', emoji:'📋'})); },
+
     async createPost(){
       if(!this.newPost.trim() && !this.newPostFile) return;
-
-      let r;
-      if (this.newPostFile){
-        const fd = new FormData();
-        fd.append('text', this.newPost || '');
-        fd.append('pinned', this.newPinned ? '1' : '0');
-        fd.append('photo', this.newPostFile);
-        r = await fetch(`/api/partners/company/${this.companyId}/feed`, {
-          method:'POST', body: fd, credentials: 'same-origin'
-        });
-      } else {
-        r = await fetch(`/api/partners/company/${this.companyId}/feed`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({text:this.newPost, pinned:this.newPinned}),
-          credentials: 'same-origin'
-        });
-      }
-
-      if(!r.ok){ alert('Не удалось создать пост'); return; }
-
-      this.newPost = '';
-      this.newPinned = false;
-      this.clearNewPostFile();
-      await this.loadDashboard();
+      try{
+        if(this.newPostFile){
+          const fd=new FormData(); fd.append('text', this.newPost||''); fd.append('pinned', this.newPinned ? '1':'0'); fd.append('photo', this.newPostFile);
+          await API.post(`/api/partners/company/${this.companyId}/feed`, fd);
+        }else{
+          await API.post(`/api/partners/company/${this.companyId}/feed`, {text:this.newPost, pinned:this.newPinned});
+        }
+        this.newPost=''; this.newPinned=false; this.clearNewPostFile(); await this.loadDashboard();
+      }catch(e){ this.toast(e.message,'⛔'); }
     },
-    onNewPostFile(ev){
-      const f = ev.target.files?.[0];
-      if(!f){ this.clearNewPostFile(); return; }
-      if(this.newPostPreview) URL.revokeObjectURL(this.newPostPreview);
-      this.newPostFile = f;
-      this.newPostPreview = URL.createObjectURL(f);
-    },
-    clearNewPostFile(){
-      this.newPostFile = null;
-      if(this.newPostPreview){
-        URL.revokeObjectURL(this.newPostPreview);
-        this.newPostPreview = '';
-      }
-      this.$refs?.newPostImageInput && (this.$refs.newPostImageInput.value = '');
-    },
+    onNewPostFile(ev){ const f=ev.target.files?.[0]; if(!f){ this.clearNewPostFile(); return; } if(this.newPostPreview) URL.revokeObjectURL(this.newPostPreview); this.newPostFile=f; this.newPostPreview=URL.createObjectURL(f); },
+    clearNewPostFile(){ this.newPostFile=null; if(this.newPostPreview){ URL.revokeObjectURL(this.newPostPreview); this.newPostPreview=''; } this.$refs?.newPostImageInput && (this.$refs.newPostImageInput.value=''); },
 
-    /* ---------- init/load ---------- */
-    async init(){
-      if(!this.companyId) return;
-      await this.loadDashboard();
-    },
+    async init(){ if(!this.companyId) return; await this.loadDashboard(); this.loadFlows().catch(()=>{}); },
     async loadDashboard(){
-      const r = await fetch(`/api/partners/company/${this.companyId}/dashboard`, { credentials: 'same-origin' });
-      if(!r.ok){ alert('Не удалось загрузить дашборд'); return; }
-      const d = await r.json().catch(()=>({}));
-      const dd = d.dashboard || d.data || d;
-
-      this.company     = dd.company || dd.company_info || null;
-      this.kpi         = dd.kpi || dd.stats || {};
-      this.feed        = dd.feed || dd.company_feed || dd.posts || [];
-      this.tasks       = dd.tasks || dd.company_tasks || [];
-      this.leaderboard = dd.leaderboard || dd.top || [];
-
-      const perms = dd.permissions || dd.perms || {};
-      this.canPost        = !!(perms.can_create_feed  ?? perms.can_manage ?? false);
-      this.canCreateTasks = !!(perms.can_create_tasks ?? perms.can_manage ?? false);
+      try{
+        const d=await API.get(`/api/partners/company/${this.companyId}/dashboard`);
+        const dd=d.dashboard || d.data || d;
+        this.company=dd.company || dd.company_info || null;
+        this.kpi=dd.kpi || dd.stats || {};
+        this.feed=dd.feed || dd.company_feed || dd.posts || [];
+        this.tasks=dd.tasks || dd.company_tasks || [];
+        this.leaderboard=dd.leaderboard || dd.top || [];
+        const perms=dd.permissions || dd.perms || {};
+        this.canPost=!!(perms.can_create_feed ?? perms.can_manage ?? false);
+        this.canCreateTasks=!!(perms.can_create_tasks ?? perms.can_manage ?? false);
+      }catch(e){ this.toast(e.message,'⛔'); }
     }
   }
 }
 </script>
+
+<!-- Панель эффективности онбординга -->
+<div class="rounded-2xl border border-white/10 p-6 mt-6"
+     x-data="{ stats:null, days:30 }"
+     x-init="fetch(`/api/partners/company/{{ company_id if company_id is not none else 'null' }}/onboarding/stats?days=${days}`)
+               .then(r=>r.json()).then(j=>{ stats=j }).catch(()=>{})">
+
+  <h2 class="text-xl font-bold mb-4">Онбординг — эффективность</h2>
+
+  <template x-if="stats">
+    <div class="space-y-4">
+      <div class="grid grid-cols-3 gap-3">
+        <div class="p-4 rounded-xl bg-white/5">
+          <div class="text-slate-400 text-sm">Начали</div>
+          <div class="text-2xl font-bold" x-text="stats.started"></div>
+        </div>
+        <div class="p-4 rounded-xl bg-white/5">
+          <div class="text-slate-400 text-sm">Завершили</div>
+          <div class="text-2xl font-bold" x-text="stats.completed"></div>
+        </div>
+        <div class="p-4 rounded-xl bg-white/5">
+          <div class="text-slate-400 text-sm">Завершение</div>
+          <div class="text-2xl font-bold" x-text="stats.completion_rate + '%'"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-sm text-slate-400 mb-2">
+          Отток по шагам (последний достигнутый шаг у незавершённых; -1 = до первого шага)
+        </div>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-slate-400">
+              <th class="text-left py-2">Шаг</th>
+              <th class="text-left py-2">Название</th>
+              <th class="text-right py-2">Отток</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="row in (stats.funnel || [])" :key="row.order_index">
+              <tr class="border-t border-white/5">
+                <td class="py-2">#<span x-text="row.order_index"></span></td>
+                <td class="py-2" x-text="row.title || row.type || '—'"></td>
+                <td class="py-2 text-right" x-text="row.drop_count"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-sm text-slate-400">
+        Среднее время до завершения:
+        <span x-text="Math.round((stats.avg_time_to_complete_sec||0)/60)"></span> мин
+      </div>
+    </div>
+  </template>
+</div>
+
 <script>
-  // пробрасываем айди и слаг компании для фронта
   window.SJ_COMPANY_ID = {{ company_id|default('null') }};
   window.SJ_COMPANY_SLUG = {{ company_slug|tojson|safe }};
 </script>

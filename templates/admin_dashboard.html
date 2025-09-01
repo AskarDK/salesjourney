@@ -198,6 +198,34 @@
         </div>
       </section>
 
+      <!-- Onboarding (system) -->
+<section x-show="section==='onboarding'" class="col-span-12 lg:col-span-9 rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+  <div class="flex items-center justify-between mb-3">
+    <div class="text-xl font-bold">Онбординг — системный флоу (Sales Journey)</div>
+    <div class="space-x-2">
+      <button class="px-3 py-1 rounded border border-white/10 hover:bg-white/5" @click="loadOnboardingSystem()">Обновить</button>
+      <button class="px-3 py-1 rounded border border-white/10 hover:bg-white/5" @click="createDefaultStep()">Добавить шаг</button>
+      <button class="px-3 py-1 rounded border border-white/10 hover:bg-white/5" @click="reorderDefaultSteps()">Сохранить порядок</button>
+    </div>
+  </div>
+  <div class="space-y-2">
+    <template x-for="s in onbSysSteps" :key="s.id">
+      <div class="flex items-center justify-between rounded-lg border border-white/10 p-2">
+        <div><span class="text-slate-400" x-text="s.order_index"></span>. <span class="font-medium" x-text="s.title || 'Шаг'"></span> <span class="text-slate-400" x-text="`[${s.type}]`"></span></div>
+        <div class="space-x-1">
+          <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="moveUp(s.id)">↑</button>
+          <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="moveDown(s.id)">↓</button>
+          <button class="px-2 py-1 rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10" @click="deleteDefaultStep(s.id)">Удалить</button>
+        </div>
+      </div>
+    </template>
+    <template x-if="!onbSysSteps || !onbSysSteps.length">
+      <div class="text-slate-400">Пока нет шагов. Нажмите «Добавить шаг».</div>
+    </template>
+  </div>
+</section>
+
+
       <!-- AUDIT -->
       <section x-show="section==='audit'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
         <h2 class="text-xl font-bold mb-3">Аудит/античит</h2>

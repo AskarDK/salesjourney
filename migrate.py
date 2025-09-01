@@ -1,337 +1,311 @@
-# seed_demo.py
-# Единоразовая загрузка демо-данных для Sales Journey
-# Запуск:  python seed_demo.py
-
-from datetime import datetime
+# migrate.py
+import argparse
 import json
-import uuid
+import sqlite3
+from contextlib import closing
 
-from werkzeug.security import generate_password_hash
-
-from app import (
-    app, db,
-    User, Company, CompanyMember,
-    PartnerUser, AdminUser,
-    Achievement, UserAchievement,
-    AvatarItem, UserAvatar, Inventory,
-    TrainingCourse, TrainingQuestion, TrainingOption, TrainingEnrollment, TrainingAttempt,
-    ScoreEvent,
-    now_utc, xp_required
+INTRO_TEXT = (
+    "Здесь вы быстро пройдёте регистрацию и выберете, хотите ли познакомиться "
+    "с компанией прямо сейчас."
 )
 
-# ---------------- helpers ----------------
-
-def get_or_create_admin(email: str, password_plain: str):
-    a = AdminUser.query.filter_by(email=email.lower()).first()
-    if a:
-        return a
-    a = AdminUser(email=email.lower(), password=generate_password_hash(password_plain))
-    db.session.add(a)
-    db.session.commit()
-    return a
-
-def get_or_create_partner(email: str, password_plain: str, display_name: str):
-    p = PartnerUser.query.filter_by(email=email.lower()).first()
-    if p:
-        return p
-    p = PartnerUser(email=email.lower(), password=generate_password_hash(password_plain), display_name=display_name)
-    db.session.add(p)
-    db.session.commit()
-    return p
-
-def get_or_create_company(name: str, slug: str, owner_partner_id=None):
-    c = Company.query.filter_by(slug=slug.lower()).first()
-    if c:
-        # убедимся что есть join_code
-        if not getattr(c, "join_code", None):
-            c.join_code = uuid.uuid4().hex[:8].upper()
-            db.session.commit()
-        if owner_partner_id and not c.owner_partner_id:
-            c.owner_partner_id = owner_partner_id
-            db.session.commit()
-        return c
-    c = Company(
-        name=name, slug=slug.lower(),
-        owner_partner_id=owner_partner_id,
-        # если поле есть — заполним код
-        join_code=uuid.uuid4().hex[:8].upper()
+def table_exists(conn, name: str) -> bool:
+    cur = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1", (name,)
     )
-    db.session.add(c)
-    db.session.commit()
-    return c
+    return cur.fetchone() is not None
 
-def get_or_create_user(email: str, password_plain: str, display_name: str, gender: str = None, company: Company | None = None, make_admin=False):
-    u = User.query.filter_by(email=email.lower()).first()
-    if u:
-        return u
-    u = User(
-        email=email.lower(),
-        password=generate_password_hash(password_plain),
-        display_name=display_name,
-        gender=gender or None
+def column_exists(conn, table: str, col: str) -> bool:
+    cur = conn.execute(f"PRAGMA table_info({table})")
+    return any(row[1] == col for row in cur.fetchall())
+
+def ensure_schema(conn: sqlite3.Connection):
+    conn.execute("PRAGMA foreign_keys = ON")
+
+    # 1) flows
+    if not table_exists(conn, "onboarding_flows"):
+        conn.execute(
+            """
+            CREATE TABLE onboarding_flows (
+              id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+              name                 TEXT NOT NULL,
+              final_bonus_coins    INTEGER NOT NULL DEFAULT 0,
+              is_active            INTEGER NOT NULL DEFAULT 1,
+              created_at           TEXT,
+              updated_at           TEXT
+            );
+            """
+        )
+
+    # 2) steps
+    if not table_exists(conn, "onboarding_steps"):
+        conn.execute(
+            """
+            CREATE TABLE onboarding_steps (
+              id            INTEGER PRIMARY KEY AUTOINCREMENT,
+              flow_id       INTEGER NOT NULL REFERENCES onboarding_flows(id) ON DELETE CASCADE,
+              type          TEXT NOT NULL,                   -- enum-замена
+              title         TEXT,
+              body_md       TEXT,
+              ask_field     TEXT,
+              is_required   INTEGER NOT NULL DEFAULT 0,
+              coins_award   INTEGER NOT NULL DEFAULT 0,
+              xp_award      INTEGER NOT NULL DEFAULT 0,
+              order_index   INTEGER NOT NULL DEFAULT 0,
+              -- новые поля
+              is_active     INTEGER NOT NULL DEFAULT 1,
+              is_immutable  INTEGER NOT NULL DEFAULT 0,
+              config        TEXT NOT NULL DEFAULT '{}',      -- json как TEXT
+              media_url     TEXT,
+              created_at    TEXT,
+              updated_at    TEXT
+            );
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_onb_steps_flow ON onboarding_steps(flow_id)")
+
+    # 3) step options
+    if not table_exists(conn, "onboarding_step_options"):
+        conn.execute(
+            """
+            CREATE TABLE onboarding_step_options (
+              id          INTEGER PRIMARY KEY AUTOINCREMENT,
+              step_id     INTEGER NOT NULL REFERENCES onboarding_steps(id) ON DELETE CASCADE,
+              key         TEXT NOT NULL,
+              title       TEXT NOT NULL,
+              body_md     TEXT,
+              order_index INTEGER NOT NULL DEFAULT 0,
+              UNIQUE(step_id, key)
+            );
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_onb_opts_step ON onboarding_step_options(step_id)")
+
+    # На всякий — дотащим новые колонки, если таблица уже была старой
+    for col, coldef in [
+        ("is_active",    "is_active INTEGER NOT NULL DEFAULT 1"),
+        ("is_immutable", "is_immutable INTEGER NOT NULL DEFAULT 0"),
+        ("config",       "config TEXT NOT NULL DEFAULT '{}'"),
+        ("media_url",    "media_url TEXT"),
+    ]:
+        if not column_exists(conn, "onboarding_steps", col):
+            conn.execute(f"ALTER TABLE onboarding_steps ADD COLUMN {coldef}")
+
+def ensure_flow(conn: sqlite3.Connection, flow_id: int, name: str):
+    cur = conn.execute("SELECT id FROM onboarding_flows WHERE id=?", (flow_id,))
+    if cur.fetchone() is None:
+        # Вставляем с заданным id — SQLite это позволяет
+        conn.execute(
+            "INSERT INTO onboarding_flows (id, name, final_bonus_coins, is_active) VALUES (?, ?, ?, 1)",
+            (flow_id, name, 50),
+        )
+
+def disable_old_ask_input(conn, flow_ids):
+    qmarks = ",".join("?" * len(flow_ids))
+    conn.execute(
+        f"UPDATE onboarding_steps SET is_active=0 WHERE flow_id IN ({qmarks}) AND type='ask_input'",
+        flow_ids,
     )
-    db.session.add(u)
-    db.session.flush()
 
-    # базовый аватар
-    base = AvatarItem.query.filter_by(slot="base", key="base_t1").first()
-    if not base:
-        base = AvatarItem(slot="base", key="base_t1", gender="any", min_level=1, rarity="common", asset_url="/assets/avatars/base/base_t1.png")
-        db.session.add(base); db.session.flush()
-    db.session.add(UserAvatar(user_id=u.id, selected_by_slot=json.dumps({"base": base.key})))
+def move_reward_to_end(conn, flow_ids):
+    # Ставим reward_shop временно после максимального индекса
+    for fid in flow_ids:
+        cur = conn.execute(
+            "SELECT COALESCE(MAX(order_index), -1) FROM onboarding_steps WHERE flow_id=?", (fid,)
+        )
+        mx = cur.fetchone()[0]
+        conn.execute(
+            "UPDATE onboarding_steps SET order_index=? WHERE flow_id=? AND type='reward_shop'",
+            (mx + 1, fid),
+        )
 
-    # приветственная ачивка
-    ach = Achievement.query.filter_by(code="WELCOME").first()
-    if not ach:
-        ach = Achievement(code="WELCOME", title="Первое знакомство", points=50, rarity="common", description="Заверши регистрацию")
-        db.session.add(ach); db.session.flush()
-    if not UserAchievement.query.filter_by(user_id=u.id, achievement_id=ach.id).first():
-        db.session.add(UserAchievement(user_id=u.id, achievement_id=ach.id))
-        u.xp += ach.points
-
-    # компания и роль
-    if company:
-        u.company_id = company.id
-        if make_admin:
-            if not CompanyMember.query.filter_by(company_id=company.id, user_id=u.id).first():
-                db.session.add(CompanyMember(company_id=company.id, user_id=u.id, role="admin"))
-        else:
-            if not CompanyMember.query.filter_by(company_id=company.id, user_id=u.id).first():
-                db.session.add(CompanyMember(company_id=company.id, user_id=u.id, role="member"))
-
-    db.session.commit()
-    return u
-
-def get_or_create_achievement(code: str, title: str, points: int = 50, rarity="common", description=None):
-    a = Achievement.query.filter_by(code=code).first()
-    if a:
-        return a
-    a = Achievement(code=code, title=title, points=points, rarity=rarity, description=description)
-    db.session.add(a)
-    db.session.commit()
-    return a
-
-def get_or_create_course(title: str, scope: str = "global", company: Company | None = None,
-                         description: str = None, content_md: str = None, youtube_url: str = None,
-                         pass_score: int = 80, max_attempts: int = 3, xp_reward: int = 50,
-                         achievement_code: str | None = None, created_by_partner_id: int | None = None):
-    q = TrainingCourse.query.filter_by(title=title).first()
-    if q:
-        return q
-    c = TrainingCourse(
-        title=title,
-        description=description,
-        content_md=content_md,
-        youtube_url=youtube_url,
-        pass_score=pass_score,
-        max_attempts=max_attempts,
-        xp_reward=xp_reward,
-        achievement_code=achievement_code,
-        scope=scope,
-        company_id=(company.id if (scope == "company" and company) else None),
-        created_by_admin=(scope == "global" and created_by_partner_id is None),
-        created_by_partner_id=created_by_partner_id
+def upsert_intro(conn, fid: int):
+    cur = conn.execute(
+        "SELECT id FROM onboarding_steps WHERE flow_id=? AND type='intro_page' AND is_active=1 LIMIT 1",
+        (fid,),
     )
-    db.session.add(c)
-    db.session.commit()
-    return c
+    row = cur.fetchone()
+    if row is None:
+        conn.execute(
+            """INSERT INTO onboarding_steps
+               (flow_id,type,title,body_md,is_required,coins_award,xp_award,order_index,config,is_active,is_immutable)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                fid,
+                "intro_page",
+                "Добро пожаловать!",
+                INTRO_TEXT,
+                0,
+                5,
+                5,
+                0,
+                json.dumps({}),
+                1,
+                0,
+            ),
+        )
+    else:
+        conn.execute(
+            "UPDATE onboarding_steps SET order_index=0 WHERE id=?", (row[0],)
+        )
 
-def ensure_questions(course: TrainingCourse, questions: list[dict]):
-    """questions = [{ 'text': '...', 'options': [{'text': '...', 'is_correct': True}, ...] }, ...]"""
-    existing = TrainingQuestion.query.filter_by(course_id=course.id).count()
-    if existing:
-        return
-    for idx, q in enumerate(questions):
-        tq = TrainingQuestion(course_id=course.id, text=q.get("text","").strip(), order_index=idx)
-        db.session.add(tq); db.session.flush()
-        for opt in (q.get("options") or []):
-            db.session.add(TrainingOption(
-                question_id=tq.id,
-                text=(opt.get("text") or "").strip(),
-                is_correct=bool(opt.get("is_correct", False))
-            ))
-    db.session.commit()
-
-def enroll_course_for_company(course: TrainingCourse, company: Company):
-    if not TrainingEnrollment.query.filter_by(course_id=course.id, target_type="company", target_id=company.id).first():
-        db.session.add(TrainingEnrollment(course_id=course.id, target_type="company", target_id=company.id))
-        db.session.commit()
-
-def record_pass_attempt(user: User, course: TrainingCourse, score: int):
-    """Создаёт успешную попытку с начислением XP и ачивки (если настроена). Идемпотентность по простому признаку — если уже есть passed attempt, не дублируем."""
-    exists = TrainingAttempt.query.filter_by(course_id=course.id, user_id=user.id, passed=True).first()
-    if exists:
-        return exists
-
-    att = TrainingAttempt(course_id=course.id, user_id=user.id, score=score, passed=True, answers_json=json.dumps({}))
-    db.session.add(att)
-
-    # XP за курс
-    reward = max(0, int(course.xp_reward or 0))
-    user.xp += reward
-    db.session.add(ScoreEvent(
-        user_id=user.id, source="training", points=reward, coins=0,
-        meta_json=json.dumps({"course_id": course.id, "title": course.title, "score": score})
-    ))
-
-    # Ачивка курса
-    if course.achievement_code:
-        ach = Achievement.query.filter_by(code=course.achievement_code).first()
-        if ach and not UserAchievement.query.filter_by(user_id=user.id, achievement_id=ach.id).first():
-            db.session.add(UserAchievement(user_id=user.id, achievement_id=ach.id))
-            user.xp += ach.points
-            db.session.add(ScoreEvent(
-                user_id=user.id, source="achievement", points=ach.points, coins=0,
-                meta_json=json.dumps({"code": course.achievement_code})
-            ))
-    db.session.commit()
-    return att
-
-def record_fail_attempt(user: User, course: TrainingCourse, score: int):
-    """Неуспешная попытка без награждения."""
-    att = TrainingAttempt(course_id=course.id, user_id=user.id, score=score, passed=False, answers_json=json.dumps({}))
-    db.session.add(att)
-    db.session.commit()
-    return att
-
-# ---------------- main seeding ----------------
-
-with app.app_context():
-    print("==> Создаём/обновляем базу…")
-
-    # Базовые ачивки (если вдруг не создались при старте приложения)
-    get_or_create_achievement("WELCOME", "Первое знакомство", 50, "common", "Заверши регистрацию")
-    get_or_create_achievement("PROFILE_100", "Полный профиль", 100, "uncommon", "Заполни профиль на 100%")
-
-    # Админ
-    admin_email = "admin@salesjourney.local"
-    admin_pass  = "admin123"
-    admin = get_or_create_admin(admin_email, admin_pass)
-
-    # Партнёр и его компания
-    partner_email = "partner@demo.local"
-    partner_pass  = "partner123"
-    partner = get_or_create_partner(partner_email, partner_pass, "Partner One")
-
-    company = get_or_create_company("Acme Corp", "acme", owner_partner_id=partner.id)
-
-    # Пользователи компании
-    manager = get_or_create_user("manager@acme.local", "pass123", "Alice Manager", gender="female", company=company, make_admin=True)
-    bob     = get_or_create_user("bob@acme.local", "pass123", "Bob Seller", gender="male", company=company, make_admin=False)
-    chris   = get_or_create_user("chris@acme.local", "pass123", "Chris SDR", gender="female", company=company, make_admin=False)
-
-    # Внешний пользователь (не из компании)
-    outsider = get_or_create_user("outsider@demo.local", "pass123", "Evan Outsider", gender="male", company=None, make_admin=False)
-
-    # Глобальный курс (виден всем)
-    ach_onboard = get_or_create_achievement("TRAIN_ONBOARD", "Онбординг пройден", 70, "common", "Пройди базовый онбординг")
-    global_course = get_or_create_course(
-        title="Онбординг Sales Journey",
-        scope="global",
-        description="Как работает геймификация, XP/ачивки, лидерборды и магазин.",
-        content_md=(
-            "# Онбординг\n"
-            "- Что такое XP и уровни\n"
-            "- Как получить ачивки\n"
-            "- Где смотреть конкурсы и магазин\n"
-            "Удачи и высоких конверсий!"
-        ),
-        youtube_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        pass_score=70, max_attempts=3, xp_reward=60,
-        achievement_code="TRAIN_ONBOARD"
+def ensure_registration_section(conn, fid: int):
+    cur = conn.execute(
+        "SELECT id FROM onboarding_steps WHERE flow_id=? AND type='registration_section' AND is_active=1 LIMIT 1",
+        (fid,),
     )
-    ensure_questions(global_course, [
-        {
-            "text": "За что выдаются XP?",
-            "options": [
-                {"text": "За активность и результаты", "is_correct": True},
-                {"text": "Только за вход в систему", "is_correct": False},
-                {"text": "Исключительно за покупки в магазине", "is_correct": False},
-            ],
-        },
-        {
-            "text": "Где посмотреть текущие конкурсы?",
-            "options": [
-                {"text": "В разделе «Конкурсы»", "is_correct": True},
-                {"text": "На главной странице браузера", "is_correct": False},
-                {"text": "В письме от админа", "is_correct": False},
-            ],
-        },
-        {
-            "text": "Можно ли обменять коины на призы?",
-            "options": [
-                {"text": "Да, в магазине призов", "is_correct": True},
-                {"text": "Нет, это только цифры", "is_correct": False},
-            ],
-        },
-    ])
+    if cur.fetchone() is None:
+        conn.execute(
+            """INSERT INTO onboarding_steps
+               (flow_id,type,title,body_md,is_required,coins_award,xp_award,order_index,config,is_active,is_immutable)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                fid,
+                "registration_section",
+                "Регистрация",
+                "Заполните контактные данные одним экраном: имя, email, телефон.",
+                1,
+                5,
+                5,
+                1,
+                json.dumps({}),
+                1,
+                0,
+            ),
+        )
+    else:
+        # гарантируем позицию
+        conn.execute(
+            """UPDATE onboarding_steps
+               SET order_index=1, is_active=1
+               WHERE flow_id=? AND type='registration_section'""",
+            (fid,),
+        )
 
-    # Корпоративный курс для ACME, создан партнёром-владельцем
-    ach_acme = get_or_create_achievement("TRAIN_ACME_CALL", "Скрипт звонка ACME", 80, "uncommon", "Освой фирменный скрипт")
-    company_course = get_or_create_course(
-        title="Скрипт звонка ACME",
-        scope="company", company=company,
-        description="Фазовая структура холодного звонка для ACME.",
-        content_md=(
-            "## Скрипт звонка\n"
-            "1) Приветствие и представление\n"
-            "2) Квалификация\n"
-            "3) Ценность и следующий шаг\n"
-            "_Примерные формулировки и типовые возражения — внутри._"
-        ),
-        youtube_url=None,
-        pass_score=80, max_attempts=3, xp_reward=80,
-        achievement_code="TRAIN_ACME_CALL",
-        created_by_partner_id=partner.id
+def upsert_choice_and_options(conn, fid: int):
+    # сам шаг
+    cur = conn.execute(
+        "SELECT id FROM onboarding_steps WHERE flow_id=? AND type='choice_one' AND is_active=1 LIMIT 1",
+        (fid,),
     )
-    ensure_questions(company_course, [
-        {
-            "text": "Что идёт после приветствия?",
-            "options": [
-                {"text": "Квалификация", "is_correct": True},
-                {"text": "Скидка 90%", "is_correct": False},
-            ],
-        },
-        {
-            "text": "Цель первого звонка — это…",
-            "options": [
-                {"text": "Договориться о следующем шаге", "is_correct": True},
-                {"text": "Сразу закрыть сделку", "is_correct": False},
-            ],
-        },
-    ])
-    enroll_course_for_company(company_course, company)
+    if cur.fetchone() is None:
+        conn.execute(
+            """INSERT INTO onboarding_steps
+               (flow_id,type,title,body_md,is_required,coins_award,xp_award,order_index,config,is_active,is_immutable)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                fid,
+                "choice_one",
+                "Познакомимся с компанией?",
+                "Выберите: посмотреть информацию о компании сейчас или позже.",
+                0,
+                5,
+                5,
+                2,
+                json.dumps({}),
+                1,
+                0,
+            ),
+        )
 
-    # Смоделируем прогресс:
-    # Alice (manager) — успешно проходит оба курса
-    record_pass_attempt(manager, global_course, score=90)
-    record_pass_attempt(manager, company_course, score=92)
+    # id шага
+    cur = conn.execute(
+        "SELECT id FROM onboarding_steps WHERE flow_id=? AND type='choice_one' AND is_active=1 LIMIT 1",
+        (fid,),
+    )
+    step_id = cur.fetchone()[0]
 
-    # Bob — сначала фейл глобального (60%), потом pass (80%), корпоративный pass
-    record_fail_attempt(bob, global_course, score=60)
-    record_pass_attempt(bob, global_course, score=85)
-    record_pass_attempt(bob, company_course, score=88)
+    # опции (уникальны по (step_id, key))
+    for key, title, body, idx in [
+        ("intro_now", "Да, показать сейчас", "Показать информацию о компании.", 0),
+        ("later", "Позже", "Перейти к завершению.", 1),
+    ]:
+        conn.execute(
+            """INSERT OR IGNORE INTO onboarding_step_options(step_id,key,title,body_md,order_index)
+               VALUES (?,?,?,?,?)""",
+            (step_id, key, title, body, idx),
+        )
 
-    # Chris — только глобальный pass
-    record_pass_attempt(chris, global_course, score=75)
+def upsert_reward_shop(conn, fid: int):
+    cur = conn.execute(
+        "SELECT id FROM onboarding_steps WHERE flow_id=? AND type='reward_shop' LIMIT 1",
+        (fid,),
+    )
+    if cur.fetchone() is None:
+        conn.execute(
+            """INSERT INTO onboarding_steps
+               (flow_id,type,title,body_md,is_required,coins_award,xp_award,order_index,config,is_active,is_immutable)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                fid,
+                "reward_shop",
+                "Финальный бонус",
+                "После завершения можно выбрать приз.",
+                0,
+                0,
+                0,
+                3,
+                json.dumps({}),
+                1,
+                0,
+            ),
+        )
+    else:
+        conn.execute(
+            """UPDATE onboarding_steps
+               SET order_index=3, is_active=1
+               WHERE flow_id=? AND type='reward_shop'""",
+            (fid,),
+        )
 
-    # Outsider — глобальный fail один раз
-    record_fail_attempt(outsider, global_course, score=40)
+def renumber_order(conn, fid: int):
+    # Перечитываем шаги, сортируем и назначаем индексы 0..n-1
+    cur = conn.execute(
+        """SELECT id, order_index FROM onboarding_steps
+           WHERE flow_id=? AND is_active=1
+           ORDER BY order_index, id""",
+        (fid,),
+    )
+    rows = cur.fetchall()
+    for idx, (sid, _) in enumerate(rows):
+        conn.execute("UPDATE onboarding_steps SET order_index=? WHERE id=?", (idx, sid))
 
-    db.session.commit()
+def migrate(conn: sqlite3.Connection, flow_ids):
+    ensure_schema(conn)
+    # убедимся, что потоки существуют
+    for fid in flow_ids:
+        ensure_flow(conn, fid, name=f"Онбординг флоу #{fid}")
 
-    # Выводим сводку учёток/доступов
-    print("\n=== ГОТОВО. Данные для входа ===")
-    print(f"Админ:    {admin_email} / {admin_pass}   (панель: /admin)")
-    print(f"Партнёр:  {partner_email} / {partner_pass}   (страницы: /partner/login, /partner/company, /partner/training/create)")
-    print("\nПользователи компании ACME:")
-    print(" - manager@acme.local / pass123   (admin компании)")
-    print(" - bob@acme.local     / pass123")
-    print(" - chris@acme.local   / pass123")
-    print("\nВнешний пользователь:")
-    print(" - outsider@demo.local / pass123 (не состоит в компании)")
-    print(f"\nКомпания ACME: slug=acme  | join_code={company.join_code}")
-    print("\nКурсы:")
-    print(f" - [GLOBAL]  {global_course.title} (pass {global_course.pass_score}%, XP {global_course.xp_reward}, ach {global_course.achievement_code})")
-    print(f" - [COMPANY] {company_course.title} (ACME) (pass {company_course.pass_score}%, XP {company_course.xp_reward}, ach {company_course.achievement_code})")
-    print("\nОткрой /training — увидишь доступные курсы; менеджер увидит кнопку «Создать курс», партнёр — «Курс для сотрудников».")
+    disable_old_ask_input(conn, flow_ids)
+    move_reward_to_end(conn, flow_ids)
+
+    for fid in flow_ids:
+        upsert_intro(conn, fid)
+        ensure_registration_section(conn, fid)
+        upsert_choice_and_options(conn, fid)
+        upsert_reward_shop(conn, fid)
+        renumber_order(conn, fid)
+
+def main():
+    ap = argparse.ArgumentParser(description="Миграция онбординга под 3-этапную схему")
+    ap.add_argument("--db", default="sales_journey.db",
+                    help="путь к SQLite базе (по умолчанию sales_journey.db)")
+    ap.add_argument("--flows", default="1,2",
+                    help="ID флоу, через запятую (по умолчанию 1,2)")
+    args = ap.parse_args()
+
+    flow_ids = [int(x.strip()) for x in args.flows.split(",") if x.strip()]
+
+    with closing(sqlite3.connect(args.db)) as conn:
+        try:
+            conn.isolation_level = None  # ручной контроль транзакции
+            conn.execute("BEGIN")
+            migrate(conn, flow_ids)
+            conn.execute("COMMIT")
+            print(f"OK: миграция выполнена для флоу {flow_ids}")
+        except Exception as e:
+            conn.execute("ROLLBACK")
+            raise
+
+if __name__ == "__main__":
+    main()

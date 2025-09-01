@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timedelta, date
 from functools import wraps
 from typing import Optional, Dict, Any
+from werkzeug.exceptions import HTTPException
 
 from flask import (
     Flask, request, jsonify, session, redirect, url_for, abort, render_template, make_response
@@ -19,11 +20,17 @@ import random, string
 # -----------------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------------
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///sales_journey.db")
+app = Flask(__name__)
+
+# ЕДИНЫЙ путь к БД -> instance/sales_journey.db
+INSTANCE_DIR = os.path.join(os.path.dirname(__file__), "instance")
+os.makedirs(INSTANCE_DIR, exist_ok=True)
+DB_FILE = os.environ.get("DB_FILE") or os.path.join(INSTANCE_DIR, "sales_journey.db")
+DATABASE_URL = os.environ.get("DATABASE_URL") or f"sqlite:///{DB_FILE}"
+
 SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_change_me")
 SESSION_COOKIE_NAME = "salesjourney"
 
-app = Flask(__name__)
 app.config.update(
     SQLALCHEMY_DATABASE_URI=DATABASE_URL,
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
@@ -33,6 +40,10 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=False,  # в проде True (HTTPS)
 )
+
+# Диагностика пути к БД в логах
+app.logger.warning("DB URI -> %s", app.config["SQLALCHEMY_DATABASE_URI"])
+app.logger.warning("DB FILE -> %s", DB_FILE)
 
 db = SQLAlchemy(app)
 
@@ -322,6 +333,16 @@ def join_company_by_invite(user_id: int, *, code: str | None = None, token: str 
     db.session.commit()
     return inv.company, "JOINED"
 
+def ensure_flow_has_steps(flow: "CompanyRegFlow"):
+    """
+    Гарантирует, что у флоу есть хотя бы базовые шаги.
+    Если шагов нет — заполняем дефолтными.
+    """
+    cnt = CompanyRegStep.query.filter_by(flow_id=flow.id).count()
+    if cnt == 0:
+        _ensure_flow_steps_default(flow)
+        db.session.commit()
+
 # Аватары
 class AvatarItem(db.Model):
     __tablename__ = "avatar_items"
@@ -593,6 +614,363 @@ class TrainingAttempt(db.Model):
     user        = db.relationship("User", lazy="joined")
 
 # -----------------------------------------------------------------------------
+# Onboarding (Company-specific registration flow)
+# -----------------------------------------------------------------------------
+class CompanyRegFlow(db.Model):
+    __tablename__ = "company_reg_flows"
+    id               = db.Column(db.Integer, primary_key=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True)
+    name             = db.Column(db.String(150), nullable=False)
+    is_active        = db.Column(db.Boolean, default=True, nullable=False)
+    final_bonus_coins= db.Column(db.Integer, default=0, nullable=False)
+    created_at       = db.Column(db.DateTime, default=now_utc)
+    updated_at       = db.Column(db.DateTime, default=now_utc, onupdate=now_utc)
+
+    company = db.relationship("Company", lazy="joined")
+    steps   = db.relationship("CompanyRegStep", back_populates="flow", cascade="all, delete-orphan", order_by="CompanyRegStep.order_index")
+    links   = db.relationship("CompanyRegLink", back_populates="flow", cascade="all, delete-orphan")
+
+class CompanyRegStep(db.Model):
+    __tablename__ = "company_reg_steps"
+    id          = db.Column(db.Integer, primary_key=True)
+    flow_id     = db.Column(db.Integer, db.ForeignKey("company_reg_flows.id"), nullable=False, index=True)
+    type        = db.Column(db.String(32), nullable=False)  # ask_input|intro_page|choice_one|reward_shop|interview_invite|assignment|registration_section|interest_selector
+    title       = db.Column(db.String(200), nullable=True)
+    body_md     = db.Column(db.Text, nullable=True)
+    media_url   = db.Column(db.String(500), nullable=True)
+    ask_field   = db.Column(db.String(64), nullable=True)   # name|phone|email|custom_...
+    is_required = db.Column(db.Boolean, default=False, nullable=False)
+    coins_award = db.Column(db.Integer, default=0, nullable=False)
+    xp_award    = db.Column(db.Integer, default=0, nullable=False)
+    order_index = db.Column(db.Integer, default=0, nullable=False)
+    is_active   = db.Column(db.Boolean, default=True, nullable=False)     # ← добавлено
+    is_immutable= db.Column(db.Boolean, default=False, nullable=False)    # ← добавлено
+    config_json = db.Column(db.Text, nullable=True)         # JSON: валидации, плейсхолдеры и т.п.
+
+    flow     = db.relationship("CompanyRegFlow", back_populates="steps")
+    options  = db.relationship("CompanyRegStepOption", back_populates="step", cascade="all, delete-orphan")
+
+class CompanyRegStepOption(db.Model):
+    __tablename__ = "company_reg_step_options"
+    id        = db.Column(db.Integer, primary_key=True)
+    step_id   = db.Column(db.Integer, db.ForeignKey("company_reg_steps.id"), nullable=False, index=True)
+    key       = db.Column(db.String(64), nullable=False)  # системный ключ
+    title     = db.Column(db.String(200), nullable=False)
+    body_md   = db.Column(db.Text, nullable=True)
+    media_url = db.Column(db.String(500), nullable=True)
+
+    step = db.relationship("CompanyRegStep", back_populates="options")
+
+class CompanyRegLink(db.Model):
+    __tablename__ = "company_reg_links"
+    id         = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True)
+    flow_id    = db.Column(db.Integer, db.ForeignKey("company_reg_flows.id"), nullable=False, index=True)
+    slug       = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    token      = db.Column(db.String(64), unique=True, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    max_uses   = db.Column(db.Integer, nullable=True)
+    uses_count = db.Column(db.Integer, default=0, nullable=False)
+    is_active  = db.Column(db.Boolean, default=True, nullable=False)
+
+    flow = db.relationship("CompanyRegFlow", back_populates="links")
+    company = db.relationship("Company", lazy="joined")
+
+class RegSession(db.Model):
+    __tablename__ = "reg_sessions"
+    id            = db.Column(db.Integer, primary_key=True)
+    flow_id       = db.Column(db.Integer, db.ForeignKey("company_reg_flows.id"), nullable=False, index=True)
+    company_id    = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True)
+    started_at    = db.Column(db.DateTime, default=now_utc)
+    finished_at   = db.Column(db.DateTime, nullable=True)
+    coins_earned  = db.Column(db.Integer, default=0, nullable=False)
+    xp_earned     = db.Column(db.Integer, default=0, nullable=False)
+    prospect_name = db.Column(db.String(150), nullable=True)
+    prospect_phone= db.Column(db.String(50), nullable=True)
+    prospect_email= db.Column(db.String(255), nullable=True)
+    linked_user_id= db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    state         = db.Column(db.String(32), default="in_progress")  # in_progress|finished|abandoned
+    profile_draft = db.Column(db.Text, nullable=True)  # ← добавлено
+
+class RegSessionStep(db.Model):
+    __tablename__ = "reg_session_steps"
+    id           = db.Column(db.Integer, primary_key=True)
+    session_id   = db.Column(db.Integer, db.ForeignKey("reg_sessions.id"), nullable=False, index=True)
+    step_id      = db.Column(db.Integer, db.ForeignKey("company_reg_steps.id"), nullable=False)
+    completed_at = db.Column(db.DateTime, default=now_utc)
+    data_json    = db.Column(db.Text, nullable=True)
+    coins_awarded= db.Column(db.Integer, default=0, nullable=False)
+    xp_awarded   = db.Column(db.Integer, default=0, nullable=False)
+
+class RegRewardChoice(db.Model):
+    __tablename__ = "reg_reward_choices"
+    id           = db.Column(db.Integer, primary_key=True)
+    session_id   = db.Column(db.Integer, db.ForeignKey("reg_sessions.id"), nullable=False, index=True)
+    store_item_id= db.Column(db.Integer, db.ForeignKey("store_items.id"), nullable=False)
+    cost_coins   = db.Column(db.Integer, nullable=False)
+    created_at   = db.Column(db.DateTime, default=now_utc)
+
+class InterviewInvite(db.Model):
+    __tablename__ = "interview_invites"
+    id            = db.Column(db.Integer, primary_key=True)
+    session_id    = db.Column(db.Integer, db.ForeignKey("reg_sessions.id"), nullable=False, index=True)
+    date_time     = db.Column(db.DateTime, nullable=True)
+    location      = db.Column(db.String(255), nullable=True)
+    message       = db.Column(db.Text, nullable=True)
+    status        = db.Column(db.String(32), default="pending")  # pending|scheduled|needs_date
+    assignment_text   = db.Column(db.Text, nullable=True)
+    attachments_json  = db.Column(db.Text, nullable=True)
+
+# -----------------------------------------------------------------------------
+# DB bootstrap
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Onboarding: system-default helpers and cloning
+# -----------------------------------------------------------------------------
+def _get_or_create_system_company():
+    """Создаёт/возвращает скрытую 'system'-компанию, где хранится дефолтный онбординг."""
+    c = Company.query.filter_by(slug="system").first()
+    if not c:
+        c = Company(
+            name="System",
+            slug="system",
+            plan="starter",
+            billing_email=None,
+            owner_partner_id=None,
+            join_code=uuid.uuid4().hex[:8].upper()
+        )
+        db.session.add(c)
+        db.session.commit()
+    return c
+
+def _ensure_flow_steps_default(flow: "CompanyRegFlow"):
+    if CompanyRegStep.query.filter_by(flow_id=flow.id).count() > 0:
+        return
+
+    order = 0
+    def add_step(**kwargs):
+        nonlocal order
+        s = CompanyRegStep(
+            flow_id=flow.id,
+            order_index=order,
+            is_active=True,
+            **kwargs
+        )
+        order += 1
+        db.session.add(s)
+        db.session.flush()
+        return s
+
+    # 1) SJ-интро
+    add_step(
+        type="intro_page",
+        title="Добро пожаловать в Sales Journey",
+        body_md="Короткое знакомство с платформой и процессом.",
+        media_url=None,
+        is_required=False,
+        coins_award=5, xp_award=5
+    )
+
+    # 2) Регистрационная секция (неизменяемая, всегда второй этап)
+    add_step(
+        type="registration_section",
+        title="Регистрация",
+        body_md="Укажите базовые данные, чтобы мы могли связаться с вами.",
+        media_url=None,
+        is_required=True,
+        coins_award=10, xp_award=10,
+        config_json=json.dumps({
+            "fields": [
+                {"key":"name","label":"Имя и фамилия","required":True,"placeholder":"Иван Иванов"},
+                {"key":"email","label":"Email","required":True,"placeholder":"you@example.com"},
+                {"key":"phone","label":"Телефон","required":False,"placeholder":"+7 7xx xxx xx xx"}
+            ]
+        }, ensure_ascii=False),
+    )
+    # помечаем флаг неизменяемости
+    step_reg = CompanyRegStep.query.filter_by(flow_id=flow.id, type="registration_section", order_index=1).first()
+    if step_reg:
+        step_reg.is_immutable = True
+
+    # 3) Интересы (выбор одного)
+    s_interest = add_step(
+        type="interest_selector",
+        title="Что интересует в первую очередь?",
+        body_md="Выберите один пункт — остальные узнаете на собеседовании.",
+        media_url=None,
+        is_required=True,
+        coins_award=5, xp_award=5,
+        config_json=json.dumps({"select_limit":1,"locked_hint":"Остальное узнаете на собеседовании"}, ensure_ascii=False)
+    )
+    for key, title, body in [
+        ("office_tour", "Офис-тур", "Коротко покажем пространство и зоны работы."),
+        ("about_company", "О компании", "Миссия, продукты и планы роста."),
+        ("future_colleagues", "Мои будущие коллеги", "Команда, роли и как мы взаимодействуем."),
+    ]:
+        db.session.add(CompanyRegStepOption(step_id=s_interest.id, key=key, title=title, body_md=body))
+
+    # 4) Финальный бонус / магазин
+    add_step(
+        type="reward_shop",
+        title="Финальный бонус",
+        body_md="Завершите онбординг, чтобы выбрать приз.",
+        media_url=None,
+        is_required=False,
+        coins_award=0, xp_award=0
+    )
+
+    db.session.commit()
+
+def _resolve_onboarding_target(slug_or_code: str) -> dict:
+    """
+    Пытается сопоставить:
+      1) публичную ссылку CompanyRegLink по slug
+      2) активный CompanyInvite по code (регистронезависимо)
+    Возвращает {"company_id": ..., "flow_id": ..., "via": "link"|"code"} или кидает 404/410.
+    """
+    if not slug_or_code:
+        abort(404, description="Invalid link or code")
+
+    # 1) сначала slug (публичная ссылка)
+    link = CompanyRegLink.query.filter_by(slug=slug_or_code, is_active=True).first()
+    if link:
+        if link.expires_at and link.expires_at < now_utc():
+            abort(410, description="Link expired")
+        flow = CompanyRegFlow.query.get(link.flow_id)
+        ensure_flow_has_steps(flow)
+        return {"company_id": link.company_id, "flow_id": link.flow_id, "via": "link"}
+
+    # 2) затем инвайт-код компании
+    inv = (CompanyInvite.query
+           .filter(func.upper(CompanyInvite.code) == slug_or_code.upper(),
+                   CompanyInvite.is_active.is_(True))
+           .first())
+    if inv:
+        flow = (CompanyRegFlow.query
+                .filter_by(company_id=inv.company_id, is_active=True)
+                .order_by(CompanyRegFlow.id.desc())
+                .first())
+        if not flow:
+            flow = clone_flow_to_company(_get_or_create_system_flow().id, inv.company_id)
+        ensure_flow_has_steps(flow)
+        return {"company_id": inv.company_id, "flow_id": flow.id, "via": "code"}
+
+    abort(404, description="Invalid link or code")
+
+def _get_or_create_system_flow():
+    """Возвращает системный дефолтный флоу, создаёт (и заполняет шагами) при отсутствии."""
+    c = _get_or_create_system_company()
+    flow = CompanyRegFlow.query.filter_by(company_id=c.id, name="Системный онбординг по умолчанию").first()
+    if not flow:
+        flow = CompanyRegFlow(
+            company_id=c.id,
+            name="Системный онбординг по умолчанию",
+            is_active=True,
+            final_bonus_coins=50
+        )
+        db.session.add(flow)
+        db.session.commit()
+        _ensure_flow_steps_default(flow)
+    elif CompanyRegStep.query.filter_by(flow_id=flow.id).count() == 0:
+        _ensure_flow_steps_default(flow)
+    return flow
+
+def _get_or_create_system_link():
+    """Возвращает публичную ссылку на системный флоу (~1 год), создаёт при отсутствии."""
+    flow = _get_or_create_system_flow()
+    c = Company.query.get(flow.company_id)
+    existing = CompanyRegLink.query.filter_by(flow_id=flow.id, is_active=True).order_by(CompanyRegLink.id.desc()).first()
+    if existing:
+        return existing
+
+    slug = "welcome-system"
+    i = 1
+    while CompanyRegLink.query.filter_by(slug=slug).first():
+        slug = f"welcome-system-{i}"; i += 1
+
+    link = CompanyRegLink(
+        company_id=c.id,
+        flow_id=flow.id,
+        slug=slug,
+        token=None,
+        is_active=True,
+        expires_at=now_utc() + timedelta(days=365),
+        max_uses=None
+    )
+    db.session.add(link); db.session.commit()
+    return link
+
+def ensure_system_onboarding_defaults():
+    """Гарантирует наличие системного флоу с шагами и активной ссылки; возвращает ссылку."""
+    _ = _get_or_create_system_flow()
+    link = _get_or_create_system_link()
+    return link
+
+def _reg_session_id_from_request() -> int:
+    # 1) заголовок (можно слать X-REG-SESSION-ID)
+    hdr = request.headers.get("X-REG-SESSION-ID")
+    if hdr is not None:
+        return safe_int(hdr, 0)
+
+    # 2) query string ?reg_session_id=...
+    q = request.args.get("reg_session_id")
+    if q is not None:
+        return safe_int(q, 0)
+
+    # 3) JSON тело
+    if request.is_json:
+        j = request.get_json(silent=True) or {}
+        if "reg_session_id" in j:
+            return safe_int(j.get("reg_session_id"), 0)
+
+    # 4) form-data / x-www-form-urlencoded
+    if request.form and "reg_session_id" in request.form:
+        return safe_int(request.form.get("reg_session_id"), 0)
+
+    # 5) fallback — из Flask-сессии
+    return safe_int(session.get("reg_session_id"), 0)
+
+def clone_flow_to_company(src_flow_id: int, target_company_id: int) -> "CompanyRegFlow":
+    """Глубокое копирование флоу (со всеми шагами и опциями) в компанию."""
+    src = CompanyRegFlow.query.get(src_flow_id)
+    if not src:
+        abort(404, description="Source flow not found")
+    new_flow = CompanyRegFlow(
+        company_id=target_company_id,
+        name=src.name,
+        is_active=True,
+        final_bonus_coins=src.final_bonus_coins
+    )
+    db.session.add(new_flow); db.session.flush()
+
+    src_steps = CompanyRegStep.query.filter_by(flow_id=src.id).order_by(CompanyRegStep.order_index).all()
+    for s in src_steps:
+        ns = CompanyRegStep(
+            flow_id=new_flow.id,
+            type=s.type,
+            title=s.title,
+            body_md=s.body_md,
+            media_url=s.media_url,
+            ask_field=s.ask_field,
+            is_required=s.is_required,
+            coins_award=s.coins_award,
+            xp_award=s.xp_award,
+            order_index=s.order_index,
+            config_json=s.config_json
+        )
+        db.session.add(ns); db.session.flush()
+        for o in CompanyRegStepOption.query.filter_by(step_id=s.id).all():
+            db.session.add(CompanyRegStepOption(
+                step_id=ns.id,
+                key=o.key,
+                title=o.title,
+                body_md=o.body_md,
+                media_url=o.media_url
+            ))
+    db.session.commit()
+    return new_flow
+
+# -----------------------------------------------------------------------------
 # DB bootstrap
 # -----------------------------------------------------------------------------
 with app.app_context():
@@ -654,6 +1032,20 @@ with app.app_context():
         try:
             db.session.execute(
                 text('CREATE UNIQUE INDEX IF NOT EXISTS ix_companies_join_code ON companies (join_code)'))
+        except Exception:
+            pass
+
+        # ←↓↓ новые миграции под онбординг v2
+        try:
+            db.session.execute(text('ALTER TABLE company_reg_steps ADD COLUMN is_active BOOLEAN DEFAULT 1'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE company_reg_steps ADD COLUMN is_immutable BOOLEAN DEFAULT 0'))
+        except Exception:
+            pass
+        try:
+            db.session.execute(text('ALTER TABLE reg_sessions ADD COLUMN profile_draft TEXT'))
         except Exception:
             pass
 
@@ -910,52 +1302,284 @@ def company_manager_or_admin_required(f):
         abort(401)
     return wrapper
 
-# -----------------------------------------------------------------------------
-# Auth / Onboarding
-# -----------------------------------------------------------------------------
+def current_reg_session_or_404():
+    rid = _reg_session_id_from_request()
+    if rid <= 0:
+        abort(401, description="Onboarding session not started")
+    sess = db.session.get(RegSession, rid)
+    if not sess:
+        abort(404, description="Onboarding session not found")
+    return sess
+
+
+def step_to_dict(s: CompanyRegStep) -> Dict[str, Any]:
+    if not s: return None
+    try:
+        cfg = json.loads(s.config_json) if s.config_json else None
+    except Exception:
+        cfg = None
+    return {
+        "id": s.id, "type": s.type, "title": s.title, "body_md": s.body_md,
+        "media_url": s.media_url, "ask_field": s.ask_field, "is_required": s.is_required,
+        "coins_award": s.coins_award, "xp_award": s.xp_award,
+        "order_index": s.order_index,
+        "config": cfg,
+        "options": [{"key": o.key, "title": o.title, "body_md": o.body_md, "media_url": o.media_url} for o in s.options]
+    }
+
+def reg_session_to_dict(s: RegSession) -> Dict[str, Any]:
+    return {
+        "id": s.id, "flow_id": s.flow_id, "company_id": s.company_id,
+        "coins_earned": s.coins_earned, "xp_earned": s.xp_earned,
+        "state": s.state, "prospect_name": s.prospect_name,
+        "prospect_phone": s.prospect_phone, "prospect_email": s.prospect_email,
+    }
+
+def interview_invite_to_dict(i: InterviewInvite) -> Dict[str, Any]:
+    return {
+        "status": i.status,
+        "date_time": i.date_time.isoformat() if i.date_time else None,
+        "location": i.location, "message": i.message,
+        "assignment_text": i.assignment_text,
+        "attachments": json.loads(i.attachments_json) if i.attachments_json else None
+    }
+
+def get_next_step(current_step: CompanyRegStep, sess: RegSession):
+    # просто следующий по order_index
+    return CompanyRegStep.query.filter(
+        CompanyRegStep.flow_id==current_step.flow_id,
+        CompanyRegStep.order_index > current_step.order_index
+    ).order_by(CompanyRegStep.order_index).first()
+
+def get_next_step_for_session(sess: RegSession):
+    # первый не пройденный
+    passed_ids = db.session.query(RegSessionStep.step_id).filter_by(session_id=sess.id).all()
+    passed_ids = {x[0] for x in passed_ids}
+    nxt = CompanyRegStep.query.filter(
+        CompanyRegStep.flow_id==sess.flow_id,
+        CompanyRegStep.is_active==True,
+        ~CompanyRegStep.id.in_(passed_ids)
+    ).order_by(CompanyRegStep.order_index).first()
+    return nxt
+
+
+def validate_step_payload(step: CompanyRegStep, data: Dict[str, Any]):
+    if step.type == "registration_section":
+        # ожидание: {"values": {"name": "...", "email": "...", "phone": "...", ...}}
+        cfg = {}
+        try:
+            cfg = json.loads(step.config_json) if step.config_json else {}
+        except Exception:
+            cfg = {}
+        values = data.get("values") or {}
+        fields = cfg.get("fields") or []
+        for f in fields:
+            if f.get("required"):
+                v = (values.get(f.get("key","")) or "").strip()
+                if not v:
+                    abort(400, description=f"Field '{f.get('key')}' is required")
+        # простейшая проверка email/phone если они есть
+        em = (values.get("email") or "").strip()
+        if em and ("@" not in em or "." not in em):
+            abort(400, description="Invalid email")
+        ph = (values.get("phone") or "").strip()
+        if ph and len(ph) < 6:
+            abort(400, description="Phone too short")
+
+    elif step.type == "interest_selector":
+        key = (data.get("key") or "").strip()
+        if not key:
+            abort(400, description="Option required")
+        if key and not any(o.key == key for o in step.options):
+            abort(400, description="Invalid option")
+
+    elif step.type == "ask_input":
+        if step.is_required and not (data.get("value") or "").strip():
+            abort(400, description="Value required")
+        if step.ask_field == "phone":
+            v = (data.get("value") or "").strip()
+            if step.is_required and len(v) < 6:
+                abort(400, description="Phone too short")
+
+    elif step.type == "choice_one":
+        key = data.get("key")
+        if step.is_required and not key:
+            abort(400, description="Option required")
+        if key and not any(o.key == key for o in step.options):
+            abort(400, description="Invalid option")
+    # intro_page / reward_shop / interview_invite / assignment — без валидации
+    return
+
+def onboarding_prizes_for_company(company_id: int):
+    # Допускаем reward|voucher, а также coupon|skin из сидов
+    return (StoreItem.query
+            .filter(StoreItem.type.in_(["reward", "voucher", "coupon", "skin"]))
+            .order_by(StoreItem.cost_coins.asc())
+            .limit(10)
+            .all())
+
 @app.post("/api/auth/register")
 def register():
+    """
+    Регистрация пользователя.
+    - Приходит JSON: email, password, display_name, gender (опц.), reg_session_id (опц.)
+    - Если регистрация стартовала из онбординга (есть reg_session_id в JSON или в Flask-сессии),
+      подтянем прогресс и награды, а также автоматически закроем шаг registration_section,
+      если он ещё не записан (чтобы не ловить "fill name is required").
+    - В конце логиним пользователя и возвращаем базовую инфу + сводку по онбордингу.
+    """
     require_json()
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
     display_name = (data.get("display_name") or "").strip()
     gender = data.get("gender")
 
+    # reg_session_id может прийти как число или строка — принимаем оба варианта
+    reg_session_id_input = data.get("reg_session_id")
+
+    # --- базовая валидация
     if not email or not password or not display_name:
         abort(400, description="email, password, display_name required")
-
     if User.query.filter_by(email=email).first():
         abort(409, description="Email already registered")
 
-    session.clear()  # чистая сессия
+    # --- подготовка локальных переменных (чтобы не было UnboundLocalError)
+    sess = None
+    flow = None
+    company_id = None
+    coins_earned = 0
+    xp_earned = 0
+
+    # Сохраним возможный reg_session_id из текущей cookie-сессии до очистки
+    reg_sid_from_session = session.get("reg_session_id")
+
+    # Чистим сессию (ключевой момент, чтобы не пересекались роли и прочее)
+    session.clear()
+
+    # Если клиент НЕ прислал reg_session_id — возьмём из предыдущей сессии
+    def _coerce_reg_id(v):
+        # безопасно приводим к int, допускаем "", None
+        if v is None:
+            return None
+        s = str(v).strip()
+        return safe_int(s) if s else None
+
+    reg_session_id = _coerce_reg_id(reg_session_id_input) or _coerce_reg_id(reg_sid_from_session)
+
+    # Если регистрация пришла из онбординга — подтянем прогресс
+    if reg_session_id:
+        sess = db.session.get(RegSession, reg_session_id)
+        if not sess:
+            abort(400, description="Invalid reg_session_id")
+        flow = db.session.get(CompanyRegFlow, sess.flow_id)
+        company_id = sess.company_id
+        coins_earned = sess.coins_earned or 0
+        xp_earned = sess.xp_earned or 0
+
+    # --- создаём пользователя
     user = User(
         email=email,
         password=generate_password_hash(password),
         display_name=display_name,
         gender=gender,
+        company_id=company_id
     )
     db.session.add(user)
-    db.session.flush()
-    auto_join_company_from_request(request, user)  # <— ВСТАВИТЬ ЭТУ СТРОКУ
+    db.session.flush()  # нужен user.id
 
-    # Инициализируем аватар
+    # --- если это онбординг — линканём сессию, перенесём награды
+    if sess is not None:
+        sess.linked_user_id = user.id
+
+        # ✅ Автозавершаем registration_section, если он ещё не записан.
+        # Это защищает от 400 "fill name is required" при дальнейших сабмитах.
+        reg_step = (CompanyRegStep.query
+                    .filter_by(flow_id=sess.flow_id, type="registration_section", is_active=True)
+                    .order_by(CompanyRegStep.order_index).first())
+
+        if reg_step and not RegSessionStep.query.filter_by(session_id=sess.id, step_id=reg_step.id).first():
+            # Собираем значения: приоритет — свежие из регистрации, затем драфт из сессии
+            draft = {}
+            try:
+                draft = json.loads(sess.profile_draft) if sess.profile_draft else {}
+            except Exception:
+                draft = {}
+
+            values = {
+                "name":  (display_name or "").strip() or (draft.get("name") or "").strip(),
+                "email": (email or "").strip()        or (draft.get("email") or "").strip(),
+                "phone": (draft.get("phone") or "").strip(),  # телефон не обязателен
+            }
+
+            # Записываем прохождение шага + награды за шаг
+            db.session.add(RegSessionStep(
+                session_id=sess.id,
+                step_id=reg_step.id,
+                data_json=json.dumps({"values": values}, ensure_ascii=False),
+                coins_awarded=reg_step.coins_award or 0,
+                xp_awarded=reg_step.xp_award or 0,
+            ))
+            sess.coins_earned = (sess.coins_earned or 0) + (reg_step.coins_award or 0)
+            sess.xp_earned    = (sess.xp_earned or 0)    + (reg_step.xp_award or 0)
+
+            # Синхронизируем краткие поля
+            if values["name"]:
+                sess.prospect_name = values["name"][:150]
+            if values["phone"]:
+                sess.prospect_phone = values["phone"][:50]
+            if values["email"]:
+                sess.prospect_email = values["email"][:255]
+
+            # Обновим агрегаты для переноса на пользователя
+            coins_earned = sess.coins_earned or 0
+            xp_earned    = sess.xp_earned or 0
+
+        # Перенос накопленных монет/XP пользователю + лог событий
+        if coins_earned:
+            user.coins += coins_earned
+            db.session.add(ScoreEvent(
+                user_id=user.id, source="bonus", points=0, coins=coins_earned,
+                meta_json=json.dumps({"kind": "onboarding", "reg_session_id": sess.id}, ensure_ascii=False)
+            ))
+        if xp_earned:
+            user.add_xp(xp_earned)
+            db.session.add(ScoreEvent(
+                user_id=user.id, source="bonus", points=xp_earned, coins=0,
+                meta_json=json.dumps({"kind": "onboarding", "reg_session_id": sess.id}, ensure_ascii=False)
+            ))
+
+    # --- Инициализируем базовый аватар
     base = AvatarItem.query.filter_by(slot="base", key="base_t1").first()
-    ua = UserAvatar(user_id=user.id, selected_by_slot=json.dumps({"base": base.key if base else "base_t1"}))
+    ua = UserAvatar(
+        user_id=user.id,
+        selected_by_slot=json.dumps({"base": base.key if base else "base_t1"})
+    )
     db.session.add(ua)
 
-    # Приветственная ачивка + XP
+    # --- Приветственная ачивка
     ach = Achievement.query.filter_by(code="WELCOME").first()
     if ach:
         db.session.add(UserAchievement(user_id=user.id, achievement_id=ach.id))
         user.add_xp(ach.points)
 
     db.session.commit()
-    session["uid"] = user.id
-    return as_json({"user": user_to_dict(user)})
 
-# ---- JSON error responses (чтобы фронт всегда понимал ошибку) ----
-from werkzeug.exceptions import HTTPException
+    # --- авторизация пользователя + восстановление reg_session_id в сессию
+    session["uid"] = user.id
+    if reg_session_id:
+        session["reg_session_id"] = reg_session_id
+
+    return as_json({
+        "user": user_to_dict(user),
+        "onboarding": {
+            "reg_session_id": sess.id if sess else None,
+            "company_id": company_id,
+            "coins_transferred": coins_earned,
+            "xp_transferred": xp_earned
+        }
+    })
+
 
 def auto_join_company_from_request(req, user):
     # 1) токен из URL, формы или JSON
@@ -1029,6 +1653,599 @@ def login():
 def logout():
     session.clear()
     return as_json({"ok": True})
+
+# -----------------------------------------------------------------------------
+# Public Onboarding Flow
+# -----------------------------------------------------------------------------
+@app.get("/r/<slug_or_code>")
+def page_onboarding_flow(slug_or_code):
+    # Валидируем ссылку или код (кинет 404/410 при проблеме)
+    _resolve_onboarding_target(slug_or_code)
+    # Рендерим общий шаблон; дальше /api/reg/start разрулит контекст
+    return render_template("onboarding.html", slug=slug_or_code)
+
+@app.get("/api/reg/resolve")
+def api_reg_resolve():
+    """
+    GET /api/reg/resolve?slug=...  или  ?code=...
+    Возвращает данные компании и флоу по публичной ссылке (slug) или инвайт-коду (code).
+    """
+    slug_or_code = (request.args.get("slug") or request.args.get("code") or "").strip()
+    if not slug_or_code:
+        abort(400, description="slug or code required")
+
+    tgt = _resolve_onboarding_target(slug_or_code)  # 404/410 если ссылка невалидна/протухла
+    c = db.session.get(Company, tgt["company_id"])
+    f = db.session.get(CompanyRegFlow, tgt["flow_id"])
+
+    return as_json({
+        "company_name": c.name,
+        "company_slug": c.slug,
+        "company": company_public_to_dict(c),
+        "flow": {
+            "id": f.id,
+            "name": f.name,
+            "final_bonus_coins": f.final_bonus_coins,
+            "is_active": f.is_active
+        },
+        "via": tgt["via"]  # "link" | "code"
+    })
+
+
+# Алиасы под фронтовые фолбэки
+@app.get("/api/reg/link/<slug>")
+def api_reg_link_slug(slug):
+    tgt = _resolve_onboarding_target(slug)
+    c = db.session.get(Company, tgt["company_id"])
+    f = db.session.get(CompanyRegFlow, tgt["flow_id"])
+    return as_json({
+        "company_name": c.name,
+        "company_slug": c.slug,
+        "company": company_public_to_dict(c),
+        "flow": {
+            "id": f.id,
+            "name": f.name,
+            "final_bonus_coins": f.final_bonus_coins,
+            "is_active": f.is_active
+        },
+        "via": tgt["via"]
+    })
+
+
+@app.get("/api/reg/info")
+def api_reg_info():
+    # Простой алиас на /api/reg/resolve (удобно, если фронт дергает именно /info)
+    return api_reg_resolve()
+
+
+@app.get("/onboarding")
+def page_onboarding_default():
+    # Ensure system default flow + link exists, then reuse onboarding template
+    link = ensure_system_onboarding_defaults()
+    return render_template("onboarding.html", slug=link.slug)
+
+# ➕ новое: простая страница оферты
+@app.get("/terms")
+def page_terms():
+    return render_template("terms.html")
+
+@app.post("/api/reg/start")
+def api_reg_start():
+    """
+    Старт/резюм онбординга.
+    - Если пользователь уже завершал онбординг (по этой компании) — 403.
+    - Если у пользователя есть незавершённая сессия — резюмируем её.
+    - Иначе создаём новую сессию.
+    """
+    require_json()
+    slug_or_code = (request.json.get("slug") or request.json.get("code") or "").strip()
+
+    # 1) Разрешаем цель онбординга -> flow + company
+    flow = None
+    company = None
+
+    if not slug_or_code:
+        # системный дефолт
+        link = _get_or_create_system_link()
+        flow = db.session.get(CompanyRegFlow, link.flow_id)
+        company = db.session.get(Company, link.company_id)
+        ensure_flow_has_steps(flow)
+        link.uses_count = (link.uses_count or 0) + 1
+    else:
+        tgt = _resolve_onboarding_target(slug_or_code)
+        if not tgt:
+            abort(404, description="Onboarding not found")
+
+        if tgt.get("via") == "flow":
+            flow = db.session.get(CompanyRegFlow, tgt["flow_id"])
+            if not flow: abort(404, description="Flow not found")
+            company = db.session.get(Company, flow.company_id)
+            ensure_flow_has_steps(flow)
+
+        elif tgt.get("via") == "link":
+            link = CompanyRegLink.query.filter_by(slug=slug_or_code, is_active=True).first()
+            if not link: abort(404, description="Link not found")
+            flow = db.session.get(CompanyRegFlow, link.flow_id)
+            company = db.session.get(Company, link.company_id)
+            ensure_flow_has_steps(flow)
+            link.uses_count = (link.uses_count or 0) + 1
+
+        else:
+            abort(400, description="Bad onboarding target")
+
+    # 2) Только для новеньких (по компании): если уже завершал — блокируем
+    u = current_user()
+    if u:
+        done = (RegSession.query
+                .filter_by(company_id=company.id, linked_user_id=u.id, state="finished")
+                .first())
+        if done:
+            abort(403, description="already_completed")
+
+        # 2.1) Резюмируем незавершённую
+        active = (RegSession.query
+                  .filter_by(company_id=company.id, linked_user_id=u.id)
+                  .filter(RegSession.state != "finished")
+                  .order_by(RegSession.started_at.desc())
+                  .first())
+        if active:
+            session["reg_session_id"] = active.id
+            nxt = get_next_step_for_session(active)
+            db.session.commit()
+            return as_json({
+                "session_id": active.id,
+                "next_step": step_to_dict(nxt) if nxt else None,
+                "company": {"id": company.id, "name": company.name, "slug": company.slug},
+                "flow": {"id": flow.id, "name": flow.name, "company_id": flow.company_id}
+            })
+
+    # 3) Создаём новую сессию (аноним/новый пользователь)
+    sess = RegSession(flow_id=flow.id, company_id=company.id)
+    if u:
+        sess.linked_user_id = u.id
+    db.session.add(sess); db.session.flush()
+
+    first = (CompanyRegStep.query
+             .filter_by(flow_id=flow.id, is_active=True)
+             .order_by(CompanyRegStep.order_index)
+             .first())
+
+    db.session.commit()
+    session["reg_session_id"] = sess.id
+    return as_json({
+        "session_id": sess.id,
+        "next_step": step_to_dict(first) if first else None,
+        "company": {"id": company.id, "name": company.name, "slug": company.slug},
+        "flow": {"id": flow.id, "name": flow.name, "company_id": flow.company_id}
+    })
+
+@app.get("/api/partners/company/<int:company_id>/onboarding/stats")
+@partner_required
+def api_partner_onboarding_stats(company_id: int):
+    """
+    Метрики по онбордингу компании за окно дней (по умолчанию 30):
+    - started, completed, completion_rate
+    - funnel: отток по последнему достигнутому шагу у незавершённых
+    - avg_time_to_complete_sec
+    """
+    days = safe_int(request.args.get("days") or 30, 30)
+    since = now_utc() - timedelta(days=days)
+
+    # Берём активные флоу компании
+    flows = CompanyRegFlow.query.filter_by(company_id=company_id, is_active=True).all()
+    flow_ids = [f.id for f in flows]
+    if not flow_ids:
+        return as_json({
+            "window_days": days, "started": 0, "completed": 0,
+            "completion_rate": 0.0, "avg_time_to_complete_sec": 0, "funnel": []
+        })
+
+    # Сессии в окне
+    q_base = RegSession.query.filter(
+        RegSession.company_id == company_id,
+        RegSession.started_at >= since
+    )
+    started = q_base.count()
+    completed = q_base.filter(RegSession.state == "finished").count()
+    completion_rate = (completed / started * 100.0) if started else 0.0
+
+    # Последний достигнутый order_index у незавершённых
+    ssq = (db.session.query(
+                RegSessionStep.session_id.label("sid"),
+                func.max(CompanyRegStep.order_index).label("max_ord"))
+           .join(CompanyRegStep, CompanyRegStep.id == RegSessionStep.step_id)
+           .filter(CompanyRegStep.flow_id.in_(flow_ids))
+           .group_by(RegSessionStep.session_id)
+           .subquery())
+
+    rows = (db.session.query(
+                func.coalesce(ssq.c.max_ord, -1).label("ord"),
+                func.count(RegSession.id).label("cnt"))
+            .outerjoin(ssq, ssq.c.sid == RegSession.id)
+            .filter(RegSession.company_id == company_id,
+                    RegSession.started_at >= since,
+                    RegSession.state != "finished")
+            .group_by("ord")
+            .all())
+
+    funnel = [{"order_index": int(ord_), "drop_count": int(cnt)} for (ord_, cnt) in rows]
+
+    # Мета к шагам (title/type)
+    steps = (CompanyRegStep.query
+             .filter(CompanyRegStep.flow_id.in_(flow_ids),
+                     CompanyRegStep.is_active == True)
+             .order_by(CompanyRegStep.order_index)
+             .all())
+    meta = {s.order_index: {"title": s.title, "type": s.type} for s in steps}
+    for r in funnel:
+        if r["order_index"] in meta:
+            r.update(meta[r["order_index"]])
+
+    # Среднее время до завершения
+    avg_seconds = (db.session.query(
+        func.avg(func.strftime('%s', RegSession.finished_at) - func.strftime('%s', RegSession.started_at)))
+        .filter(RegSession.company_id == company_id,
+                RegSession.state == "finished",
+                RegSession.finished_at.isnot(None),
+                RegSession.started_at.isnot(None),
+                RegSession.started_at >= since)
+        .scalar()) or 0
+
+    return as_json({
+        "window_days": days,
+        "started": started,
+        "completed": completed,
+        "completion_rate": round(completion_rate, 1),
+        "avg_time_to_complete_sec": int(avg_seconds),
+        "funnel": sorted(funnel, key=lambda x: x["order_index"])
+    })
+
+# === Flow-level stats ===
+@app.get("/api/partners/onboarding/flows/<int:flow_id>/stats")
+@partner_required
+def api_onb_flow_stats(flow_id: int):
+    """
+    Агрегированная статистика по флоу:
+      - started, completed, completion_rate
+      - avg_time_to_complete_sec
+      - funnel: отток по шагам (последний достигнутый order_index у незавершённых) + метаданные шага
+    Параметры: ?days=30 (окно), ?company_id=... (опционально для валидации доступа)
+    """
+    days = safe_int(request.args.get("days") or 30, 30)
+    since = now_utc() - timedelta(days=days)
+
+    flow = CompanyRegFlow.query.get(flow_id)
+    if not flow:
+        return as_json({"error": "flow not found"}), 404
+
+    # доступ партнёра к компании (если у тебя есть проверка — вызови её здесь)
+    # check_partner_access(flow.company_id)
+
+    # Все сессии флоу за окно
+    q_base = RegSession.query.filter(
+        RegSession.flow_id == flow_id,
+        RegSession.started_at >= since
+    )
+
+    started = q_base.count()
+    # Завершённые
+    completed = q_base.filter(RegSession.state == "finished").count()
+    completion_rate = (completed / started * 100.0) if started else 0.0
+
+    # Воронка: у незавершённых — максимум достигнутого order_index
+    ssq = (db.session.query(
+                RegSessionStep.session_id.label("sid"),
+                func.max(CompanyRegStep.order_index).label("max_ord"))
+           .join(CompanyRegStep, CompanyRegStep.id == RegSessionStep.step_id)
+           .filter(CompanyRegStep.flow_id == flow_id)
+           .group_by(RegSessionStep.session_id)
+           .subquery())
+
+    rows = (db.session.query(
+                func.coalesce(ssq.c.max_ord, -1).label("ord"),
+                func.count(RegSession.id).label("cnt"))
+            .outerjoin(ssq, ssq.c.sid == RegSession.id)
+            .filter(RegSession.flow_id == flow_id,
+                    RegSession.started_at >= since,
+                    RegSession.state != "finished")
+            .group_by("ord")
+            .all())
+
+    funnel = [{"order_index": int(ord_), "drop_count": int(cnt)} for (ord_, cnt) in rows]
+
+    # Метаданные шагов
+    steps = (CompanyRegStep.query
+             .filter(CompanyRegStep.flow_id == flow_id, CompanyRegStep.is_active == True)
+             .order_by(CompanyRegStep.order_index)
+             .all())
+    meta = {s.order_index: {"title": s.title, "type": s.type} for s in steps}
+    for r in funnel:
+        if r["order_index"] in meta:
+            r.update(meta[r["order_index"]])
+
+    # Среднее время до завершения
+    avg_seconds = (db.session.query(
+        func.avg(func.strftime('%s', RegSession.finished_at) - func.strftime('%s', RegSession.started_at)))
+        .filter(RegSession.flow_id == flow_id,
+                RegSession.state == "finished",
+                RegSession.finished_at.isnot(None),
+                RegSession.started_at.isnot(None),
+                RegSession.started_at >= since)
+        .scalar()) or 0
+
+    return as_json({
+        "flow": {"id": flow.id, "name": flow.name, "company_id": flow.company_id},
+        "window_days": days,
+        "started": started,
+        "completed": completed,
+        "completion_rate": round(completion_rate, 1),
+        "avg_time_to_complete_sec": int(avg_seconds),
+        "funnel": sorted(funnel, key=lambda x: x["order_index"])
+    })
+
+# === Flow-level sessions (runs) ===
+@app.get("/api/partners/onboarding/flows/<int:flow_id>/sessions")
+@partner_required
+def api_onb_flow_sessions(flow_id: int):
+    """
+    Пагинированный список сессий флоу с прогрессом и пользователем.
+    Параметры:
+      - page (1..), per_page (по умолчанию 20, максимум 100)
+      - q: поиск по имени/почте
+      - days: окно по started_at (по умолчанию 30)
+      - only_active: 1 — только незавершённые
+      - only_completed: 1 — только завершённые
+    """
+    days = safe_int(request.args.get("days") or 30, 30)
+    since = now_utc() - timedelta(days=days)
+
+    page = max(1, safe_int(request.args.get("page") or 1, 1))
+    per_page = min(100, max(1, safe_int(request.args.get("per_page") or 20, 20)))
+    q = (request.args.get("q") or "").strip()
+
+    only_active = request.args.get("only_active") in ("1", "true", "True")
+    only_completed = request.args.get("only_completed") in ("1", "true", "True")
+
+    base = (RegSession.query
+            .filter(RegSession.flow_id == flow_id,
+                    RegSession.started_at >= since))
+
+    if only_active and not only_completed:
+        base = base.filter(RegSession.state != "finished")
+    if only_completed and not only_active:
+        base = base.filter(RegSession.state == "finished")
+
+    if q:
+        # поиск по пользователю (display_name, email) если связка есть
+        base = (base.join(User, User.id == RegSession.linked_user_id, isouter=True)
+                    .filter(or_(User.display_name.ilike(f"%{q}%"),
+                                User.email.ilike(f"%{q}%"))))
+
+    total = base.count()
+    sessions = (base
+                .order_by(RegSession.started_at.desc())
+                .offset((page - 1) * per_page)
+                .limit(per_page)
+                .all())
+
+    # Расчёт прогресса: последний order_index из шагов
+    # (если у тебя уже есть поле last_step_index на RegSession — просто верни его)
+    # Здесь считаем быстро в памяти одним запросом на все id
+    sid_list = [s.id for s in sessions]
+    last_map = {}
+    if sid_list:
+        ssq = (db.session.query(
+                    RegSessionStep.session_id.label("sid"),
+                    func.max(CompanyRegStep.order_index).label("max_ord"))
+               .join(CompanyRegStep, CompanyRegStep.id == RegSessionStep.step_id)
+               .filter(RegSessionStep.session_id.in_(sid_list))
+               .group_by(RegSessionStep.session_id)
+               .all())
+        last_map = {sid: (ord_ if ord_ is not None else -1) for (sid, ord_) in ssq}
+
+    # total_steps — по флоу
+    total_steps = CompanyRegStep.query.filter_by(flow_id=flow_id, is_active=True).count()
+
+    def sess_to_dict(s: RegSession):
+        u = User.query.get(s.linked_user_id) if s.linked_user_id else None
+        last_idx = last_map.get(s.id, -1)
+        return {
+            "session_id": s.id,
+            "user": {
+                "id": u.id if u else None,
+                "display_name": u.display_name if u else None,
+                "email": u.email if u else None,
+            },
+            "started_at": s.started_at.isoformat() if s.started_at else None,
+            "finished_at": s.finished_at.isoformat() if s.finished_at else None,
+            "state": s.state,
+            "progress": {
+                "last_order_index": int(last_idx),
+                "total_steps": int(total_steps),
+                "percent": round(max(0.0, min(100.0, ((last_idx + 1) / max(1, total_steps)) * 100.0)), 1)
+            }
+        }
+
+    return as_json({
+        "page": page, "per_page": per_page, "total": total,
+        "items": [sess_to_dict(s) for s in sessions]
+    })
+
+@app.get("/api/reg/session")
+def api_reg_session():
+    sess = current_reg_session_or_404()
+    next_step = get_next_step_for_session(sess)
+    return as_json({
+        "session": reg_session_to_dict(sess),
+        "next_step": step_to_dict(next_step) if next_step else None
+    })
+
+@app.post("/api/reg/step/<int:step_id>/submit")
+def api_reg_submit(step_id):
+    require_json()
+    sess = current_reg_session_or_404()
+    step = CompanyRegStep.query.get_or_404(step_id)
+    data = request.json or {}
+
+    # 🔁 Идемпотентность для registration_section:
+    # если уже есть запись о прохождении этого шага — просто двигаемся дальше
+    if step.type == "registration_section":
+        existed = RegSessionStep.query.filter_by(session_id=sess.id, step_id=step.id).first()
+        if existed:
+            nxt = get_next_step(step, sess)
+            return as_json({
+                "coins": sess.coins_earned or 0,
+                "xp":    sess.xp_earned or 0,
+                "next_step": step_to_dict(nxt) if nxt else None
+            })
+
+    # обычный путь: валидируем и пишем прогресс
+    validate_step_payload(step, data)
+
+    award_c = step.coins_award or 0
+    award_x = step.xp_award or 0
+    sess.coins_earned = (sess.coins_earned or 0) + award_c
+    sess.xp_earned    = (sess.xp_earned or 0) + award_x
+
+    if step.type == "registration_section":
+        values = data.get("values") or {}
+        try:
+            draft = json.loads(sess.profile_draft) if sess.profile_draft else {}
+        except Exception:
+            draft = {}
+        draft.update(values)
+        sess.profile_draft = json.dumps(draft, ensure_ascii=False)
+        nm = (values.get("name") or "").strip()
+        if nm: sess.prospect_name = nm[:150]
+        ph = (values.get("phone") or "").strip()
+        if ph: sess.prospect_phone = ph[:50]
+        em = (values.get("email") or "").strip()
+        if em: sess.prospect_email = em[:255]
+
+    if step.type == "interest_selector":
+        exists = RegSessionStep.query.filter_by(session_id=sess.id, step_id=step.id).first()
+        if exists:
+            abort(409, description="Interest already picked")
+
+    if step.type == "ask_input":
+        field = (step.ask_field or "").strip()
+        if field in ("name", "first_name", "last_name") and data.get("value"):
+            v = data["value"].strip()
+            full = (sess.prospect_name or "").strip()
+            parts = full.split(" ", 1) if full else ["", ""]
+            if field == "first_name": full = f"{v} {parts[1]}".strip()
+            elif field == "last_name": full = f"{parts[0]} {v}".strip()
+            else: full = v
+            sess.prospect_name = full[:150]
+        if field == "phone" and data.get("value"):
+            sess.prospect_phone = data["value"].strip()[:50]
+        if field == "email" and data.get("value"):
+            sess.prospect_email = data["value"].strip()[:255]
+
+    db.session.add(RegSessionStep(
+        session_id=sess.id, step_id=step.id,
+        data_json=json.dumps(data, ensure_ascii=False),
+        coins_awarded=award_c, xp_awarded=award_x
+    ))
+
+    next_step = get_next_step(step, sess)
+    db.session.commit()
+    return as_json({
+        "coins": sess.coins_earned, "xp": sess.xp_earned,
+        "next_step": step_to_dict(next_step) if next_step else None
+    })
+
+
+@app.post("/api/reg/finish")
+def api_reg_finish():
+    sess = current_reg_session_or_404()
+    flow = CompanyRegFlow.query.get(sess.flow_id)
+    bonus = flow.final_bonus_coins or 0
+    sess.coins_earned = (sess.coins_earned or 0) + bonus
+    sess.finished_at = now_utc()
+    sess.state = "finished"
+
+    # Призы: ограниченный витринный subset из StoreItem для компании
+    prizes = onboarding_prizes_for_company(sess.company_id)
+    db.session.commit()
+    return as_json({
+        "coins_total": sess.coins_earned,
+        "prizes": [store_item_to_dict(p) for p in prizes]
+    })
+
+@app.post("/api/reg/reward/pick")
+def api_reg_reward_pick():
+    require_json()
+    sess = current_reg_session_or_404()
+    if RegRewardChoice.query.filter_by(session_id=sess.id).first():
+        abort(409, description="Reward already picked")
+    item_id = safe_int(request.json.get("store_item_id"))
+    item = StoreItem.query.get_or_404(item_id)
+    if (item.cost_coins or 0) > (sess.coins_earned or 0):
+        abort(400, description="Not enough coins")
+    db.session.add(RegRewardChoice(session_id=sess.id, store_item_id=item.id, cost_coins=item.cost_coins or 0))
+    db.session.commit()
+    return as_json({"ok": True})
+
+@app.get("/api/reg/interview")
+def api_reg_interview():
+    sess = current_reg_session_or_404()
+    inv = InterviewInvite.query.filter_by(session_id=sess.id).first()
+
+    # Попробуем достать дефолты из шага типа 'interview_invite'
+    step = CompanyRegStep.query.filter_by(flow_id=sess.flow_id, type="interview_invite").first()
+    cfg = {}
+    if step and step.config_json:
+        try:
+            cfg = json.loads(step.config_json) or {}
+        except Exception:
+            cfg = {}
+
+    # assignment текст из шага 'assignment'
+    assign_step = CompanyRegStep.query.filter_by(flow_id=sess.flow_id, type="assignment").first()
+    assignment_text = assign_step.body_md if assign_step and assign_step.body_md else None
+
+    if not inv:
+        inv = InterviewInvite(session_id=sess.id, status="pending")
+        db.session.add(inv)
+
+    # применим дефолты, если есть
+    dt_iso = cfg.get("date_time")
+    loc = cfg.get("location")
+    msg = cfg.get("message")
+
+    if dt_iso:
+        try:
+            dt = datetime.fromisoformat(dt_iso)
+            inv.date_time = dt
+        except Exception:
+            pass
+    if loc: inv.location = loc
+    if msg: inv.message = msg
+    if assignment_text: inv.assignment_text = assignment_text
+
+    # обновим статус
+    if inv.date_time and inv.date_time >= now_utc():
+        inv.status = "scheduled"
+    else:
+        inv.status = "needs_date" if not inv.date_time else "needs_date"
+
+    db.session.commit()
+    return as_json(interview_invite_to_dict(inv))
+
+
+@app.post("/api/admin/onboarding/system_default/migrate")
+@admin_required
+def api_admin_onboarding_system_default_migrate():
+    # Пересоздаст шаги дефолтного флоу по новой схеме
+    flow = _get_or_create_system_flow()
+    # очистим старые шаги
+    CompanyRegStep.query.filter_by(flow_id=flow.id).delete()
+    db.session.commit()
+    _ensure_flow_steps_default(flow)
+    link = _get_or_create_system_link()
+    return as_json({"ok": True, "flow_id": flow.id, "slug": link.slug})
+
 
 @app.get("/api/me")
 @login_required
@@ -1418,7 +2635,11 @@ def page_login():
 def page_register():
     if session.get("uid"):
         return redirect(url_for("page_achievements"))
-    return render_template("register.html")
+    slug = request.args.get("r") or request.args.get("slug")
+    if slug:
+        return redirect(url_for("page_onboarding_flow", slug_or_code=slug))
+    # По умолчанию — системный онбординг
+    return redirect(url_for("page_onboarding_default"))
 
 @app.get("/achievements")
 @login_required_page
@@ -1585,6 +2806,38 @@ def render_avatar_svg_base(gender: str = "any", display_name: str = "") -> str:
   <circle cx="130" cy="126" r="18" fill="#10B981"/>
   <text x="130" y="131" text-anchor="middle" font-size="16" font-family="Inter,Segoe UI,Arial" fill="white">{initials}</text>
 </svg>'''
+
+# --- предпросмотр аватара для онбординга (без user_id) ---
+@app.get("/avatar_svg/preview")
+def avatar_svg_preview():
+    gender = (request.args.get("gender") or "any").lower()
+    name = request.args.get("name") or ""
+    svg = render_avatar_svg_base(gender, name)
+    resp = make_response(svg)
+    resp.headers["Content-Type"] = "image/svg+xml"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+@app.get("/avatar_svg/default")
+def avatar_svg_default():
+    gender = (request.args.get("gender") or "any").lower()
+    name = request.args.get("name") or ""
+    svg = render_avatar_svg_base(gender, name)
+    resp = make_response(svg)
+    resp.headers["Content-Type"] = "image/svg+xml"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+@app.get("/avatar_svg")
+def avatar_svg_generic():
+    # Фолбэк, если запрошен /avatar_svg?gender=male|female
+    gender = (request.args.get("gender") or "any").lower()
+    name = request.args.get("name") or ""
+    svg = render_avatar_svg_base(gender, name)
+    resp = make_response(svg)
+    resp.headers["Content-Type"] = "image/svg+xml"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 @app.get("/avatar_svg/<int:user_id>")
 def avatar_svg(user_id):
@@ -1924,6 +3177,197 @@ def partner_company_regen_code(company_id):
     c.join_code = uuid.uuid4().hex[:8].upper()
     db.session.commit()
     return as_json({"company": company_public_to_dict(c)})
+
+# -----------------------------------------------------------------------------
+# Partner/company: Onboarding Flow Builder (CRUD)
+# -----------------------------------------------------------------------------
+
+@app.get("/api/partners/company/<int:company_id>/onboarding/flows")
+@partner_required
+def api_partner_flows(company_id):
+    flows = CompanyRegFlow.query.filter_by(company_id=company_id).all()
+    return as_json({"flows": [{"id": f.id, "name": f.name, "is_active": f.is_active, "final_bonus_coins": f.final_bonus_coins} for f in flows]})
+
+@app.post("/api/partners/company/<int:company_id>/onboarding/flows")
+@partner_required
+def api_partner_flow_create(company_id):
+    require_json()
+    name = (request.json.get("name") or "Регистрация").strip()
+    bonus = safe_int(request.json.get("final_bonus_coins"), 0)
+    # вместо пустого флоу — клон системного по умолчанию
+    sys_flow = _get_or_create_system_flow()
+    f = clone_flow_to_company(sys_flow.id, company_id)
+    f.name = name
+    f.final_bonus_coins = bonus
+
+    # гарантия: у флоу есть шаги (если вдруг системный флоу был пуст)
+    ensure_flow_has_steps(f)
+
+    db.session.commit()
+    return as_json({"id": f.id})
+
+
+@app.delete("/api/partners/onboarding/flows/<int:flow_id>")
+@partner_required
+def api_partner_flow_delete(flow_id):
+    f = CompanyRegFlow.query.get_or_404(flow_id)
+    # каскад удалит steps/links (см. relationship cascade="all, delete-orphan")
+    db.session.delete(f)
+    db.session.commit()
+    return as_json({"ok": True})
+
+@app.put("/api/partners/onboarding/flows/<int:flow_id>")
+@partner_required
+def api_partner_flow_update(flow_id):
+    require_json()
+    f = CompanyRegFlow.query.get_or_404(flow_id)
+    f.name = (request.json.get("name") or f.name).strip()
+    f.final_bonus_coins = safe_int(request.json.get("final_bonus_coins"), f.final_bonus_coins)
+    if "is_active" in request.json:
+        f.is_active = bool(request.json.get("is_active"))
+    db.session.commit()
+    return as_json({"ok": True})
+
+@app.post("/api/partners/onboarding/flows/<int:flow_id>/steps")
+@partner_required
+def api_partner_step_create(flow_id):
+    require_json()
+    s = CompanyRegStep(
+        flow_id=flow_id,
+        type=request.json.get("type"),
+        title=request.json.get("title"),
+        body_md=request.json.get("body_md"),
+        media_url=request.json.get("media_url"),
+        ask_field=request.json.get("ask_field"),
+        is_required=bool(request.json.get("is_required")),
+        coins_award=safe_int(request.json.get("coins_award"), 0),
+        xp_award=safe_int(request.json.get("xp_award"), 0),
+        order_index=safe_int(request.json.get("order_index"), 0),
+        config_json=json.dumps(request.json.get("config") or {}, ensure_ascii=False)
+    )
+    db.session.add(s); db.session.commit()
+    return as_json({"id": s.id})
+
+@app.put("/api/partners/onboarding/steps/<int:step_id>")
+@partner_required
+def api_partner_step_update(step_id):
+    require_json()
+    s = CompanyRegStep.query.get_or_404(step_id)
+    for k in ["type","title","body_md","media_url","ask_field","is_required"]:
+        if k in request.json:
+            setattr(s, k, request.json.get(k))
+    for k in ["coins_award","xp_award","order_index"]:
+        if k in request.json:
+            setattr(s, k, safe_int(request.json.get(k)))
+    if "config" in request.json:
+        s.config_json = json.dumps(request.json.get("config") or {}, ensure_ascii=False)
+    db.session.commit()
+    return as_json({"ok": True})
+
+@app.post("/api/partners/onboarding/steps/<int:step_id>/options")
+@partner_required
+def api_partner_step_option_add(step_id):
+    require_json()
+    o = CompanyRegStepOption(
+        step_id=step_id,
+        key=(request.json.get("key") or "").strip(),
+        title=(request.json.get("title") or "").strip(),
+        body_md=request.json.get("body_md"),
+        media_url=request.json.get("media_url"),
+    )
+    db.session.add(o); db.session.commit()
+    return as_json({"id": o.id})
+
+@app.post("/api/partners/onboarding/flows/<int:flow_id>/reorder")
+@partner_required
+def api_partner_flow_reorder(flow_id):
+    require_json()
+    order = request.json.get("order") or []  # [step_id...]
+    mapping = {sid: i for i, sid in enumerate(order)}
+    steps = CompanyRegStep.query.filter_by(flow_id=flow_id).all()
+    for s in steps:
+        if s.id in mapping:
+            s.order_index = mapping[s.id]
+    db.session.commit()
+    return as_json({"ok": True})
+
+@app.post("/api/partners/onboarding/flows/<int:flow_id>/link")
+@partner_required
+def api_partner_flow_link(flow_id):
+    require_json()
+    f = CompanyRegFlow.query.get_or_404(flow_id)
+    slug = (request.json.get("slug") or uuid.uuid4().hex[:10]).lower()
+    token = uuid.uuid4().hex
+    expires_at = None
+    if request.json.get("expires_at"):
+        try:
+            expires_at = datetime.fromisoformat(request.json["expires_at"])
+        except Exception:
+            expires_at = None
+    link = CompanyRegLink(
+        company_id=f.company_id, flow_id=f.id, slug=slug, token=token,
+        max_uses=safe_int(request.json.get("max_uses")) or None,
+        expires_at=expires_at, is_active=True
+    )
+    db.session.add(link); db.session.commit()
+    return as_json({"slug": link.slug, "token": link.token})
+
+# -----------------------------------------------------------------------------
+# Partner/company: Onboarding Flow Builder — READ/DELETE/Links
+# -----------------------------------------------------------------------------
+
+@app.get("/api/partners/onboarding/flows/<int:flow_id>/steps")
+@partner_required
+def api_partner_flow_steps(flow_id):
+    flow = CompanyRegFlow.query.get_or_404(flow_id)
+    steps = CompanyRegStep.query.filter_by(flow_id=flow.id).order_by(CompanyRegStep.order_index).all()
+    result = []
+    for s in steps:
+        result.append(step_to_dict(s))
+    # ссылки на флоу
+    links = CompanyRegLink.query.filter_by(flow_id=flow.id).order_by(CompanyRegLink.id.desc()).all()
+    links_payload = [{
+        "id": l.id, "slug": l.slug, "token": l.token, "is_active": l.is_active,
+        "max_uses": l.max_uses, "uses_count": l.uses_count,
+        "expires_at": l.expires_at.isoformat() if l.expires_at else None
+    } for l in links]
+    return as_json({"flow": {"id": flow.id, "name": flow.name, "final_bonus_coins": flow.final_bonus_coins, "is_active": flow.is_active},
+                    "steps": result, "links": links_payload})
+
+@app.get("/api/partners/onboarding/flows/<int:flow_id>/links")
+@partner_required
+def api_partner_flow_links(flow_id):
+    flow = CompanyRegFlow.query.get_or_404(flow_id)
+    links = CompanyRegLink.query.filter_by(flow_id=flow.id).order_by(CompanyRegLink.id.desc()).all()
+    return as_json({"links": [{
+        "id": l.id, "slug": l.slug, "token": l.token, "is_active": l.is_active,
+        "max_uses": l.max_uses, "uses_count": l.uses_count,
+        "expires_at": l.expires_at.isoformat() if l.expires_at else None
+    } for l in links]})
+
+@app.delete("/api/partners/onboarding/steps/<int:step_id>")
+@partner_required
+def api_partner_step_delete(step_id):
+    s = CompanyRegStep.query.get_or_404(step_id)
+    db.session.delete(s)
+    db.session.commit()
+    return as_json({"ok": True})
+
+@app.delete("/api/partners/onboarding/options/<int:option_id>")
+@partner_required
+def api_partner_option_delete(option_id):
+    o = CompanyRegStepOption.query.get_or_404(option_id)
+    db.session.delete(o)
+    db.session.commit()
+    return as_json({"ok": True})
+
+@app.delete("/api/partners/onboarding/links/<int:link_id>")
+@partner_required
+def api_partner_link_delete(link_id):
+    l = CompanyRegLink.query.get_or_404(link_id)
+    db.session.delete(l)
+    db.session.commit()
+    return as_json({"ok": True})
 
 @app.post("/api/company/join/request")
 @login_required
@@ -2586,24 +4030,28 @@ def api_partner_task_assign(company_id, task_id):
     if not t or t.company_id != company_id:
         abort(404)
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ids = list({safe_int(i, 0) for i in (data.get("user_ids") or []) if safe_int(i, 0) > 0})
     replace = bool(data.get("replace"))
 
     # оставляем только сотрудников этой компании
-    valid_ids = {u.id for u in User.query.filter(User.company_id == company_id, User.id.in_(ids)).all()}
+    members = User.query.filter(User.id.in_(ids), User.company_id == company_id).all()
+    valid_ids = {m.id for m in members}
 
     if replace:
-        CompanyTaskAssign.query.filter_by(task_id=task_id).delete()
-        db.session.flush()
+        CompanyTaskAssign.query.filter_by(task_id=t.id).delete()
 
-    existing = {a.user_id for a in CompanyTaskAssign.query.filter_by(task_id=task_id).all()}
+    created, existing = [], []
     for uid in valid_ids:
-        if uid not in existing:
-            db.session.add(CompanyTaskAssign(task_id=task_id, user_id=uid, status="assigned"))
+        a = CompanyTaskAssign.query.filter_by(task_id=t.id, user_id=uid).first()
+        if a:
+            existing.append(uid)
+            continue
+        db.session.add(CompanyTaskAssign(task_id=t.id, user_id=uid, status="assigned"))
+        created.append(uid)
 
     db.session.commit()
-    return as_json({"ok": True, "count": len(valid_ids)})
+    return as_json({"ok": True, "task_id": t.id, "created": created, "existing": existing})
 
 @app.post("/api/company/tasks/<int:task_id>/complete")
 @login_required
@@ -3194,7 +4642,24 @@ def admin_company_create():
         abort(409, description="Company exists")
     c = Company(name=name, slug=slug, plan=plan, owner_partner_id=owner_partner_id, join_code=uuid.uuid4().hex[:8].upper())
     db.session.add(c); db.session.commit()
+    try:
+        sys_flow = _get_or_create_system_flow()
+        new_flow = clone_flow_to_company(sys_flow.id, c.id)
+        link = CompanyRegLink(flow_id=new_flow.id, company_id=c.id,
+                              slug=f"{c.slug}-onboarding", token=uuid.uuid4().hex[:8].upper(),
+                              is_active=True)
+        db.session.add(link); db.session.commit()
+    except Exception as e:
+        app.logger.exception("Failed to clone default onboarding for company: %s", e)
     return as_json({"company": company_public_to_dict(c)})
+
+@app.get("/api/admin/onboarding/system_default/steps")
+@admin_required
+def api_admin_onboarding_system_default_steps_list():
+    link = ensure_system_onboarding_defaults()
+    flow = CompanyRegFlow.query.get(link.flow_id)
+    steps = CompanyRegStep.query.filter_by(flow_id=flow.id).order_by(CompanyRegStep.order_index).all()
+    return as_json({"steps": [step_to_dict(s) for s in steps]})
 
 @app.patch("/api/admin/companies/<int:company_id>")
 @admin_required

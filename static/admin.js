@@ -19,7 +19,9 @@ window.adminApp = function () {
       { key: 'contests',    label: 'Конкурсы' },
       { key: 'audit',       label: 'Аудит' },
       { key: 'events',      label: 'События' },
-    ],
+      { key: 'onboarding',  label: 'Онбординг (системный)' }
+],
+
 
     users: [],
     companies: [],
@@ -66,9 +68,11 @@ window.adminApp = function () {
         case 'contests':    await this.loadContests(); break;
         case 'audit':       await this.loadAudit(); break;
         case 'events':      await this.loadEvents(); break;
+        case 'onboarding':  await this.loadOnboardingSystem(); break;
       }
     },
     async sync(){ await this.loadSection(); },
+
 
     // --------- USERS ----------
     async loadUsers(){
@@ -91,6 +95,54 @@ window.adminApp = function () {
       this.users = this.users.filter(u=>u.id!==id);
       Alpine.store('toasts')?.push({title:'ОК', text:'Пользователь удалён', emoji:'🗑️'});
     },
+
+    // ---- System Onboarding (SJ default) ----
+onbSysSteps: [],
+async loadOnboardingSystem(){
+  const r = await fetch('/api/admin/onboarding/system_default/steps');
+  const j = await r.json();
+  if(!r.ok) return this.err(j);
+  this.onbSysSteps = j.steps || [];
+},
+moveUp(id){
+  const i = this.onbSysSteps.findIndex(s=>s.id===id); if(i>0){ const tmp=this.onbSysSteps[i-1]; this.onbSysSteps[i-1]=this.onbSysSteps[i]; this.onbSysSteps[i]=tmp; }
+},
+moveDown(id){
+  const i = this.onbSysSteps.findIndex(s=>s.id===id); if(i>=0 && i<this.onbSysSteps.length-1){ const tmp=this.onbSysSteps[i+1]; this.onbSysSteps[i+1]=this.onbSysSteps[i]; this.onbSysSteps[i]=tmp; }
+},
+async reorderDefaultSteps(){
+  // локально проставим order_index
+  this.onbSysSteps = this.onbSysSteps.map((s,idx)=>({...s, order_index: idx+1}));
+  const order = this.onbSysSteps.map(s=>s.id);
+  const r = await fetch('/api/admin/onboarding/system_default/steps', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ op:'reorder', order })
+  });
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) return this.err(j);
+  Alpine.store('toasts')?.push({title:'ОК', text:'Порядок сохранён', emoji:'✅'});
+},
+async createDefaultStep(){
+  const payload = { op:'create', type:'intro_page', title:'Новый шаг', order_index: (this.onbSysSteps?.length||0)+1, is_required:false, coins_award:0, xp_award:0 };
+  const r = await fetch('/api/admin/onboarding/system_default/steps', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) return this.err(j);
+  Alpine.store('toasts')?.push({title:'ОК', text:'Шаг создан', emoji:'🧩'});
+  await this.loadOnboardingSystem();
+},
+async deleteDefaultStep(id){
+  const r = await fetch('/api/admin/onboarding/system_default/steps', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ op:'delete', id })
+  });
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) return this.err(j);
+  await this.loadOnboardingSystem();
+},
+
 
     // --------- COMPANIES ----------
     async loadCompanies(){

@@ -286,23 +286,43 @@ def migrate(conn: sqlite3.Connection, flow_ids):
         upsert_reward_shop(conn, fid)
         renumber_order(conn, fid)
 
+def add_telegram_columns(conn):
+    # добавить колонки в users, если их нет
+    def col_exists(name):
+        cur = conn.execute("PRAGMA table_info(users)")
+        return any(row[1] == name for row in cur.fetchall())
+
+    if not col_exists("telegram_chat_id"):
+        conn.execute("ALTER TABLE users ADD COLUMN telegram_chat_id TEXT")
+    if not col_exists("tg_link_code"):
+        conn.execute("ALTER TABLE users ADD COLUMN tg_link_code TEXT UNIQUE")
+    if not col_exists("tg_link_code_created_at"):
+        conn.execute("ALTER TABLE users ADD COLUMN tg_link_code_created_at DATETIME")
+    if not col_exists("tg_linked_at"):
+        conn.execute("ALTER TABLE users ADD COLUMN tg_linked_at DATETIME")
+
 def main():
-    ap = argparse.ArgumentParser(description="Миграция онбординга под 3-этапную схему")
+    ap = argparse.ArgumentParser(description="Миграции: онбординг/telegram")
     ap.add_argument("--db", default="sales_journey.db",
                     help="путь к SQLite базе (по умолчанию sales_journey.db)")
     ap.add_argument("--flows", default="1,2",
                     help="ID флоу, через запятую (по умолчанию 1,2)")
+    ap.add_argument("--op", choices=["onboarding3", "add_tg_columns"], default="onboarding3",
+                    help="операция: onboarding3 (по умолчанию) или add_tg_columns")
     args = ap.parse_args()
-
-    flow_ids = [int(x.strip()) for x in args.flows.split(",") if x.strip()]
 
     with closing(sqlite3.connect(args.db)) as conn:
         try:
-            conn.isolation_level = None  # ручной контроль транзакции
+            conn.isolation_level = None
             conn.execute("BEGIN")
-            migrate(conn, flow_ids)
+            if args.op == "onboarding3":
+                flow_ids = [int(x.strip()) for x in args.flows.split(",") if x.strip()]
+                migrate(conn, flow_ids)
+                print(f"OK: миграция онбординга для флоу {flow_ids}")
+            else:
+                add_telegram_columns(conn)
+                print("OK: добавлены колонки Telegram в users")
             conn.execute("COMMIT")
-            print(f"OK: миграция выполнена для флоу {flow_ids}")
         except Exception as e:
             conn.execute("ROLLBACK")
             raise

@@ -2,78 +2,77 @@
 {% set title = "Sales Journey — Геймификация продаж" %}
 {% block content %}
 
-<section class="relative overflow-hidden">
+<section class="relative overflow-hidden bg-white dark:bg-slate-950">
   <div class="absolute -top-32 -left-32 w-[42rem] h-[42rem] rounded-full grad-anim opacity-20 blur-3xl"></div>
-  <div class="max-w-7xl mx-auto px-4 py-16 md:py-24">
+  <div class="max-w-7xl mx-auto px-4 py-16 md:py-24 relative z-10">
     <div class="grid md:grid-cols-2 gap-12 items-center">
       <div>
-        <h1 class="text-4xl md:text-6xl font-extrabold leading-tight">
-          Прокачай <span class="text-indigo-400">каждую сделку</span>.
-          Сделай продажи <span class="text-cyan-300">игрой</span>.
+        <h1 class="text-4xl md:text-6xl font-extrabold leading-tight text-slate-800 dark:text-white">
+          Прокачай <span class="text-indigo-500 dark:text-indigo-400">каждую сделку</span>.
+          Сделай продажи <span class="text-cyan-500 dark:text-cyan-300">игрой</span>.
         </h1>
-        <p class="mt-5 text-lg text-slate-300 max-w-xl">
+        <p class="mt-5 text-lg text-slate-600 dark:text-slate-300 max-w-xl">
           Уровни, ачивки, рейтинги, магазин призов. Вовлекаем продавцов и двигаем KPI: конверсии, средний чек, активность.
         </p>
         <div class="mt-7 flex flex-wrap items-center gap-3">
-          <a href="/register" class="sparkle glow inline-flex items-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 px-5 py-3 font-semibold transition">🚀 Начать</a>
-          <a href="/login" class="inline-flex items-center gap-2 rounded-2xl border border-white/10 hover:bg-white/5 px-5 py-3 transition">Демо вход</a>
+          <a href="/register" class="sparkle glow inline-flex items-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 px-5 py-3 font-semibold text-white transition">🚀 Начать</a>
+          <a href="/login" class="inline-flex items-center gap-2 rounded-2xl border border-slate-300 hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5 px-5 py-3 transition">Демо вход</a>
         </div>
         <div class="mt-8 grid grid-cols-3 gap-4 text-center">
-          <div class="rounded-xl border border-white/10 p-4">
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 p-4">
             <div class="text-2xl font-extrabold" x-data x-init="$el.innerText='↑ 23%'" >↑ 23%</div>
-            <div class="text-sm text-slate-400">рост активности</div>
+            <div class="text-sm text-slate-500 dark:text-slate-400">рост активности</div>
           </div>
-          <div class="rounded-xl border border-white/10 p-4">
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 p-4">
             <div class="text-2xl font-extrabold">+17%</div>
-            <div class="text-sm text-slate-400">конверсия в сделки</div>
+            <div class="text-sm text-slate-500 dark:text-slate-400">конверсия в сделки</div>
           </div>
-          <div class="rounded-xl border border-white/10 p-4">
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 p-4">
             <div class="text-2xl font-extrabold">+12%</div>
-            <div class="text-sm text-slate-400">средний чек</div>
+            <div class="text-sm text-slate-500 dark:text-slate-400">средний чек</div>
           </div>
         </div>
       </div>
       <div class="relative">
-        <div class="rounded-3xl glow bg-slate-900/60 border border-white/10 p-6 float">
-          <div class="text-sm text-slate-300 mb-3">Онбординг</div>
-          <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="rounded-3xl glow bg-slate-50 border border-slate-200 dark:bg-slate-900/60 dark:border-white/10 p-6 float">
+          <div class="text-sm text-slate-500 dark:text-slate-300 mb-3">Онбординг</div>
+          <div class="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
             <div class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 w-3/4"></div>
           </div>
           <div class="mt-6 grid grid-cols-3 gap-3 text-center">
-            <div class="rounded-xl bg-white/5 p-4">
-              <div class="text-2xl">🏆</div><div class="text-xs text-slate-300 mt-1">Ачивки</div>
+            <div class="rounded-xl bg-slate-100 dark:bg-white/5 p-4">
+              <div class="text-2xl">🏆</div><div class="text-xs text-slate-500 dark:text-slate-300 mt-1">Ачивки</div>
             </div>
-            <div class="rounded-xl bg-white/5 p-4">
-              <div class="text-2xl">💰</div><div class="text-xs text-slate-300 mt-1">Коины</div>
+            <div class="rounded-xl bg-slate-100 dark:bg-white/5 p-4">
+              <div class="text-2xl">💰</div><div class="text-xs text-slate-500 dark:text-slate-300 mt-1">Коины</div>
             </div>
-            <div class="rounded-xl bg-white/5 p-4">
-              <div class="text-2xl">📈</div><div class="text-xs text-slate-300 mt-1">Лидборд</div>
+            <div class="rounded-xl bg-slate-100 dark:bg-white/5 p-4">
+              <div class="text-2xl">📈</div><div class="text-xs text-slate-500 dark:text-slate-300 mt-1">Лидборд</div>
             </div>
           </div>
-          <div class="mt-6 rounded-xl bg-black/30 border border-white/10 p-4">
-            <div class="text-slate-300 text-sm">«Ребята, это как Battle Pass для продавцов. У команды горят глаза»</div>
-            <div class="text-xs text-slate-500 mt-1">— Директор по продажам, Retail</div>
+          <div class="mt-6 rounded-xl bg-slate-100 border border-slate-200 dark:bg-black/30 dark:border-white/10 p-4">
+            <div class="text-slate-600 dark:text-slate-300 text-sm">«Ребята, это как Battle Pass для продавцов. У команды горят глаза»</div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">— Директор по продажам, Retail</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Фичи -->
     <div class="mt-20 grid md:grid-cols-3 gap-6">
-      <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/50 p-6">
         <div class="text-2xl">🎯</div>
         <div class="font-semibold mt-2">KPI → квесты</div>
-        <p class="text-slate-300 text-sm mt-2">Конверсии, звонки, встречи — превращаем в задачи с очками, уровнями и лигами.</p>
+        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Конверсии, звонки, встречи — превращаем в задачи с очками, уровнями и лигами.</p>
       </div>
-      <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/50 p-6">
         <div class="text-2xl">🛍️</div>
         <div class="font-semibold mt-2">Магазин призов</div>
-        <p class="text-slate-300 text-sm mt-2">Коины за результат → реальные призы, скидки и мерч от партнёров.</p>
+        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Коины за результат → реальные призы, скидки и мерч от партнёров.</p>
       </div>
-      <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/50 p-6">
         <div class="text-2xl">🏢</div>
         <div class="font-semibold mt-2">Дешборд для компании</div>
-        <p class="text-slate-300 text-sm mt-2">Топ-списки, сводки по отделам, внутренняя лига продаж и конкурсы.</p>
+        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Топ-списки, сводки по отделам, внутренняя лига продаж и конкурсы.</p>
       </div>
     </div>
   </div>

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, date
 from functools import wraps
 from typing import Optional, Dict, Any
 from werkzeug.exceptions import HTTPException
+import requests  # для _send_telegram_message
 
 from flask import (
     Flask, request, jsonify, session, redirect, url_for, abort, render_template, make_response
@@ -15,7 +16,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UniqueConstraint, Index, func, and_, or_, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import pathlib, hashlib, re
-import random, string
+import random, string, secrets
+
 
 # -----------------------------------------------------------------------------
 # Config
@@ -30,6 +32,8 @@ DATABASE_URL = os.environ.get("DATABASE_URL") or f"sqlite:///{DB_FILE}"
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_change_me")
 SESSION_COOKIE_NAME = "salesjourney"
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")
 
 app.config.update(
     SQLALCHEMY_DATABASE_URI=DATABASE_URL,
@@ -67,6 +71,38 @@ def current_admin():
     if not aid:
         return None
     return db.session.get(AdminUser, aid)
+
+# --- Telegram helpers ---
+def _send_telegram_message(chat_id: str, text: str, parse_mode: str = "HTML") -> bool:
+    if not TELEGRAM_BOT_TOKEN or not chat_id:
+        return False
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={"chat_id": chat_id, "text": text, "parse_mode": parse_mode, "disable_web_page_preview": True},
+            timeout=10,
+        )
+        return r.ok
+    except Exception:
+        return False
+
+def _gen_tg_code(length: int = 6) -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+def _get_or_make_unique_code(user: "User", length: int = 6) -> str:
+    # гарантируем уникальность по БД
+    tries = 0
+    while tries < 20:
+        code = _gen_tg_code(length)
+        exists = User.query.filter(User.tg_link_code == code).first()
+        if not exists:
+            user.tg_link_code = code
+            user.tg_link_code_created_at = datetime.utcnow()
+            db.session.commit()
+            return code
+        tries += 1
+    raise RuntimeError("Не удалось сгенерировать уникальный код Telegram")
 
 def admin_required(f):
     @wraps(f)
@@ -146,6 +182,12 @@ class User(db.Model):
     created_at  = db.Column(db.DateTime, default=now_utc)
     updated_at  = db.Column(db.DateTime, default=now_utc, onupdate=now_utc)
 
+    # --- Telegram link ---
+    telegram_chat_id        = db.Column(db.String(32), nullable=True, index=True)
+    tg_link_code            = db.Column(db.String(16), nullable=True, unique=True)
+    tg_link_code_created_at = db.Column(db.DateTime, nullable=True)
+    tg_linked_at            = db.Column(db.DateTime, nullable=True)
+
     company = db.relationship("Company", back_populates="members_rel", lazy="joined")
     avatar  = db.relationship("UserAvatar", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
@@ -157,6 +199,10 @@ class User(db.Model):
 
     def add_coins(self, amount: int):
         self.coins += max(0, amount)
+
+    @property
+    def is_tg_linked(self) -> bool:
+        return bool(self.telegram_chat_id)
 
 def xp_required(next_level: int) -> int:
     # Линейно-экспоненциальная кривая: 100 * L^1.15 (округлим)
@@ -2277,7 +2323,122 @@ def update_me_profile():
     return as_json({"ok": True})
 
 
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Telegram link API (профиль)
+@app.get("/api/telegram/status")
+@login_required
+def api_tg_status():
+    u = current_user()
+    data = {
+        "linked": bool(u.telegram_chat_id),
+        "chat_id": u.telegram_chat_id,
+        "code": u.tg_link_code,
+        "code_created_at": u.tg_link_code_created_at.isoformat() if u.tg_link_code_created_at else None,
+        "linked_at": u.tg_linked_at.isoformat() if u.tg_linked_at else None,
+        "bot_username": TELEGRAM_BOT_USERNAME,
+    }
+    return jsonify(ok=True, data=data)
+
+@app.post("/api/telegram/generate")
+@login_required
+def api_tg_generate():
+    u = current_user()
+    code = _get_or_make_unique_code(u, length=6)
+    return jsonify(ok=True, code=code)
+
+@app.post("/api/telegram/reset")
+@login_required
+def api_tg_reset():
+    u = current_user()
+    old_chat = u.telegram_chat_id
+    u.telegram_chat_id = None
+    u.tg_linked_at = None
+    db.session.commit()
+
+    if old_chat:
+        _send_telegram_message(
+            old_chat,
+            "⚠️ Привязка вашего аккаунта к этому чату <b>сброшена</b>. "
+            "Если это были не вы — срочно свяжитесь с администратором."
+        )
+    return jsonify(ok=True)
+
+# Сервисный эндпоинт для бота: линк по коду
+@app.post("/api/telegram/bot/link")
+def api_tg_bot_link():
+    data = request.get_json(silent=True) or {}
+    code = (data.get("code") or "").strip().upper()
+    chat_id = str(data.get("chat_id") or "").strip()
+    tg_username = (data.get("username") or "").strip()
+
+    if not code or not chat_id:
+        return jsonify(ok=False, error="EMPTY"), 400
+
+    u = User.query.filter_by(tg_link_code=code).first()
+    if not u:
+        return jsonify(ok=False, error="CODE_NOT_FOUND"), 404
+
+    # if u.tg_link_code_created_at and datetime.utcnow() - u.tg_link_code_created_at > timedelta(days=2):
+    #     return jsonify(ok=False, error="CODE_EXPIRED"), 410
+
+    u.telegram_chat_id = chat_id
+    u.tg_linked_at = datetime.utcnow()
+    u.tg_link_code = None  # одноразовый
+    db.session.commit()
+
+    _send_telegram_message(chat_id, "✅ Привязка выполнена. Уведомления будут приходить в этот чат.")
+    return jsonify(ok=True, user_id=u.id, user=user_to_dict(u))
+
+@app.route("/api/telegram/bot/me", methods=["GET", "POST"])
+def api_tg_bot_me():
+    chat_id = (request.args.get("chat_id") or request.args.get("tg_chat_id") or "").strip()
+    if not chat_id and request.is_json:
+        j = request.get_json(silent=True) or {}
+        chat_id = (str(j.get("chat_id") or j.get("tg_chat_id") or "")).strip()
+
+    if not chat_id:
+        return jsonify(ok=False, linked=False, error="EMPTY"), 400
+
+    u = User.query.filter_by(telegram_chat_id=chat_id).first()
+    if not u:
+        return jsonify(ok=True, linked=False)
+
+    return jsonify(ok=True, linked=True, user=user_to_dict(u))
+
+@app.route("/api/telegram/bot/notifications", methods=["GET", "POST"])
+def api_tg_bot_notifications():
+    chat_id = (request.args.get("chat_id") or request.args.get("tg_chat_id") or "").strip()
+    limit = safe_int(request.args.get("limit") or 5, 5)
+
+    if not chat_id and request.is_json:
+        j = request.get_json(silent=True) or {}
+        chat_id = (str(j.get("chat_id") or j.get("tg_chat_id") or "")).strip()
+        limit = safe_int(j.get("limit") or limit, limit)
+
+    if not chat_id:
+        return jsonify(ok=False, error="EMPTY"), 400
+
+    u = User.query.filter_by(telegram_chat_id=chat_id).first()
+    if not u:
+        return jsonify(ok=True, linked=False, items=[])
+
+    rows = (Notification.query
+            .filter_by(user_id=u.id)
+            .order_by(Notification.created_at.desc())
+            .limit(limit)
+            .all())
+
+    items = [{
+        "id": n.id,
+        "type": n.type,
+        "title": n.title,
+        "body": n.body,
+        "created_at": n.created_at.isoformat(),
+        "is_read": n.is_read,
+    } for n in rows]
+
+    return jsonify(ok=True, linked=True, user=user_to_dict(u), items=items)
+
 # Avatar / Inventory
 # -----------------------------------------------------------------------------
 @app.get("/api/avatar/items")
@@ -2721,6 +2882,10 @@ def inject_helpers():
     "current_admin": current_admin(),  # <<< ДОБАВЬ ЭТО
 
     }
+
+@app.context_processor
+def inject_telegram_vars():
+    return dict(TELEGRAM_BOT_USERNAME=TELEGRAM_BOT_USERNAME)
 
 # --- SVG-аватар на лету ---
 def render_avatar_svg(gender: str = "any", display_name: str = "") -> str:

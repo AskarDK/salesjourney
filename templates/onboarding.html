@@ -4,47 +4,84 @@
 {% block content %}
 
 <style>
+  [x-cloak]{display:none!important}
+
+  /* ===== Цветовые переменные ===== */
   :root{
-    --glass-bg: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
-    --glass-brd: rgba(255,255,255,.12);
-    --glass-brd-soft: rgba(255,255,255,.10);
-    --glass-shadow: 0 30px 90px rgba(0,0,0,.55);
-    --ring-emerald: #22c55e;
-    --ring-indigo: #6366f1;
+    --bg:            #ffffff;
+    --text:          #0f172a;                 /* slate-900 */
+    --muted:         #475569;                 /* slate-600 */
+    --border:        rgba(15,23,42,.10);
+    --soft-border:   rgba(15,23,42,.06);
+
+    --panel-strong:  rgba(255,255,255,.92);
+    --panel:         rgba(255,255,255,.80);
+    --panel-soft:    rgba(255,255,255,.65);
+
+    --glass-bg:      var(--panel-strong);
+    --glass-brd:     var(--border);
+    --glass-brd-soft:var(--soft-border);
+    --glass-shadow:  0 30px 90px rgba(2,6,23,.10);
+
+    --ring-emerald:  #22c55e;
+    --ring-indigo:   #6366f1;
   }
+  html.dark{
+    --bg:            #0b1220;                 /* совпадает с base.html */
+    --text:          #f8fafc;
+    --muted:         #94a3b8;
+    --border:        rgba(148,163,184,.18);
+    --soft-border:   rgba(148,163,184,.12);
+
+    --panel-strong:  rgba(2,6,23,.86);
+    --panel:         rgba(2,6,23,.72);
+    --panel-soft:    rgba(2,6,23,.60);
+
+    --glass-bg:      var(--panel-strong);
+    --glass-brd:     var(--border);
+    --glass-shadow:  0 30px 90px rgba(0,0,0,.55);
+  }
+
+  body{ color: var(--text); }
+
+  /* Утилита для бордера по переменной */
+  .var-border{ border-color: var(--border)!important; }
+
+  /* Базовые поверхности */
+  .surface{ background: var(--panel-soft); border:1px solid var(--glass-brd-soft); }
+  .surface-hover:hover{ background: var(--panel); }
+
   .glass-card{
     border-radius: 24px;
     border:1px solid var(--glass-brd);
     background:
-      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.18), transparent 60%),
-      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.18), transparent 60%),
+      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.14), transparent 60%),
+      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.14), transparent 60%),
       var(--glass-bg);
-    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.08);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.06);
     backdrop-filter: blur(12px);
-    position: relative;
-    overflow: hidden;
+    position: relative; overflow: hidden;
+    color: var(--text);
   }
-  .card-glow {
-    position:absolute; inset:0 auto auto 0; height:4px; width:100%;
-    background: linear-gradient(90deg, #22c55e, #06b6d4, #6366f1, #22c55e);
-    background-size: 200% 100%;
-    animation: glow 8s linear infinite;
-    opacity:.85;
+  .card-glow{
+    position:absolute; left:0;right:0;top:0;height:4px;
+    background: linear-gradient(90deg,#22c55e,#06b6d4,#6366f1,#22c55e);
+    background-size: 200% 100%; animation: glow 8s linear infinite; opacity:.85;
   }
   @keyframes glow { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
 
   .input{
     width:100%;
     border-radius: 14px;
-    background: rgba(255,255,255,.08);
+    background: var(--panel-soft);
     border:1px solid var(--glass-brd-soft);
     padding:.6rem .8rem;
-    color:#fff;
-    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .06s ease;
+    color: var(--text);
+    transition: border-color .2s, background .2s, box-shadow .2s, transform .06s;
     outline: none;
   }
-  .input::placeholder{ color: rgba(255,255,255,.55); }
-  .input:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18); }
+  .input::placeholder{ color: var(--muted); opacity:.8; }
+  .input:hover{ background: var(--panel); border-color: var(--glass-brd); }
   .input:focus{
     border-color: rgba(34,197,94,.55);
     box-shadow: 0 0 0 4px rgba(34,197,94,.18);
@@ -55,662 +92,297 @@
     border-radius: 14px;
     padding: .6rem 1rem;
     font-weight: 600;
-    transition: transform .06s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    transition: transform .06s, background .2s, border-color .2s, box-shadow .2s;
     border:1px solid var(--glass-brd);
-    background: rgba(255,255,255,.08);
-    color:#fff;
+    background: var(--panel-soft);
+    color: var(--text);
   }
-  .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.20); }
+  .btn:hover{ transform: translateY(-1px); }
   .btn:active{ transform: translateY(0); }
   .btn[disabled]{ opacity:.6; cursor:not-allowed; }
-
   .btn-primary{
-    background: linear-gradient(180deg, rgba(34,197,94,.9), rgba(16,185,129,.85));
-    border-color: rgba(16,185,129,.55);
+    background: linear-gradient(180deg, rgba(34,197,94,.95), rgba(16,185,129,.9));
+    border-color: rgba(16,185,129,.55); color:#fff;
   }
-  .btn-primary:hover{
-    background: linear-gradient(180deg, rgba(34,197,94,1), rgba(16,185,129,.95));
-    box-shadow: 0 8px 28px rgba(16,185,129,.35);
-  }
-
+  .btn-primary:hover{ box-shadow: 0 8px 28px rgba(16,185,129,.35); }
   .btn-indigo{
-    background: linear-gradient(180deg, rgba(99,102,241,.92), rgba(79,70,229,.9));
-    border-color: rgba(99,102,241,.55);
+    background: linear-gradient(180deg, rgba(99,102,241,.95), rgba(79,70,229,.9));
+    border-color: rgba(99,102,241,.55); color:#fff;
   }
-  .btn-indigo:hover{
-    background: linear-gradient(180deg, rgba(99,102,241,1), rgba(79,70,229,.98));
-    box-shadow: 0 8px 28px rgba(99,102,241,.35);
-  }
-
-  .btn-ghost{ background: rgba(255,255,255,.06); }
+  .btn-indigo:hover{ box-shadow: 0 8px 28px rgba(99,102,241,.35); }
+  .btn-ghost{ background: var(--panel-soft); color: var(--text); }
 
   .chip{
     display:inline-flex; align-items:center; gap:.5rem;
     border-radius: 14px; padding:.45rem .75rem;
-    background: rgba(255,255,255,.08);
+    background: var(--panel-soft);
     border:1px solid var(--glass-brd-soft);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
     backdrop-filter: blur(8px);
-    white-space: nowrap;
+    white-space: nowrap; color: var(--text);
   }
 
   .progress-rail{
     height: 10px; border-radius: 999px;
-    background: rgba(255,255,255,.08);
+    background: var(--panel-soft);
     border:1px solid var(--glass-brd-soft);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
   }
   .progress-bar{
-    height: 8px; margin: 1px;
-    border-radius: 999px;
+    height: 8px; margin: 1px; border-radius: 999px;
     background: linear-gradient(90deg, #22c55e, #06b6d4, #6366f1, #22c55e);
-    background-size: 200% 100%;
-    animation: glow 8s linear infinite;
+    background-size: 200% 100%; animation: glow 8s linear infinite;
     box-shadow: 0 6px 18px rgba(34,197,94,.35);
   }
 
-  .fade-up { opacity:0; transform: translateY(8px); animation: fadeUp .38s ease .05s forwards; }
-  .fade-up-2 { opacity:0; transform: translateY(8px); animation: fadeUp .38s ease .12s forwards; }
-  .fade-up-3 { opacity:0; transform: translateY(8px); animation: fadeUp .38s ease .18s forwards; }
-  .fade-up-4 { opacity:0; transform: translateY(8px); animation: fadeUp .38s ease .24s forwards; }
-  @keyframes fadeUp { to { opacity:1; transform: none; } }
-
+  .fade-up{opacity:0;transform:translateY(8px);animation:fadeUp .38s ease .05s forwards}
+  .fade-up-2{opacity:0;transform:translateY(8px);animation:fadeUp .38s ease .12s forwards}
+  .fade-up-3{opacity:0;transform:translateY(8px);animation:fadeUp .38s ease .18s forwards}
+  .fade-up-4{opacity:0;transform:translateY(8px);animation:fadeUp .38s ease .24s forwards}
+  @keyframes fadeUp{to{opacity:1;transform:none}}
   @media (prefers-reduced-motion: reduce){
-    .glass-card, .card-glow, .fade-up, .fade-up-2, .fade-up-3, .fade-up-4{ animation: none; transition: none; }
+    .glass-card,.card-glow,.fade-up,.fade-up-2,.fade-up-3,.fade-up-4{animation:none;transition:none}
   }
 
+  /* ===== Модалка: адаптация к высоте смартфона ===== */
   .modal-backdrop{
     position:fixed; inset:0; z-index:10000;
-    background: rgba(2,6,23,.6);
-    backdrop-filter: blur(10px);
+    background: rgba(2,6,23,.6); backdrop-filter: blur(10px);
   }
   .modal-panel{
     position:fixed; inset:0; z-index:10001;
-    display:grid; place-items:center; padding: 1.25rem;
+    display:grid; place-items:center;
+    /* Отступы с учётом safe-area */
+    padding: max(.75rem, env(safe-area-inset-top)) .75rem max(.75rem, env(safe-area-inset-bottom)) .75rem;
+    overscroll-behavior: contain;
   }
   .modal-card{
-    width: 100%; max-width: 880px;
-    border-radius: 24px;
-    border:1px solid var(--glass-brd);
+    width:min(100%,880px);
+    /* КЛЮЧ: ограничиваем высоту и разрешаем скролл внутри */
+    max-height: min(92vh, 720px);
+    display:flex; flex-direction:column;
+    border-radius:24px; border:1px solid var(--glass-brd);
     background:
-      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.18), transparent 60%),
-      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.18), transparent 60%),
+      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.14), transparent 60%),
+      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.14), transparent 60%),
       var(--glass-bg);
-    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.08);
-    backdrop-filter: blur(12px);
-    position: relative;
-    overflow: hidden;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter: blur(12px); position:relative; overflow:hidden; margin:0 auto; color:var(--text);
   }
-  .modal-glow { /* no-op in plain CSS, safe */ }
+  @supports (height: 1dvh){
+    .modal-card{ max-height: min(92dvh, 720px); }
+  }
   .modal-x{
-    position:absolute; top:.75rem; right:.75rem;
+    position:absolute; top:.5rem; right:.5rem;
     display:inline-flex; align-items:center; justify-content:center;
-    width: 44px; height:44px; border-radius:14px;
-    background: rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.12);
-    color: rgba(255,255,255,.95);
+    width:44px; height:44px; border-radius:14px;
+    background: var(--panel-soft); border:1px solid var(--glass-brd); color: var(--text);
     transition: transform .12s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+    z-index: 3;
   }
-  .modal-x:hover{ background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.20); transform: scale(1.03); }
-  .modal-x:active{ transform: scale(.96); }
-  .confetti-canvas{ position:absolute; inset:0; z-index:2; pointer-events:none; }
-
-  .tile{
-    position:relative; border-radius: 18px; border:1px solid var(--glass-brd-soft);
-    background: rgba(255,255,255,.06); padding: 0.5rem; text-align:left;
-    transition: transform .08s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
-    cursor:pointer;
+  .modal-x:hover{ transform: scale(1.03); } .modal-x:active{ transform: scale(.96); }
+  .confetti-canvas{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .modal-body{
+    position:relative; z-index:2;
+    flex: 1 1 auto; min-height:0;
+    overflow: auto; -webkit-overflow-scrolling: touch;
+    padding: clamp(1rem, 3vw, 2rem);
   }
-  .tile:hover{ background: rgba(255,255,255,.10); transform: translateY(-1px); }
-  .tile.active{ box-shadow: 0 0 0 4px rgba(99,102,241,.25); border-color: rgba(99,102,241,.6); }
 
   .avatar-card{
-    border-radius: 24px;
-    border:1px solid var(--glass-brd);
+    border-radius:24px; border:1px solid var(--glass-brd);
     background:
-      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.12), transparent 60%),
-      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.12), transparent 60%),
+      radial-gradient(1200px 400px at -20% -20%, rgba(99,102,241,.10), transparent 60%),
+      radial-gradient(1000px 380px at 120% 120%, rgba(34,197,94,.10), transparent 60%),
       var(--glass-bg);
-    box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(12px);
+    box-shadow: var(--glass-shadow); backdrop-filter: blur(12px); color: var(--text);
   }
   .bubble{
-    position:absolute; top:-10px; right:-10px; max-width: 260px;
-    border-radius:16px; padding:12px 14px;
-    background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.08));
-    border: 1px solid rgba(255,255,255,.15);
-    box-shadow: 0 30px 60px rgba(0,0,0,.45);
-    backdrop-filter: blur(8px);
-    font-size: .9rem;
+    position:absolute; top:-10px; right:-10px; max-width:260px; border-radius:16px; padding:12px 14px;
+    background: var(--panel); border:1px solid var(--glass-brd); box-shadow: 0 30px 60px rgba(0,0,0,.35); backdrop-filter: blur(8px);
+    font-size:.9rem; color: var(--text);
   }
 
-  /* === Interest selector — rich cards === */
   .only-one-badge{
-    display:inline-flex; align-items:center; gap:.5rem;
-    padding:.5rem .8rem; border-radius:999px;
+    display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .8rem; border-radius:999px;
     background: linear-gradient(90deg, rgba(34,197,94,.18), rgba(99,102,241,.18));
-    border:1px solid rgba(255,255,255,.22);
-    box-shadow: 0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.12);
-    font-weight: 700; letter-spacing:.2px;
+    border:1px solid var(--glass-brd); box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+    font-weight:700; letter-spacing:.2px; color: var(--text);
   }
 
   .option-card{
-    position:relative; text-align:left;
-    padding:1rem; border-radius:18px;
-    background: rgba(255,255,255,.06);
-    border:1px solid var(--glass-brd-soft);
+    position:relative; text-align:left; padding:1rem; border-radius:18px;
+    background: var(--panel-soft); border:1px solid var(--glass-brd-soft);
     transition: transform .12s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
-    will-change: transform;
+    will-change: transform; color: var(--text);
   }
-  .option-card:hover{ transform: translateY(-2px); background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); }
+  .option-card:hover{ transform: translateY(-2px); background: var(--panel); border-color: var(--glass-brd); }
   .option-card .title{ font-size:1.05rem; font-weight:700; }
-  .option-card .desc{ color:#cbd5e1; margin-top:.35rem; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .option-card .desc{ color: var(--muted); margin-top:.35rem; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
 
   .option-card.is-selected{
-    background: linear-gradient(180deg, rgba(99,102,241,.17), rgba(34,197,94,.12));
-    border-color: rgba(99,102,241,.55);
-    box-shadow: 0 10px 30px rgba(99,102,241,.25);
+    background: linear-gradient(180deg, rgba(99,102,241,.14), rgba(34,197,94,.10)), var(--panel);
+    border-color: rgba(99,102,241,.45);
+    box-shadow: 0 10px 30px rgba(99,102,241,.18);
   }
   .option-card.is-selected::after{
     content:"Выбрано"; position:absolute; top:.66rem; right:.66rem;
     font-size:.7rem; font-weight:700; padding:.25rem .5rem; border-radius:999px;
-    background: rgba(34,197,94,.25); border:1px solid rgba(34,197,94,.55);
+    background: rgba(34,197,94,.25); border:1px solid rgba(34,197,94,.55); color: var(--text);
   }
-  .option-card.is-disabled{
-    opacity:.55; filter: grayscale(25%);
-    pointer-events:none; cursor:not-allowed;
-  }
-
-  .opt-lock{
-    position:absolute; inset:0; border-radius:18px;
-    background: rgba(2,6,23,.25);
-    display:grid; place-items:center; color:#e5e7eb;
-  }
+  .option-card.is-disabled{ opacity:.55; filter: grayscale(25%); pointer-events:none; cursor:not-allowed; }
+  .opt-lock{ position:absolute; inset:0; border-radius:18px; background: rgba(2,6,23,.35); display:grid; place-items:center; color:#e5e7eb; }
 
   .details-card{
     border-radius:20px; border:1px solid var(--glass-brd);
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
-    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.08);
+    background: var(--panel); box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.08); color: var(--text);
   }
 
-  @keyframes pop-in { 0%{transform:scale(.98);opacity:0} 100%{transform:scale(1);opacity:1} }
+  @keyframes pop-in{0%{transform:scale(.98);opacity:0}100%{transform:scale(1);opacity:1}}
   .pop-in{ animation: pop-in .18s ease both; }
 
-  /* Spotlight вокруг блока деталей */
-  .spotlight-backdrop{
-    position:fixed; inset:0; z-index:10000;
-    background: rgba(2,6,23,.65);
-    backdrop-filter: blur(3px);
-  }
+  .spotlight-backdrop{ position:fixed; inset:0; z-index:10000; background: rgba(2,6,23,.65); backdrop-filter: blur(3px); }
   .spotlight-elevate{ position:relative; z-index:10001; }
+  @keyframes focusPulse{0%{box-shadow:0 0 0 0 rgba(99,102,241,.55)}70%{box-shadow:0 0 0 14px rgba(99,102,241,0)}100%{box-shadow:0 0 0 0 rgba(99,102,241,0)}}
+  .focus-pulse{ animation: focusPulse 1.2s ease-out 2; border-radius:20px; }
 
-  @keyframes focusPulse{
-    0%{ box-shadow: 0 0 0 0 rgba(99,102,241,.55); }
-    70%{ box-shadow: 0 0 0 14px rgba(99,102,241,0); }
-    100%{ box-shadow: 0 0 0 0 rgba(99,102,241,0); }
-  }
-  .focus-pulse{ animation: focusPulse 1.2s ease-out 2; border-radius: 20px; }
+  .prose.prose-invert{ color: inherit; }
+
+  .grid-autofit{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+
+  /* Небольшой пульс для привлечения внимания к блоку Телеграм */
+  @keyframes softPulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.35)} 70%{box-shadow:0 0 0 16px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+  .pulse-soft { animation: softPulse 1.3s ease-out 3; border-radius: 20px; }
 </style>
 
-<section class="max-w-7xl mx-auto px-4 py-10"
-         x-data="OnboardingPage('{{ slug }}', {{ 'true' if current_user else 'false' }})"
-         x-init="start()"
-         x-cloak
-         data-page="onboarding">
+<!-- имя бота для диплинка -->
+<script>window.TELEGRAM_BOT_USERNAME = "{{ TELEGRAM_BOT_USERNAME }}";</script>
 
-  <!-- ГРИД-ЛЕЙАУТ: левый блок (этапы) и правый (профиль). 70/30 при авторизации -->
-  <div class="grid gap-6 lg:grid-cols-10">
-
-    <!-- LEFT: этапы — всегда рендерится; занимает 100% если не авторизован, 70% (7/10) если авторизован -->
-    <div :class="isAuthorized ? 'lg:col-span-7' : 'lg:col-span-10'">
-
-      <!-- Хедер -->
-      <div class="flex items-center justify-between mb-6 glass-card p-4">
-        <div class="flex items-center gap-3">
-          <div class="h-11 w-11 rounded-xl border border-white/10 bg-white/10 flex items-center justify-center text-lg font-bold">
-            SJ
-          </div>
-          <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold leading-tight">Онбординг</h1>
-            <div class="text-slate-300 text-sm">Добро пожаловать в Sales Journey</div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <div class="chip max-w-[220px] sm:max-w-[280px]">
-            <span class="text-slate-400 text-xs">Компания</span>
-            <span class="font-semibold truncate" x-text="companyTitle || 'Компания'"></span>
-          </div>
-          <div class="chip">
-            <span>🪙</span>
-            <span class="text-slate-400 text-xs">Монеты</span>
-            <span class="font-bold text-lg" x-text="coins"></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Пустой флоу -->
-      <template x-if="emptyFlow">
-        <div class="glass-card p-4 mb-6 text-sm">
-          <div class="card-glow"></div>
-          Онбординг пока не настроен: у этого флоу нет шагов. Свяжитесь с компанией или попробуйте позже.
-        </div>
-      </template>
-
-      <!-- Прогресс -->
-      <template x-if="!emptyFlow">
-        <div class="progress-rail mb-6">
-          <div class="progress-bar" :style="`width:${progressPercent()}%`"></div>
-        </div>
-      </template>
-
-      <!-- Текущий шаг -->
-      <template x-if="!emptyFlow && currentStep">
-        <div class="glass-card p-6">
-          <div class="card-glow"></div>
-          <h2 class="text-xl font-bold mb-4" x-text="currentStep.title || 'Шаг'"></h2>
-
-          <!-- intro_page -->
-          <div x-show="currentStep.type === 'intro_page'">
-            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
-            <template x-if="currentStep.media_url">
-              <div class="mt-4">
-                <template x-if="/youtube\.com|youtu\.be/.test(currentStep.media_url)">
-                  <iframe class="w-full aspect-video rounded-xl border border-white/10"
-                          :src="youtubeEmbed(currentStep.media_url)"
-                          frameborder="0" allowfullscreen></iframe>
-                </template>
-                <template x-if="!/youtube\.com|youtu\.be/.test(currentStep.media_url)">
-                  <video class="w-full rounded-xl border border-white/10" controls :src="currentStep.media_url"></video>
-                </template>
-              </div>
-            </template>
-            <div class="mt-6 flex justify-end">
-              <button @click="submitStep({})" class="btn btn-primary">Далее</button>
-            </div>
-          </div>
-
-          <!-- ask_input + bundled registration -->
-          <div x-show="currentStep.type === 'ask_input' || regStage.active">
-            <div class="text-sm text-slate-300 mb-3">Регистрация: заполните поля разом</div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input type="text"  class="input" placeholder="Имя"                     x-model="bulkReg.first_name">
-              <input type="text"  class="input" placeholder="Фамилия"                 x-model="bulkReg.last_name">
-              <input type="text"  class="input sm:grid-cols-2" placeholder="Имя и фамилия" x-model="bulkReg.name">
-              <input type="email" class="input" placeholder="Email"                   x-model="bulkReg.email">
-              <input type="text"  class="input" placeholder="Телефон"                 x-model="bulkReg.phone">
-            </div>
-            <div class="mt-6 flex items-center justify-between">
-              <div class="text-xs text-slate-400">Все шаги регистрации будут отправлены одним действием</div>
-              <button @click="submitBulkRegistration()" class="btn btn-primary">Продолжить</button>
-            </div>
-          </div>
-
-          <!-- choice_one -->
-          <div x-show="currentStep.type === 'choice_one'">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <template x-for="opt in (currentStep.options || [])" :key="opt.key">
-                <button @click="submitStep({ key: opt.key })"
-                        class="text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition">
-                  <div class="text-lg font-semibold" x-text="opt.title"></div>
-                  <div class="text-slate-300 mt-1" x-html="md(opt.body_md || '')"></div>
-                </button>
-              </template>
-            </div>
-          </div>
-
-          <!-- interest_selector -->
-          <div x-show="currentStep.type === 'interest_selector'">
-            <div class="flex items-center justify-between mb-3">
-              <div class="only-one-badge">⚠️ Можно выбрать только одно</div>
-              <div class="text-xs text-slate-400" x-show="selectedKeys.length">Выбор зафиксирован — остальные опции недоступны</div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <template x-for="opt in (currentStep.options || []).slice(0, 6)" :key="opt.key">
-                <button type="button"
-                        @click="chooseOption(opt.key)"
-                        :aria-pressed="selectedKeys[0] === opt.key"
-                        :aria-disabled="selectedKeys.length && selectedKeys[0] !== opt.key"
-                        class="option-card"
-                        :class="selectedKeys[0] === opt.key
-                                ? 'is-selected'
-                                : (selectedKeys.length ? 'is-disabled' : '')">
-                  <div class="title truncate" x-text="opt.title"></div>
-                  <div class="desc" x-html="md(opt.body_md || '')"></div>
-                  <div class="opt-lock" x-show="selectedKeys.length && selectedKeys[0] !== opt.key">
-                    🔒 Недоступно
-                  </div>
-                </button>
-              </template>
-            </div>
-
-            <!-- затемнение страницы для фокуса на деталях -->
-            <div class="spotlight-backdrop" x-show="showSpotlight" x-transition.opacity></div>
-
-            <!-- Детали выбранной опции -->
-            <template x-if="selectedOption()">
-              <div id="optDetails"
-                   x-ref="optDetails"
-                   tabindex="-1"
-                   class="mt-5 details-card p-5 pop-in spotlight-elevate"
-                   :class="showSpotlight ? 'focus-pulse ring-2 ring-indigo-500/50' : ''">
-                <div class="text-lg font-semibold mb-2" x-text="selectedOption().title"></div>
-                <div class="prose prose-invert max-w-none" x-html="md(selectedOption().body_md || '')"></div>
-
-                <template x-if="selectedOption().media_url">
-                  <div class="mt-3">
-                    <template x-if="/youtube\.com|youtu\.be/.test(selectedOption().media_url)">
-                      <iframe class="w-full aspect-video rounded-xl border border-white/10"
-                              :src="youtubeEmbed(selectedOption().media_url)"
-                              frameborder="0" allowfullscreen></iframe>
-                    </template>
-                    <template x-if="!/youtube\.com|youtu\.be/.test(selectedOption().media_url)">
-                      <video class="w-full rounded-xl border border-white/10" controls
-                             :src="selectedOption().media_url"></video>
-                    </template>
-                  </div>
-                </template>
-
-                <div class="mt-4 flex items-center justify-between gap-2">
-                  <div class="text-xs text-slate-400" x-show="!continueEnabled">Ознакомьтесь с содержанием — кнопка активируется через секунду</div>
-                  <div class="flex gap-2">
-                    <button @click="submitInterestSelection()"
-                            class="btn btn-primary"
-                            :disabled="!continueEnabled">Далее</button>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </div>
-
-          <!-- interview_invite -->
-          <div x-show="currentStep.type === 'interview_invite'">
-            <template x-if="!interview">
-              <button @click="loadInterview()" class="btn btn-indigo">Показать приглашение</button>
-            </template>
-            <template x-if="interview">
-              <div class="space-y-3">
-                <div><span class="text-slate-400">Статус:</span> <span class="font-semibold" x-text="interview.status"></span></div>
-                <div x-show="interview.date_time"><span class="text-slate-400">Дата/время:</span> <span x-text="fmtDT(interview.date_time)"></span></div>
-                <div x-show="interview.location"><span class="text-slate-400">Локация:</span> <span x-text="interview.location"></span></div>
-                <div x-show="interview.message"><span class="text-slate-400">Сообщение:</span> <span x-text="interview.message"></span></div>
-                <div x-show="interview.assignment_text" class="pt-2">
-                  <div class="font-semibold">Задание</div>
-                  <div class="prose prose-invert max-w-none" x-html="md(interview.assignment_text)"></div>
-                </div>
-                <div class="pt-2 flex gap-2">
-                  <button x-show="interview.date_time" @click="downloadICS()" class="btn btn-ghost">Добавить в календарь (.ics)</button>
-                  <button @click="submitStep({})" class="btn btn-primary">Далее</button>
-                </div>
-              </div>
-            </template>
-          </div>
-
-          <!-- assignment -->
-          <div x-show="currentStep.type === 'assignment'">
-            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
-            <div class="mt-6 flex justify-end">
-              <button @click="submitStep({})" class="btn btn-primary">Далее</button>
-            </div>
-          </div>
-
-          <!-- first_assignment -->
-          <div x-show="currentStep.type === 'first_assignment'">
-            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || currentStep.config?.task_text || '')"></div>
-            <div class="mt-4 p-4 rounded-xl border border-white/10 bg-white/5">
-              <div class="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <div class="text-slate-400 text-sm">Дата собеседования</div>
-                  <div class="font-semibold" x-text="firstAssignmentInterviewText()"></div>
-                </div>
-                <div>
-                  <div class="text-slate-400 text-sm">Награда</div>
-                  <div class="font-semibold"><span x-text="currentStep.coins_award || 0"></span> монет</div>
-                </div>
-              </div>
-              <div class="mt-3 text-sm text-slate-300">
-                Привяжите Telegram, чтобы мы смогли напомнить вам.
-                <a href="/settings/notifications" class="underline decoration-dotted underline-offset-4 hover:decoration-solid">Настроить уведомления</a>
-              </div>
-            </div>
-            <div class="mt-6 flex justify-end">
-              <button @click="submitStep({})" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500">Далее</button>
-            </div>
-          </div>
-
-          <!-- registration_section -->
-          <div x-show="currentStep.type === 'registration_section'">
-            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
-
-            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <input type="text" class="input" placeholder="Имя" x-model="regName">
-              <input type="email" class="input" placeholder="Email" x-model="regEmail">
-              <input type="password" class="input" placeholder="Пароль" x-model="regPassword">
-            </div>
-
-            <!-- Выбор пола -->
-            <div class="mt-6">
-  <div class="text-sm text-slate-300 mb-3">Выберите персонажа</div>
-  <div class="grid grid-cols-2 gap-4">
-    <!-- Мужской -->
-    <button type="button"
-            class="flex flex-col items-center justify-center p-4 rounded-xl border border-white/15 bg-white/5 transition hover:bg-white/10"
-            :class="{'ring-2 ring-emerald-400 shadow-lg': regGender==='male'}"
-            @click="regGender='male'">
-      <div class="w-24 h-24 rounded-full overflow-hidden mb-2">
-        <img :src="previewSrc('male')" @error="onPreviewError('male',$event)"
-             alt="Мужской аватар"
-             class="w-full h-full object-cover">
-      </div>
-      <div class="font-semibold">Мужской</div>
-    </button>
-
-    <!-- Женский -->
-    <button type="button"
-            class="flex flex-col items-center justify-center p-4 rounded-xl border border-white/15 bg-white/5 transition hover:bg-white/10"
-            :class="{'ring-2 ring-emerald-400 shadow-lg': regGender==='female'}"
-            @click="regGender='female'">
-      <div class="w-24 h-24 rounded-full overflow-hidden mb-2">
-        <img :src="previewSrc('female')" @error="onPreviewError('female',$event)"
-             alt="Женский аватар"
-             class="w-full h-full object-cover">
-      </div>
-      <div class="font-semibold">Женский</div>
-    </button>
-  </div>
-</div>
-
-
-            <!-- Согласие -->
-            <div class="mt-4 flex items-start gap-3">
-              <input id="terms" type="checkbox" x-model="regTermsAccepted" class="mt-1 h-4 w-4 rounded border-white/20 bg-white/5">
-              <label for="terms" class="text-sm">
-                Согласен с <a href="/terms" target="_blank" class="underline decoration-indigo-400 hover:opacity-80">офертой</a>
-              </label>
-            </div>
-
-            <div class="mt-6 flex items-center justify-between">
-              <div class="text-sm text-slate-400">Аккаунт будет привязан к текущему прогрессу</div>
-              <div class="flex gap-2">
-                <button @click="registerFromSection()" class="btn btn-indigo">Зарегистрироваться и далее</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- reward_shop (финал) -->
-          <div x-show="currentStep.type === 'reward_shop'">
-            <template x-if="!prizes.length">
-              <div class="flex items-center gap-3">
-                <button @click="finish()" class="btn btn-primary">Показать призы</button>
-                <div class="text-slate-400">Финальный бонус будет учтён</div>
-              </div>
-            </template>
-
-            <template x-if="prizes.length">
-              <div>
-                <div class="text-slate-300 mb-2">Выберите <b>один</b> приз</div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <template x-for="p in prizes" :key="p.id">
-                    <div class="p-4 rounded-xl border border-white/10 bg-white/5">
-                      <div class="font-semibold" x-text="p.title"></div>
-                      <div class="text-slate-400">Стоимость: <span x-text="p.cost_coins"></span> монет</div>
-                      <button :disabled="coins < p.cost_coins || picked"
-                              @click="pickReward(p.id, p.cost_coins)"
-                              class="mt-3 w-full btn"
-                              :class="coins < p.cost_coins || picked ? 'btn-ghost cursor-not-allowed' : 'btn-primary'">
-                        Выбрать
-                      </button>
-                    </div>
-                  </template>
-                </div>
-
-                {% if current_user %}
-                <div class="mt-6 text-slate-400">
-                  Вы вошли как <b>{{ current_user.display_name }}</b>. Приз будет привязан к вашему аккаунту.
-                </div>
-                {% else %}
-                <div class="mt-6 text-slate-400">
-                  Приз будет закреплён за вами после регистрации (регистрация выполняется на соответствующем шаге).
-                </div>
-                {% endif %}
-              </div>
-            </template>
-          </div>
-
-        </div>
-      </template>
-
-      <div x-show="!currentStep && !emptyFlow" class="text-slate-400 text-center py-10">Загрузка…</div>
-    </div>
-
-    <!-- RIGHT: профиль — появляется только когда пользователь авторизован. Занимает 30% (3/10). -->
-    <div x-show="isAuthorized"
-         x-transition.opacity
-         class="lg:col-span-3 space-y-6"
-         x-cloak>
-      <div class="avatar-card p-4">
-        <div class="flex items-center justify-between mb-2">
-          <div class="font-semibold truncate" x-text="userNameForAvatar || 'Вы'"></div>
-          <div class="flex items-center gap-2">
-            <div class="chip"><span>🪙</span><span class="font-bold" x-text="coins"></span></div>
-            <div class="chip"><span>⭐</span><span class="font-bold" x-text="xp"></span></div>
-          </div>
-        </div>
-        <div class="relative">
-          <img :src="avatarUrl || ''" alt="Аватар"
-               class="w-full rounded-xl ring-1 ring-white/10 select-none pointer-events-none">
-          <div class="bubble" x-show="avatarIntro" x-transition.opacity.scale.origin-top-right>
-            Это ваш аватар — растёт вместе с уровнем 🌱
-          </div>
-        </div>
-
-        <!-- Уровень и прогресс -->
-        <div class="mt-4">
-          <div class="flex items-center justify-between text-xs text-slate-300">
-            <div>Уровень</div>
-            <div x-text="levelLabel()"></div>
-          </div>
-          <div class="progress-rail mt-2">
-            <div class="progress-bar" :style="`width:${xpProgressPercent()}%`"></div>
-          </div>
-        </div>
-
-        <div class="mt-4 grid grid-cols-2 gap-2">
-          <a href="/profile" class="btn text-center">Профиль</a>
-          <a href="{{ url_for('page_training_list') }}" class="btn text-center">Курсы</a>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Приветственная модалка -->
-  <div x-cloak>
-    <div class="modal-backdrop" x-show="showWelcome" x-transition.opacity @click="closeWelcome()"></div>
-    <div class="modal-panel" x-show="showWelcome" x-transition.opacity.scale.origin-top @keydown.escape.window="closeWelcome()">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
-        <div class="modal-glow"></div>
-        <canvas class="confetti-canvas" x-ref="confetti"></canvas>
-
-        <button type="button" class="modal-x" aria-label="Закрыть" @click="closeWelcome()">✕</button>
-
-        <div class="p-8 relative">
-          <div class="flex items-center gap-4 fade-up">
-            <div class="h-16 w-16 rounded-2xl bg-emerald-500/15 border border-emerald-400/25 flex items-center justify-center text-4xl">🎉</div>
-            <div>
-              <h3 id="welcome-title" class="text-2xl sm:text-3xl font-bold leading-tight">Ура! Приглашение принято</h3>
-              <p class="text-slate-300 text-sm mt-1">Добро пожаловать в <b>Sales Journey</b> — полёт начинается 🚀</p>
-            </div>
-          </div>
-
-          <div class="mt-6 grid sm:grid-cols-[1.2fr,0.8fr] gap-6 items-center">
-            <div class="fade-up-2">
-              <div class="flex items-center gap-3">
-                <div class="h-11 w-11 rounded-2xl border border-white/10 bg-white/10 flex items-center justify-center text-base font-bold">
-                  <span x-text="companyTitle ? companyTitle.charAt(0).toUpperCase() : 'S'"></span>
-                </div>
-                <div class="leading-tight">
-                  <div class="text-sm text-slate-400">Вас пригласила компания</div>
-                  <div class="text-lg font-semibold">
-                    <a :href="companyLink()"
-                       class="underline decoration-dotted underline-offset-4 hover:decoration-solid text-emerald-300 hover:text-emerald-200 transition-colors"
-                       x-text="companyTitle || 'Компания'"></a>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div class="text-slate-200/95 font-medium">Как это работает:</div>
-                <ul class="mt-2 space-y-2 text-sm text-slate-300">
-                  <li class="flex items-start gap-2"><span class="mt-0.5">✅</span><span><b>Пройди мини-задание</b> (1–3 минуты) — покажи себя и разогрей интерес 😉</span></li>
-                  <li class="flex items-start gap-2"><span class="mt-0.5">📣</span><span><b>Дай знать работодателю о целеустремлённости</b> — мы автоматически отметим твой прогресс.</span></li>
-                  <li class="flex items-start gap-2"><span class="mt-0.5">🏅</span><span><b>В финале приз — ГАРАНТИРОВАННО!</b> Копи койны 🪙 уже сейчас и выбери подарок.</span></li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="relative fade-up-3">
-              <div class="absolute -top-4 -right-2 text-2xl">✨</div>
-              <svg viewBox="0 0 300 220" class="w-full h-auto drop-shadow-[0_20px_40px_rgba(0,0,0,.35)]">
-                <defs><linearGradient id="g1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#6366f1" stop-opacity=".9"/><stop offset="1" stop-color="#22c55e" stop-opacity=".9"/></linearGradient></defs>
-                <ellipse cx="150" cy="160" rx="110" ry="18" fill="rgba(0,0,0,.25)"/>
-                <g>
-                  <rect x="28" y="26" rx="14" ry="14" width="90" height="64" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.15)"/>
-                  <rect x="184" y="36" rx="14" ry="14" width="88" height="58" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.15)"/>
-                  <rect x="92" y="110" rx="16" ry="16" width="116" height="72" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.15)"/>
-                  <circle cx="70" cy="58" r="10" fill="#f59e0b"/>
-                  <circle cx="222" cy="66" r="10" fill="#22c55e"/>
-                  <circle cx="150" cy="140" r="12" fill="#6366f1"/>
-                </g>
-                <g transform="translate(140,90) rotate(-18)">
-                  <path d="M0 0 C 30 -8, 60 -8, 100 0 C 86 20, 86 40, 100 60 C 60 68, 30 68, 0 60 C 14 40, 14 20, 0 0 Z" fill="url(#g1)" stroke="rgba(255,255,255,.35)"/>
-                  <circle cx="50" cy="32" r="12" fill="rgba(255,255,255,.35)"/>
-                  <path d="M-2 58 L -20 76 C -10 78, 4 74, 10 66 Z" fill="#ef4444" opacity=".85"/>
-                </g>
-                <g fill="#fff">
-                  <circle cx="30" cy="30" r="1.5" opacity=".7"/>
-                  <circle cx="268" cy="48" r="1.5" opacity=".7"/>
-                  <circle cx="256" cy="12" r="1.2" opacity=".5"/>
-                  <circle cx="210" cy="100" r="1.2" opacity=".5"/>
-                  <circle cx="66" cy="96" r="1.2" opacity=".5"/>
-                </g>
-              </svg>
-            </div>
-          </div>
-
-          <div class="mt-7 flex items-center justify-end gap-3 fade-up-4">
-            <button type="button" class="btn btn-ghost" @click="closeWelcome()">Продолжить</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</section>
-
+<!-- === Telegram linker (универсальный) === -->
 <script>
-  // Регистрация компонента как глобальной функции, чтобы Alpine точно нашёл его в x-data.
+  function tgLinker(){
+    return {
+      state: { linked:false, chat_id:null, code:'' },
+      loading: false,
+      error: '',
+
+      async init(){
+        this.error = '';
+        await this.fetchStatus().catch(()=>{});
+      },
+
+      async fetchStatus(){
+        const endpoints = [
+          '/api/telegram/link/status',
+          '/api/telegram/status',
+          '/api/telegram/me',
+          '/api/telegram/link/me',
+        ];
+        for (const url of endpoints){
+          try{
+            const r = await fetch(url, { credentials: 'same-origin' });
+            if (!r.ok) continue;
+            const j = await r.json().catch(()=>({}));
+            const linked = !!(j.linked ?? j.is_linked ?? j.connected);
+            const chatId = j.chat_id ?? j.chatId ?? (j.data && j.data.chat_id) ?? null;
+            if (linked || chatId){
+              this.state.linked = linked;
+              this.state.chat_id = chatId;
+              this.state.code = '';
+              return;
+            }
+          }catch(_){}
+        }
+        this.state.linked = false;
+        this.state.chat_id = null;
+      },
+
+      async generate(){
+        this.loading = true; this.error = '';
+        const payload = {}; // можно прокинуть user_id на бэк, если требуется
+        const endpoints = [
+          ['/api/telegram/link/generate',  'POST'],
+          ['/api/telegram/link/new',       'POST'],
+          ['/api/telegram/generate_code',  'POST'],
+          ['/api/telegram/create_code',    'POST'],
+        ];
+        for (const [url, method] of endpoints){
+          try{
+            const r = await fetch(url, {
+              method, credentials:'same-origin',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify(payload)
+            });
+            const j = await r.json().catch(()=>({}));
+            if (!r.ok) continue;
+            const code = (j.code || j.token || j.link_code || '').toString().trim();
+            if (code){
+              this.state.code = code;
+              this.state.linked = false;
+              this.error = '';
+              this.$nextTick(()=>this.pulseSelf());
+              this.toast('Код сгенерирован. Откройте бота и отправьте его ✨');
+              return;
+            }
+          }catch(_){}
+        }
+        this.error = 'Не удалось сгенерировать код. Попробуйте позже.';
+      },
+
+      async resetLink(){
+        this.loading = true; this.error = '';
+        const endpoints = [
+          ['/api/telegram/link/reset','POST'],
+          ['/api/telegram/unlink','POST'],
+          ['/api/telegram/link/delete','POST'],
+        ];
+        for (const [url, method] of endpoints){
+          try{
+            const r = await fetch(url, { method, credentials:'same-origin' });
+            const ok = r.ok;
+            await this.fetchStatus();
+            if (ok){ this.toast('Привязка сброшена'); this.loading=false; return; }
+          }catch(_){}
+        }
+        this.error = 'Не удалось сбросить привязку';
+        this.loading=false;
+      },
+
+      botDeepLink(){
+        const u = (window.TELEGRAM_BOT_USERNAME || '').trim();
+        const c = (this.state.code || '').trim();
+        if (!u) return '#';
+        if (!c) return `https://t.me/${u}`;
+        return `https://t.me/${u}?start=${encodeURIComponent(c)}`;
+      },
+
+      copyCode(){
+        if(!this.state.code) return;
+        try{ navigator.clipboard.writeText(this.state.code); this.toast('Код скопирован 📋'); }catch(_){}
+      },
+
+      async ensureCodeThenOpen(){
+        if (!this.state.code) { await this.generate(); }
+        const href = this.botDeepLink();
+        if (href && href !== '#'){ window.open(href, '_blank', 'noopener'); }
+      },
+
+      pulseSelf(){
+        const host = this.$root;
+        if (!host) return;
+        host.classList.remove('pulse-soft');
+        // перезапуск анимации
+        void host.offsetWidth;
+        host.classList.add('pulse-soft');
+      },
+
+      toast(msg){ try { window.toast ? window.toast(msg) : console.log(msg); } catch(_) {} },
+    }
+  }
+</script>
+
+<!-- === Onboarding VM === -->
+<script>
   window.OnboardingPage = function(slug, initAuth=false) {
     return {
       /* -------- Состояние -------- */
@@ -739,33 +411,26 @@
       regStage: { active: false, startedFromStepId: null },
       regCompleted: false,
 
-      // профиль справа
+      // профиль
       avatarUrl: '',
       userNameForAvatar: '',
       avatarIntro: false,
       currentUserId: null,
+      profileOpen: false,
 
       // превью гендера
       _previewIdx: { male:0, female:0 },
       _previewUrls: {
-        male: [
-          '/avatar_svg/preview?gender=male',
-          '/avatar_svg/default?gender=male',
-          '/avatar_svg?gender=male'
-        ],
-        female: [
-          '/avatar_svg/preview?gender=female',
-          '/avatar_svg/default?gender=female',
-          '/avatar_svg?gender=female'
-        ]
+        male: ['/avatar_svg/preview?gender=male','/avatar_svg/default?gender=male','/avatar_svg?gender=male'],
+        female: ['/avatar_svg/preview?gender=female','/avatar_svg/default?gender=female','/avatar_svg?gender=female']
       },
 
-      // приветственная модалка / компания
+      // приветствие / компания
       showWelcome: false,
       companyTitle: "",
       companySlug: "",
 
-      // локальное конфетти
+      // конфетти
       confetti: { raf: null, t0: 0, duration: 1600, active: false, parts: [] },
 
       /* -------- Инициализация -------- */
@@ -824,6 +489,12 @@
           this.isAuthorized = true;
           this.avatarIntro = true;
           setTimeout(() => { this.avatarIntro = false; }, 2600);
+
+          // Подсветим блок привязки Телеграма на правой панели
+          try {
+            const teleBlock = document.querySelector('[data-telegram-card]');
+            if (teleBlock){ teleBlock.classList.add('pulse-soft'); setTimeout(()=>teleBlock.classList.remove('pulse-soft'), 2600); }
+          } catch(_){}
         });
       },
 
@@ -842,19 +513,13 @@
           setTimeout(() => { this.continueEnabled = true; }, 700);
         });
       },
-      resetSelection(){
-        this.selectedKeys = [];
-        this.showSpotlight = false;
-        this.continueEnabled = false;
-      },
+      resetSelection(){ this.selectedKeys = []; this.showSpotlight = false; this.continueEnabled = false; },
       selectedOption() {
         const key = this.selectedKeys[0];
         return (this.currentStep?.options || []).find(o => o.key === key) || null;
       },
       submitInterestSelection() {
-        if (!this.selectedKeys.length || !this.continueEnabled){
-          this.toast('Сначала ознакомьтесь с содержанием 👀'); return;
-        }
+        if (!this.selectedKeys.length || !this.continueEnabled){ this.toast('Сначала ознакомьтесь с содержанием 👀'); return; }
         this.showSpotlight = false;
         this.submitStep({ key: this.selectedKeys[0] });
       },
@@ -863,10 +528,7 @@
       toast(msg){ try { window.toast ? window.toast(msg) : alert(msg); } catch(_) { alert(msg); } },
 
       avatarUserUrl(id){ return `/avatar_svg/${id}`; },
-      refreshAvatar(){
-        if(!this.currentUserId) return;
-        this.avatarUrl = this.avatarUserUrl(this.currentUserId) + `?t=${Date.now()}`;
-      },
+      refreshAvatar(){ if(!this.currentUserId) return; this.avatarUrl = this.avatarUserUrl(this.currentUserId) + `?t=${Date.now()}`; },
 
       async loadCurrentUser(){
         const r = await fetch('/api/me', { headers: { 'X-Requested-With':'SPAFetch' }});
@@ -890,25 +552,17 @@
       onPreviewError(gender, ev){
         const list = this._previewUrls[gender] || [];
         let i = (this._previewIdx[gender] || 0) + 1;
-        if (i >= list.length){
-          ev.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';
-          return;
-        }
-        this._previewIdx[gender] = i;
-        ev.target.src = list[i];
+        if (i >= list.length){ ev.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>'; return; }
+        this._previewIdx[gender] = i; ev.target.src = list[i];
       },
 
-      animateAvatarIntro(){
-        this.avatarIntro = true;
-        setTimeout(() => { this.avatarIntro = false; }, 2600);
-      },
+      animateAvatarIntro(){ this.avatarIntro = true; setTimeout(() => { this.avatarIntro = false; }, 2600); },
 
       /* -------- шаги / переходы -------- */
       async submitStep(payload) {
         try {
           const r = await fetch(`/api/reg/step/${this.currentStep.id}/submit`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ ...(payload||{}), reg_session_id: this.sessionId })
           });
           const j = await r.json();
@@ -951,8 +605,7 @@
       async pickReward(itemId, cost) {
         try {
           const r = await fetch(`/api/reg/reward/pick`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ store_item_id: itemId })
           });
           const j = await r.json();
@@ -975,26 +628,16 @@
 
       /* -------- регистрация -------- */
       async registerFromSection() {
-        if (!this.regName || !this.regEmail || !this.regPassword) {
-          this.toast('Заполните имя, email и пароль'); return;
-        }
-        if (!this.regGender) {
-          this.toast('Пожалуйста, выберите вашего персонажа'); return;
-        }
-        if (!this.regTermsAccepted) {
-          this.toast('Необходимо принять условия оферты'); return;
-        }
+        if (!this.regName || !this.regEmail || !this.regPassword) { this.toast('Заполните имя, email и пароль'); return; }
+        if (!this.regGender) { this.toast('Пожалуйста, выберите вашего персонажа'); return; }
+        if (!this.regTermsAccepted) { this.toast('Необходимо принять условия оферты'); return; }
 
         try {
           const r = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-              email: this.regEmail,
-              password: this.regPassword,
-              display_name: this.regName,
-              reg_session_id: this.sessionId,
-              gender: this.regGender
+              email: this.regEmail, password: this.regPassword, display_name: this.regName,
+              reg_session_id: this.sessionId, gender: this.regGender
             })
           });
           const j = await r.json();
@@ -1023,7 +666,7 @@
       md(src) {
         if (!src) return '';
         return src
-          .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')   // FIX: убрана лишняя скобка
+          .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
           .replace(/\*(.+?)\*/g, '<i>$1</i>')
           .replace(/\n/g, '<br/>');
       },
@@ -1046,9 +689,7 @@
           const end = new Date(start.getTime() + 60*60*1000);
           const fmt = (d)=> d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
           const lines = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//Sales Journey//Onboarding//RU',
+            'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Sales Journey//Onboarding//RU',
             'BEGIN:VEVENT',
             `UID:${(this.sessionId || Date.now())}@salesjourney`,
             `DTSTAMP:${fmt(new Date())}`,
@@ -1057,8 +698,7 @@
             `SUMMARY:${(this.currentStep?.title || 'Интервью').replace(/[\r\n]/g,' ')}`,
             this.interview?.location ? `LOCATION:${this.interview.location.replace(/[\r\n]/g,' ')}` : '',
             this.interview?.message ? `DESCRIPTION:${this.interview.message.replace(/\r?\n/g,'\\n')}` : '',
-            'END:VEVENT',
-            'END:VCALENDAR'
+            'END:VEVENT','END:VCALENDAR'
           ].filter(Boolean).join('\r\n');
 
           const blob = new Blob([lines], { type: 'text/calendar;charset=utf-8' });
@@ -1071,12 +711,8 @@
       },
 
       async submitBulkRegistration() {
-        if (!this.regStage.active) {
-          this.regStage.active = true;
-        }
-        if (!this.bulkReg.name || !this.bulkReg.email) {
-          this.toast('Укажите имя и email'); return;
-        }
+        if (!this.regStage.active) this.regStage.active = true;
+        if (!this.bulkReg.name || !this.bulkReg.email) { this.toast('Укажите имя и email'); return; }
 
         try {
           let step = this.currentStep;
@@ -1094,8 +730,7 @@
             if (!value) { this.toast(`Заполните поле: ${field}`); return; }
 
             const r = await fetch(`/api/reg/step/${step.id}/submit`, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
+              method: 'POST', headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ value, reg_session_id: this.sessionId })
             });
             const j = await r.json();
@@ -1115,7 +750,7 @@
       },
 
       selectLimit() { return 1; },
-      toggleSelect(key) { this.selectedKeys = [key]; }, // на будущее
+      toggleSelect(key) { this.selectedKeys = [key]; },
 
       firstAssignmentInterviewText(){
         const cfgDt = this.currentStep?.config?.date_time || null;
@@ -1138,7 +773,6 @@
         return Math.max(5, Math.min(p, 100));
       },
 
-      // Уровни и прогресс
       level(){
         const base = Math.floor((this.xp || 0) / 100) + 1;
         return Math.max(1, base);
@@ -1149,9 +783,7 @@
         const pct = ((xp - lvlStart) / 100) * 100;
         return Math.max(0, Math.min(100, Math.round(pct)));
       },
-      levelLabel(){
-        return `Lv ${this.level()} · ${this.xp} XP`;
-      },
+      levelLabel(){ return `Lv ${this.level()} · ${this.xp} XP`; },
 
       companyLink(){ return this.companySlug ? `/company/${this.companySlug}` : '#'; },
       async resolveCompanyTitle(){
@@ -1166,10 +798,8 @@
             const r = await fetch(url);
             if (!r.ok) continue;
             const j = await r.json().catch(()=>null);
-            const name =
-              (j && j.company && j.company.name) || j?.company_name || j?.name || "";
-            const slug =
-              (j && j.company && j.company.slug) || j?.company_slug || j?.slug || this.slug || "";
+            const name = (j && j.company && j.company.name) || j?.company_name || j?.name || "";
+            const slug = (j && j.company && j.company.slug) || j?.company_slug || j?.slug || this.slug || "";
             if (name) this.companyTitle = name;
             if (slug) this.companySlug = slug;
             if (name || slug) break;
@@ -1215,25 +845,17 @@
           const angle = rand(-Math.PI/3, -2*Math.PI/3);
           const speed = rand(4, 9);
           parts.push({
-            x: w/2 + rand(-60,60),
-            y: h*0.75 + rand(-10,10),
-            vx: Math.cos(angle)*speed,
-            vy: Math.sin(angle)*speed,
-            g: rand(0.18, 0.28),
-            w: rand(6, 12),
-            h: rand(8, 16),
-            rot: rand(0, Math.PI*2),
-            vr: rand(-0.25, 0.25),
+            x: w/2 + rand(-60,60), y: h*0.75 + rand(-10,10),
+            vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+            g: rand(0.18, 0.28), w: rand(6, 12), h: rand(8, 16),
+            rot: rand(0, Math.PI*2), vr: rand(-0.25, 0.25),
             color: colors[Math.floor(Math.random()*colors.length)],
-            alpha: 1,
-            va: rand(-0.005, -0.002),
+            alpha: 1, va: rand(-0.005, -0.002),
             shape: Math.random() < 0.2 ? 'circle' : 'rect'
           });
         }
 
-        this.confetti.parts = parts;
-        this.confetti.active = true;
-        this.confetti.t0 = performance.now();
+        this.confetti.parts = parts; this.confetti.active = true; this.confetti.t0 = performance.now();
 
         const step = (t)=>{
           if (!this.confetti.active) return;
@@ -1272,4 +894,622 @@
     };
   };
 </script>
+
+<section class="max-w-7xl mx-auto px-4 py-10"
+         x-data="OnboardingPage('{{ slug }}', {{ 'true' if current_user else 'false' }})"
+         x-init="start()"
+         x-cloak
+         data-page="onboarding">
+
+  <div class="grid gap-6 2xl:grid-cols-10">
+    <!-- LEFT -->
+    <div :class="isAuthorized ? 'lg:col-span-10 2xl:col-span-7' : 'lg:col-span-10 2xl:col-span-10'">
+      <!-- Хедер -->
+      <div class="flex items-center justify-between mb-6 glass-card p-4">
+        <div class="flex items-center gap-3">
+          <div class="h-11 w-11 rounded-xl var-border border surface flex items-center justify-center text-lg font-bold">
+            SJ
+          </div>
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold leading-tight">Онбординг</h1>
+            <div class="text-sm" style="color:var(--muted)">Добро пожаловать в Sales Journey</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="chip max-w-full sm:max-w-[280px]">
+            <span class="text-xs" style="color:var(--muted)">Компания</span>
+            <span class="font-semibold truncate" x-text="companyTitle || 'Компания'"></span>
+          </div>
+          <div class="chip">
+            <span>🪙</span>
+            <span class="text-xs" style="color:var(--muted)">Монеты</span>
+            <span class="font-bold text-lg" x-text="coins"></span>
+          </div>
+
+          <!-- Моб. кнопка top-sheet профиля -->
+          <button x-show="isAuthorized"
+                  @click="profileOpen = !profileOpen"
+                  class="btn btn-indigo lg:hidden"
+                  :aria-expanded="profileOpen.toString()"
+                  aria-controls="mobileProfileSheet"
+                  x-text="profileOpen ? 'Скрыть' : 'Профиль'">
+          </button>
+        </div>
+      </div>
+
+      <!-- Пустой флоу -->
+      <template x-if="emptyFlow">
+        <div class="glass-card p-4 mb-6 text-sm">
+          <div class="card-glow"></div>
+          Онбординг пока не настроен: у этого флоу нет шагов. Свяжитесь с компанией или попробуйте позже.
+        </div>
+      </template>
+
+      <!-- Прогресс -->
+      <template x-if="!emptyFlow">
+        <div class="progress-rail mb-6">
+          <div class="progress-bar" :style="`width:${progressPercent()}%`"></div>
+        </div>
+      </template>
+
+      <!-- Текущий шаг -->
+      <template x-if="!emptyFlow && currentStep">
+        <div class="glass-card p-6">
+          <div class="card-glow"></div>
+          <h2 class="text-xl font-bold mb-4" x-text="currentStep.title || 'Шаг'"></h2>
+
+          <!-- intro_page -->
+          <div x-show="currentStep.type === 'intro_page'">
+            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
+            <template x-if="currentStep.media_url">
+              <div class="mt-4">
+                <template x-if="/youtube\.com|youtu\.be/.test(currentStep.media_url)">
+                  <iframe class="w-full aspect-video rounded-xl border var-border"
+                          :src="youtubeEmbed(currentStep.media_url)" frameborder="0" allowfullscreen></iframe>
+                </template>
+                <template x-if="!/youtube\.com|youtu\.be/.test(currentStep.media_url)">
+                  <video class="w-full rounded-xl border var-border" controls
+                         :src="currentStep.media_url"></video>
+                </template>
+              </div>
+            </template>
+            <div class="mt-6 flex justify-end">
+              <button @click="submitStep({})" class="btn btn-primary">Далее</button>
+            </div>
+          </div>
+
+          <!-- ask_input + bundled registration -->
+          <div x-show="currentStep.type === 'ask_input' || regStage.active">
+            <div class="text-sm mb-3" style="color:var(--muted)">Регистрация: заполните поля разом</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input type="text"  class="input" placeholder="Имя"           x-model="bulkReg.first_name">
+              <input type="text"  class="input" placeholder="Фамилия"       x-model="bulkReg.last_name">
+              <input type="text"  class="input" placeholder="Имя и фамилия" x-model="bulkReg.name">
+              <input type="email" class="input" placeholder="Email"         x-model="bulkReg.email">
+              <input type="text"  class="input" placeholder="Телефон"       x-model="bulkReg.phone">
+            </div>
+            <div class="mt-6 flex items-center justify-between">
+              <div class="text-xs" style="color:var(--muted)">Все шаги регистрации будут отправлены одним действием</div>
+              <button @click="submitBulkRegistration()" class="btn btn-primary">Продолжить</button>
+            </div>
+          </div>
+
+          <!-- choice_one -->
+          <div x-show="currentStep.type === 'choice_one'">
+            <div class="grid-autofit">
+              <template x-for="opt in (currentStep.options || [])" :key="opt.key">
+                <button @click="submitStep({ key: opt.key })"
+                        class="text-left p-4 rounded-xl border var-border surface surface-hover transition">
+                  <div class="text-lg font-semibold" x-text="opt.title"></div>
+                  <div class="mt-1" style="color:var(--muted)" x-html="md(opt.body_md || '')"></div>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- interest_selector -->
+          <div x-show="currentStep.type === 'interest_selector'">
+            <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <div class="only-one-badge">⚠️ Можно выбрать только одно</div>
+              <div class="text-xs" style="color:var(--muted)" x-show="selectedKeys.length">Выбор зафиксирован — остальные опции недоступны</div>
+            </div>
+
+            <div class="grid-autofit">
+              <template x-for="opt in (currentStep.options || [])" :key="opt.key">
+                <button type="button"
+                        @click="chooseOption(opt.key)"
+                        :aria-pressed="selectedKeys[0] === opt.key"
+                        :aria-disabled="selectedKeys.length && selectedKeys[0] !== opt.key"
+                        class="option-card"
+                        :class="selectedKeys[0] === opt.key
+                                ? 'is-selected'
+                                : (selectedKeys.length ? 'is-disabled' : '')">
+                  <div class="title truncate" x-text="opt.title"></div>
+                  <div class="desc" x-html="md(opt.body_md || '')"></div>
+                  <div class="opt-lock" x-show="selectedKeys.length && selectedKeys[0] !== opt.key">
+                    🔒 Недоступно
+                  </div>
+                </button>
+              </template>
+            </div>
+
+            <div class="spotlight-backdrop" x-show="showSpotlight" x-transition.opacity></div>
+
+            <template x-if="selectedOption()">
+              <div id="optDetails"
+                   x-ref="optDetails"
+                   tabindex="-1"
+                   class="mt-5 details-card p-5 pop-in spotlight-elevate"
+                   :class="showSpotlight ? 'focus-pulse ring-2 ring-indigo-500/50' : ''">
+                <div class="text-lg font-semibold mb-2" x-text="selectedOption().title"></div>
+                <div class="prose prose-invert max-w-none" x-html="md(selectedOption().body_md || '')"></div>
+
+                <template x-if="selectedOption().media_url">
+                  <div class="mt-3">
+                    <template x-if="/youtube\.com|youtu\.be/.test(selectedOption().media_url)">
+                      <iframe class="w-full aspect-video rounded-xl border var-border"
+                              :src="youtubeEmbed(selectedOption().media_url)" frameborder="0" allowfullscreen></iframe>
+                    </template>
+                    <template x-if="!/youtube\.com|youtu\.be/.test(selectedOption().media_url)">
+                      <video class="w-full rounded-xl border var-border" controls
+                             :src="selectedOption().media_url"></video>
+                    </template>
+                  </div>
+                </template>
+
+                <div class="mt-4 flex items-center justify-between gap-2">
+                  <div class="text-xs" style="color:var(--muted)" x-show="!continueEnabled">Ознакомьтесь с содержанием — кнопка активируется через секунду</div>
+                  <div class="flex gap-2">
+                    <button @click="submitInterestSelection()" class="btn btn-primary" :disabled="!continueEnabled">Далее</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- interview_invite -->
+          <div x-show="currentStep.type === 'interview_invite'">
+            <template x-if="!interview">
+              <button @click="loadInterview()" class="btn btn-indigo">Показать приглашение</button>
+            </template>
+            <template x-if="interview">
+              <div class="space-y-3">
+                <div><span style="color:var(--muted)">Статус:</span> <span class="font-semibold" x-text="interview.status"></span></div>
+                <div x-show="interview.date_time"><span style="color:var(--muted)">Дата/время:</span> <span x-text="fmtDT(interview.date_time)"></span></div>
+                <div x-show="interview.location"><span style="color:var(--muted)">Локация:</span> <span x-text="interview.location"></span></div>
+                <div x-show="interview.message"><span style="color:var(--muted)">Сообщение:</span> <span x-text="interview.message"></span></div>
+                <div x-show="interview.assignment_text" class="pt-2">
+                  <div class="font-semibold">Задание</div>
+                  <div class="prose prose-invert max-w-none" x-html="md(interview.assignment_text)"></div>
+                </div>
+                <div class="pt-2 flex gap-2">
+                  <button x-show="interview.date_time" @click="downloadICS()" class="btn btn-ghost">Добавить в календарь (.ics)</button>
+                  <button @click="submitStep({})" class="btn btn-primary">Далее</button>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- assignment -->
+          <div x-show="currentStep.type === 'assignment'">
+            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
+            <div class="mt-6 flex justify-end">
+              <button @click="submitStep({})" class="btn btn-primary">Далее</button>
+            </div>
+          </div>
+
+          <!-- first_assignment -->
+          <div x-show="currentStep.type === 'first_assignment'">
+            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || currentStep.config?.task_text || '')"></div>
+            <div class="mt-4 p-4 rounded-xl surface var-border border">
+              <div class="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <div class="text-sm" style="color:var(--muted)">Дата собеседования</div>
+                  <div class="font-semibold" x-text="firstAssignmentInterviewText()"></div>
+                </div>
+                <div>
+                  <div class="text-sm" style="color:var(--muted)">Награда</div>
+                  <div class="font-semibold"><span x-text="currentStep.coins_award || 0"></span> монет</div>
+                </div>
+              </div>
+              <div class="mt-3 text-sm" style="color:var(--muted)">
+                Привяжите Telegram, чтобы мы смогли напомнить вам.
+                <a href="/settings/notifications" class="underline decoration-dotted underline-offset-4 hover:decoration-solid">Настроить уведомления</a>
+              </div>
+
+              <!-- Быстрая привязка Telegram прямо в шаге -->
+              <div class="mt-4 p-4 rounded-2xl border var-border surface"
+                   x-data="tgLinker()" x-init="init()">
+                <div class="flex items-center justify-between">
+                  <div class="font-semibold">Telegram</div>
+                  <span class="inline-flex items-center gap-2 text-xs"
+                        :class="state.linked ? 'text-emerald-700' : 'text-amber-600'">
+                    <span class="w-2 h-2 rounded-full" :class="state.linked ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+                    <span x-text="state.linked ? 'Привязан' : 'Не привязан'"></span>
+                  </span>
+                </div>
+
+                <!-- not linked -->
+                <template x-if="!state.linked">
+                  <div class="mt-3 space-y-3">
+                    <button @click="generate()" class="btn btn-indigo w-full" :disabled="loading">Сгенерировать код</button>
+
+                    <div x-show="state.code" x-transition>
+                      <div class="flex items-center gap-2">
+                        <div class="font-mono px-2 py-1 rounded-lg surface var-border text-sm" x-text="state.code"></div>
+                        <button @click="copyCode()" class="btn btn-ghost px-2 py-1">Копировать</button>
+                      </div>
+                      <a :href="botDeepLink()" target="_blank" rel="noopener"
+                         class="mt-2 btn btn-primary w-full text-center">Перейти к боту</a>
+                      <div class="text-xs" style="color:var(--muted)">Откройте бота и просто отправьте код.</div>
+                    </div>
+
+                    <p class="text-sm text-rose-600" x-text="error" x-show="error"></p>
+                  </div>
+                </template>
+
+                <!-- linked -->
+                <template x-if="state.linked">
+                  <div class="mt-3 flex items-center justify-between gap-2">
+                    <div class="text-sm">
+                      ✅ Уведомления будут приходить в Telegram<br>
+                      <span class="text-xs" style="color:var(--muted)">Chat ID: <span class="font-mono" x-text="state.chat_id"></span></span>
+                    </div>
+                    <button @click="resetLink()" class="btn btn-ghost" :disabled="loading">Сбросить</button>
+                  </div>
+                </template>
+              </div>
+              <!-- /быстрая привязка -->
+            </div>
+
+            <div class="mt-6 flex justify-end">
+              <button @click="submitStep({})" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white">Далее</button>
+            </div>
+          </div>
+
+          <!-- registration_section -->
+          <div x-show="currentStep.type === 'registration_section'">
+            <div class="prose prose-invert max-w-none" x-html="md(currentStep.body_md || '')"></div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input type="text" class="input" placeholder="Имя"     x-model="regName">
+              <input type="email" class="input" placeholder="Email"   x-model="regEmail">
+              <input type="password" class="input" placeholder="Пароль" x-model="regPassword">
+            </div>
+
+            <!-- Выбор пола -->
+            <div class="mt-6">
+              <div class="text-sm mb-3" style="color:var(--muted)">Выберите персонажа</div>
+              <div class="grid-autofit">
+                <!-- Мужской -->
+                <button type="button"
+                        class="flex flex-col items-center justify-center p-4 rounded-xl border var-border surface surface-hover transition"
+                        :class="{'ring-2 ring-emerald-400 shadow-lg': regGender==='male'}"
+                        @click="regGender='male'">
+                  <div class="w-24 h-24 rounded-full overflow-hidden mb-2">
+                    <img :src="previewSrc('male')" @error="onPreviewError('male',$event)"
+                         alt="Мужской аватар"
+                         class="w-full h-full object-cover">
+                  </div>
+                  <div class="font-semibold">Мужской</div>
+                </button>
+
+                <!-- Женский -->
+                <button type="button"
+                        class="flex flex-col items-center justify-center p-4 rounded-xl border var-border surface surface-hover transition"
+                        :class="{'ring-2 ring-emerald-400 shadow-lg': regGender==='female'}"
+                        @click="regGender='female'">
+                  <div class="w-24 h-24 rounded-full overflow-hidden mb-2">
+                    <img :src="previewSrc('female')" @error="onPreviewError('female',$event)"
+                         alt="Женский аватар"
+                         class="w-full h-full object-cover">
+                  </div>
+                  <div class="font-semibold">Женский</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Согласие -->
+            <div class="mt-4 flex items-start gap-3">
+              <input id="terms" type="checkbox" x-model="regTermsAccepted" class="mt-1 h-4 w-4 rounded border var-border surface">
+              <label for="terms" class="text-sm">
+                Согласен с <a href="/terms" target="_blank" class="underline decoration-indigo-400 hover:opacity-80">офертой</a>
+              </label>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between">
+              <div class="text-sm" style="color:var(--muted)">Аккаунт будет привязан к текущему прогрессу</div>
+              <div class="flex gap-2">
+                <button @click="registerFromSection()" class="btn btn-indigo">Зарегистрироваться и далее</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- reward_shop -->
+          <div x-show="currentStep.type === 'reward_shop'">
+            <template x-if="!prizes.length">
+              <div class="flex items-center gap-3">
+                <button @click="finish()" class="btn btn-primary">Показать призы</button>
+                <div style="color:var(--muted)">Финальный бонус будет учтён</div>
+              </div>
+            </template>
+
+            <template x-if="prizes.length">
+              <div>
+                <div class="mb-2" style="color:var(--muted)">Выберите <b>один</b> приз</div>
+                <div class="grid-autofit">
+                  <template x-for="p in prizes" :key="p.id">
+                    <div class="p-4 rounded-xl border var-border surface">
+                      <div class="font-semibold" x-text="p.title"></div>
+                      <div style="color:var(--muted)">Стоимость: <span x-text="p.cost_coins"></span> монет</div>
+                      <button :disabled="coins < p.cost_coins || picked"
+                              @click="pickReward(p.id, p.cost_coins)"
+                              class="mt-3 w-full btn"
+                              :class="coins < p.cost_coins || picked ? 'btn-ghost cursor-not-allowed' : 'btn-primary'">
+                        Выбрать
+                      </button>
+                    </div>
+                  </template>
+                </div>
+
+                {% if current_user %}
+                <div class="mt-6" style="color:var(--muted)">
+                  Вы вошли как <b>{{ current_user.display_name }}</b>. Приз будет привязан к вашему аккаунту.
+                </div>
+                {% else %}
+                <div class="mt-6" style="color:var(--muted)">
+                  Приз будет закреплён за вами после регистрации (регистрация выполняется на соответствующем шаге).
+                </div>
+                {% endif %}
+              </div>
+            </template>
+          </div>
+
+        </div>
+      </template>
+
+      <div x-show="!currentStep && !emptyFlow" class="text-center py-10" style="color:var(--muted)">Загрузка…</div>
+    </div>
+
+    <!-- RIGHT (десктоп) -->
+    <div x-show="isAuthorized"
+         x-transition.opacity
+         class="lg:col-span-3 space-y-6 hidden lg:block"
+         x-cloak>
+      <div class="avatar-card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold truncate" x-text="userNameForAvatar || 'Вы'"></div>
+          <div class="flex items-center gap-2">
+            <div class="chip"><span>🪙</span><span class="font-bold" x-text="coins"></span></div>
+            <div class="chip"><span>⭐</span><span class="font-bold" x-text="xp"></span></div>
+          </div>
+        </div>
+        <div class="relative">
+          <img :src="avatarUrl || ''" alt="Аватар"
+               class="w-full rounded-xl border var-border select-none pointer-events-none">
+          <div class="bubble" x-show="avatarIntro" x-transition.opacity.scale.origin-top-right>
+            Это ваш аватар — растёт вместе с уровнем 🌱
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center justify-between text-xs" style="color:var(--muted)">
+            <div>Уровень</div>
+            <div x-text="levelLabel()"></div>
+          </div>
+          <div class="progress-rail mt-2">
+            <div class="progress-bar" :style="`width:${xpProgressPercent()}%`"></div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <a href="/profile" class="btn text-center">Профиль</a>
+          <a href="{{ url_for('page_training_list') }}" class="btn text-center">Курсы</a>
+        </div>
+      </div>
+
+      <!-- Привязка Telegram (как на профиле) -->
+      <section data-telegram-card
+               class="rounded-2xl border var-border surface p-6 backdrop-blur transition-colors"
+               x-data="tgLinker()" x-init="init()">
+        <header class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-bold">Привязка Telegram</h2>
+          <span class="inline-flex items-center gap-2"
+                :class="state.linked ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600'">
+            <span class="w-2 h-2 rounded-full" :class="state.linked ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+            <span x-text="state.linked ? 'Привязан' : 'Не привязан'"></span>
+          </span>
+        </header>
+
+        <!-- Не привязан -->
+        <template x-if="!state.linked">
+          <div class="space-y-3">
+            <p class="text-sm" style="color:var(--muted)">
+              Сначала сгенерируйте код. Затем откройте бота и просто отправьте его.
+            </p>
+
+            <button @click="generate()" class="w-full btn btn-indigo" :disabled="loading">
+              <span x-show="!loading">Сгенерировать код</span>
+              <span x-show="loading">Генерируем…</span>
+            </button>
+
+            <div x-show="state.code"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-2 scale-[.98]"
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                 class="space-y-3">
+              <div class="flex items-center gap-2">
+                <div class="font-mono px-2 py-1 rounded-lg surface var-border text-sm" x-text="state.code"></div>
+                <button @click="copyCode()" class="btn btn-ghost px-2 py-1">Скопировать</button>
+              </div>
+
+              <a :href="botDeepLink()" target="_blank" rel="noopener"
+                 class="inline-flex items-center justify-center w-full btn btn-primary">
+                Перейти к боту
+              </a>
+
+              <p class="text-xs" style="color:var(--muted)">
+                Код действует ограниченное время.
+              </p>
+            </div>
+
+            <p class="text-sm text-rose-600" x-text="error" x-show="error"></p>
+          </div>
+        </template>
+
+        <!-- Привязан -->
+        <template x-if="state.linked">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-sm text-emerald-800 dark:text-emerald-200 font-medium">
+                ✅ Всё настроено — уведомления будут приходить в Telegram.
+              </div>
+              <div class="mt-1 text-xs" style="color:var(--muted)">
+                Chat ID: <span class="font-mono" x-text="state.chat_id"></span>
+              </div>
+            </div>
+            <button @click="resetLink()" class="btn btn-ghost" :disabled="loading">Сбросить</button>
+          </div>
+        </template>
+      </section>
+      <!-- /Привязка Telegram -->
+    </div>
+  </div>
+
+  <!-- Мобильный top-sheet профиля -->
+  <div x-show="isAuthorized && profileOpen" x-cloak>
+    <!-- Подложка -->
+    <div class="fixed inset-0 z-[60] bg-black/40" x-transition.opacity
+         @click="profileOpen=false" aria-hidden="true"></div>
+
+    <!-- Панель сверху -->
+    <div id="mobileProfileSheet"
+         class="fixed top-0 left-0 right-0 z-[61] origin-top"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="-translate-y-full opacity-0"
+         x-transition:enter-end="translate-y-0 opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="translate-y-0 opacity-100"
+         x-transition:leave-end="-translate-y-full opacity-0">
+      <div class="avatar-card p-4 rounded-b-2xl shadow-2xl">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold truncate" x-text="userNameForAvatar || 'Вы'"></div>
+          <div class="flex items-center gap-2">
+            <div class="chip"><span>🪙</span><span class="font-bold" x-text="coins"></span></div>
+            <div class="chip"><span>⭐</span><span class="font-bold" x-text="xp"></span></div>
+          </div>
+        </div>
+
+        <div class="relative">
+          <img :src="avatarUrl || ''" alt="Аватар"
+               class="w-full rounded-xl border var-border select-none pointer-events-none">
+          <div class="bubble" x-show="avatarIntro" x-transition.opacity.scale.origin-top-right>
+            Это ваш аватар — растёт вместе с уровнем 🌱
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center justify-between text-xs" style="color:var(--muted)">
+            <div>Уровень</div>
+            <div x-text="levelLabel()"></div>
+          </div>
+          <div class="progress-rail mt-2">
+            <div class="progress-bar" :style="`width:${xpProgressPercent()}%`"></div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <a href="/profile" class="btn text-center" @click="profileOpen=false">Профиль</a>
+          <a href="{{ url_for('page_training_list') }}" class="btn text-center" @click="profileOpen=false">Курсы</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Приветственная модалка -->
+  <div x-cloak>
+    <div class="modal-backdrop" x-show="showWelcome" x-transition.opacity @click="closeWelcome()"></div>
+    <div class="modal-panel" x-show="showWelcome" x-transition.opacity.scale.origin-top @keydown.escape.window="closeWelcome()">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+        <div class="modal-glow"></div>
+        <canvas class="confetti-canvas" x-ref="confetti"></canvas>
+
+        <button type="button" class="modal-x" aria-label="Закрыть" @click="closeWelcome()">✕</button>
+
+        <!-- ВНУТРЕННЯЯ ПРОКРУТКА -->
+        <div class="modal-body">
+          <div class="flex items-center gap-4 fade-up">
+            <div class="h-16 w-16 rounded-2xl bg-emerald-500/15 border var-border flex items-center justify-center text-4xl">🎉</div>
+            <div>
+              <h3 id="welcome-title" class="text-2xl sm:text-3xl font-bold leading-tight">Ура! Приглашение принято</h3>
+              <p class="text-sm mt-1" style="color:var(--muted)">Добро пожаловать в <b>Sales Journey</b> — полёт начинается 🚀</p>
+            </div>
+          </div>
+
+          <div class="mt-6 grid sm:grid-cols-[1.2fr,0.8fr] gap-6 items-center">
+            <div class="fade-up-2">
+              <div class="flex items-center gap-3">
+                <div class="h-11 w-11 rounded-2xl border var-border surface flex items-center justify-center text-base font-bold">
+                  <span x-text="companyTitle ? companyTitle.charAt(0).toUpperCase() : 'S'"></span>
+                </div>
+                <div class="leading-tight">
+                  <div class="text-sm" style="color:var(--muted)">Вас пригласила компания</div>
+                  <div class="text-lg font-semibold">
+                    <a :href="companyLink()"
+                       class="underline decoration-dotted underline-offset-4 hover:decoration-solid"
+                       x-text="companyTitle || 'Компания'"></a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 rounded-2xl border var-border surface p-4">
+                <div class="font-medium">Как это работает:</div>
+                <ul class="mt-2 space-y-2 text-sm" style="color:var(--muted)">
+                  <li class="flex items-start gap-2"><span class="mt-0.5">✅</span><span><b>Пройди мини-задание</b> (1–3 минуты) — покажи себя и разогрей интерес 😉</span></li>
+                  <li class="flex items-start gap-2"><span class="mt-0.5">📣</span><span><b>Дай знать работодателю о целеустремлённости</b> — мы автоматически отметим твой прогресс.</span></li>
+                  <li class="flex items-start gap-2"><span class="mt-0.5">🏅</span><span><b>В финале приз — ГАРАНТИРОВАННО!</b> Копи койны 🪙 уже сейчас и выбери подарок.</span></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="relative fade-up-3">
+              <div class="absolute -top-4 -right-2 text-2xl">✨</div>
+              <svg viewBox="0 0 300 220" class="w-full h-auto drop-shadow-[0_20px_40px_rgba(0,0,0,.35)]">
+                <defs><linearGradient id="g1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#6366f1" stop-opacity=".9"/><stop offset="1" stop-color="#22c55e" stop-opacity=".9"/></linearGradient></defs>
+                <ellipse cx="150" cy="160" rx="110" ry="18" fill="rgba(0,0,0,.25)"/>
+                <g>
+                  <rect x="28" y="26" rx="14" ry="14" width="90" height="64" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.15)"/>
+                  <rect x="184" y="36" rx="14" ry="14" width="88" height="58" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.15)"/>
+                  <rect x="92" y="110" rx="16" ry="16" width="116" height="72" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.15)"/>
+                  <circle cx="70" cy="58" r="10" fill="#f59e0b"/>
+                  <circle cx="222" cy="66" r="10" fill="#22c55e"/>
+                  <circle cx="150" cy="140" r="12" fill="#6366f1"/>
+                </g>
+                <g transform="translate(140,90) rotate(-18)">
+                  <path d="M0 0 C 30 -8, 60 -8, 100 0 C 86 20, 86 40, 100 60 C 60 68, 30 68, 0 60 C 14 40, 14 20, 0 0 Z" fill="url(#g1)" stroke="rgba(255,255,255,.35)"/>
+                  <circle cx="50" cy="32" r="12" fill="rgba(255,255,255,.35)"/>
+                  <path d="M-2 58 L -20 76 C -10 78, 4 74, 10 66 Z" fill="#ef4444" opacity=".85"/>
+                </g>
+                <g fill="#fff">
+                  <circle cx="30" cy="30" r="1.5" opacity=".7"/>
+                  <circle cx="268" cy="48" r="1.5" opacity=".7"/>
+                  <circle cx="256" cy="12" r="1.2" opacity=".5"/>
+                  <circle cx="210" cy="100" r="1.2" opacity=".5"/>
+                  <circle cx="66" cy="96" r="1.2" opacity=".5"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="mt-7 flex items-center justify-end gap-3 fade-up-4">
+            <button type="button" class="btn btn-ghost" @click="closeWelcome()">Продолжить</button>
+          </div>
+        </div>
+        <!-- /modal-body -->
+      </div>
+    </div>
+  </div>
+
+</section>
 {% endblock %}

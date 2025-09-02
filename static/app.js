@@ -1,6 +1,88 @@
+// === Telegram linking component (вынесено вверх, чтобы Alpine видел его сразу) ===
+window.TELEGRAM_BOT_USERNAME = window.TELEGRAM_BOT_USERNAME || "{{ TELEGRAM_BOT_USERNAME }}";
+
+window.tgLinker = function(){
+  return {
+    state: { linked:false, chat_id:null, code:null, bot_username:(window.TELEGRAM_BOT_USERNAME || null) },
+    loading:false, _pollTimer:null, _pollUntil:0,
+    async init(){ await this.fetchStatus(); },
+    async fetchStatus(){
+      try{
+        const r = await fetch('/api/telegram/status', { credentials:'same-origin' });
+        const j = await r.json().catch(()=>({}));
+        if(j && j.ok){
+          this.state.linked = !!j.data?.linked;
+          this.state.chat_id = j.data?.chat_id || null;
+          this.state.bot_username = j.data?.bot_username || this.state.bot_username;
+          if(this.state.linked) this._stopPolling();
+        }
+      }catch(_e){}
+    },
+    botDeepLink(){
+      const u = this.state.bot_username || (typeof TELEGRAM_BOT_USERNAME !== 'undefined' ? TELEGRAM_BOT_USERNAME : '');
+      const code = this.state.code ? encodeURIComponent(this.state.code) : '';
+      return u ? `https://t.me/${u}${code ? `?start=${code}` : ''}` : 'https://t.me/';
+    },
+    async generate(){
+      if (this.loading) return;
+      this.loading = true;
+      try{
+        const r = await fetch('/api/telegram/generate', { method:'POST', credentials:'same-origin' });
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok || !j.ok) throw new Error(j.error || 'Не удалось сгенерировать код');
+        this.state.code = j.code;
+        this._startPolling(60_000, 3000);
+      }catch(e){
+        try { Alpine.store('toasts')?.push({title:'Telegram', text:e.message || 'Ошибка', emoji:'⚠️'}); } catch(_){}
+      }finally{ this.loading = false; }
+    },
+    async copyCode(){
+      try{
+        if (!this.state.code) return;
+        await navigator.clipboard.writeText(this.state.code);
+        Alpine.store('toasts')?.push({title:'Telegram', text:'Код скопирован', emoji:'📋'});
+      }catch(_e){}
+    },
+    async resetLink(){
+      if(!confirm('Сбросить привязку Telegram?')) return;
+      this.loading = true;
+      try{
+        const r = await fetch('/api/telegram/reset', { method:'POST', credentials:'same-origin' });
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok || !j.ok) throw new Error(j.error || 'Не удалось сбросить привязку');
+        this.state.linked = false; this.state.chat_id = null; this.state.code = null;
+        Alpine.store('toasts')?.push({title:'Telegram', text:'Привязка сброшена', emoji:'ℹ️'});
+      }catch(e){
+        Alpine.store('toasts')?.push({title:'Telegram', text:e.message || 'Ошибка', emoji:'⚠️'});
+      }finally{ this.loading = false; }
+    },
+    _startPolling(totalMs=60000, stepMs=3000){
+      this._stopPolling(); this._pollUntil = Date.now() + totalMs;
+      this._pollTimer = setInterval(async ()=>{
+        await this.fetchStatus();
+        if(this.state.linked || Date.now() > this._pollUntil){ this._stopPolling(); }
+      }, stepMs);
+    },
+    _stopPolling(){ if(this._pollTimer){ clearInterval(this._pollTimer); this._pollTimer = null; } }
+  }
+};
+
+// Надёжная регистрация компонента для обоих кейсов (Alpine уже есть / только инициализируется)
+(function registerTgLinker(){
+  function reg(){
+    try{
+      if (typeof window.tgLinker === 'function' && window.Alpine?.data) {
+        Alpine.data('tgLinker', window.tgLinker);
+      }
+    }catch(_){}
+  }
+  if (window.Alpine) reg();
+  window.addEventListener('alpine:init', reg);
+})();
+
 
 // ======================== Alpine stores: toasts & fx =========================
-window.addEventListener('alpine:init', () => {
+document.addEventListener('alpine:init', () => {
   // Toasts
   Alpine.store('toasts', {
     id: 1,
@@ -45,12 +127,11 @@ window.addEventListener('alpine:init', () => {
       Alpine.store('toasts').push({title:'+XP', text:'Начислены очки', emoji:'🪙'});
     }
   });
-});
 
-Alpine.store('auth', {
+  // Auth store
+  Alpine.store('auth', {
     user: null,
     loading: false,
-
     async refresh(){
       try{
         this.loading = true;
@@ -65,14 +146,10 @@ Alpine.store('auth', {
         this.loading = false;
       }
     },
-
     setUser(u){
       this.user = u;
-      // 1) Обновляем навбар без перезагрузки
       try { hydrateAuthNav(u); } catch(_) {}
-      // 2) Рендерим правый профильный блок на онбординге (со следующего шага)
       try { renderOnboardingProfileAside(u); } catch(_) {}
-      // 3) Сообщаем наружу
       window.dispatchEvent(new CustomEvent('auth:updated', { detail: u }));
     }
   });
@@ -92,32 +169,25 @@ function hydrateAuthNav(user){
 
   if(!nav) return;
 
-  // Если пользователь не залогинен — ничего не трогаем,
-  // (пусть остаются ссылки Войти/Регистрация)
+  // Если пользователь не залогинен — ничего не трогаем
   if(!user || !user.id) return;
 
   // Пытаемся найти блок авторизации и заменить его на профиль-мини
-  // Вариант 1: есть отдельный контейнер
   let slot =
     nav.querySelector('[data-auth-slot]') ||
     nav.querySelector('#auth-slot') ||
     nav;
 
-  // Вычисляем аватар
   const avatarSrc = `/avatar_svg/${user.id}?preview_level=2`;
   const name = (user.display_name || user.email || 'Профиль')
                 .toString().replace(/</g,'&lt;');
 
   const html = `
-    <a href="/profile" class="flex items-center gap-3 group"
-       title="Открыть профиль" data-user-badge>
-      <img src="${avatarSrc}" alt="avatar" class="w-9 h-9 rounded-full ring-1 ring-black/10 dark:ring-white/10">
-      <div class="flex flex-col leading-tight">
-        <span class="font-semibold group-hover:underline">${name}</span>
-        <span class="text-xs text-slate-500">LVL ${user.level ?? 1} • ${user.coins ?? 0} coins</span>
-      </div>
-    </a>
-  `;
+    <a href="/profile" data-user-badge class="flex items-center gap-2 group" style="text-decoration:none">
+      <img src="${avatarSrc}" alt="" width="28" height="28"
+           style="border-radius:9999px;border:1px solid rgba(255,255,255,.15)" />
+      <span class="text-sm">${name}</span>
+    </a>`.trim();
 
   // Пробуем убрать ссылки входа/регистрации (если есть)
   [...slot.querySelectorAll('a[href="/login"], a[href="/register"]')]
@@ -128,7 +198,6 @@ function hydrateAuthNav(user){
   if(badge){
     badge.outerHTML = html;
   } else {
-    // Вставим справа
     const wrap = document.createElement('div');
     wrap.innerHTML = html.trim();
     slot.appendChild(wrap.firstChild);
@@ -137,77 +206,72 @@ function hydrateAuthNav(user){
 
 // ---------------- Onboarding right-side profile (floating) -------------------
 function renderOnboardingProfileAside(user){
-  // Показываем блок только если мы на странице онбординга
-  const onbRoot = document.querySelector('[data-onboarding-root]') || document.getElementById('onboarding-root') || document.querySelector('[data-page="onboarding"]');
+  const onbRoot =
+    document.querySelector('[data-onboarding-root]') ||
+    document.getElementById('onboarding-root') ||
+    document.querySelector('[data-page="onboarding"]');
   if(!onbRoot) return;
 
-  // Если нет пользователя — убираем сайдбар (например, до шага регистрации)
-  let aside = document.getElementById('onb-profile-aside');
+  const ASIDE_ID = 'onb-profile-aside';
+  let aside = document.getElementById(ASIDE_ID);
+
+  // Нет пользователя — убираем панель
   if(!user || !user.id){
-    if(aside) aside.remove();
+    if(aside){
+      try { _onbAsideRemovePadding?.(aside); } catch(_) {}
+      aside.remove();
+    }
     return;
   }
 
-  // Создаём/обновляем панель
+  // Данные
   const avatarSrc = `/avatar_svg/${user.id}?preview_level=2`;
   const xp = user.xp ?? 0;
   const lvl = user.level ?? 1;
   const coins = user.coins ?? 0;
-  const nextXp = (user.next_level_xp ?? (lvl * 100)); // если бэк не вернул — прикинем
+  const nextXp = user.next_level_xp ?? (lvl * 100);
   const pct = Math.max(0, Math.min(100, Math.round((xp / nextXp) * 100)));
 
+  const safeName = String(user.display_name || user.email || 'Профиль').replace(/</g, '&lt;');
+
   const panelHtml = `
-    <aside id="onb-profile-aside"
-           class="hidden lg:block fixed right-6 top-24 z-40 w-80 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 backdrop-blur shadow-xl p-5">
+    <aside id="${ASIDE_ID}" data-onb-aside
+           class="hidden lg:block fixed right-6 top-24 z-40 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 backdrop-blur shadow-xl p-5"
+           style="width:clamp(280px,22vw,360px)">
       <div class="flex items-center gap-3 mb-4">
         <img src="${avatarSrc}" class="w-14 h-14 rounded-full ring-1 ring-black/10 dark:ring-white/10" alt="avatar">
         <div>
-          <div class="font-semibold text-slate-900 dark:text-white">
-            ${(user.display_name || user.email || 'Профиль').toString().replace(/</g,'&lt;')}
-          </div>
-          <div class="text-xs text-slate-500">LVL ${lvl}</div>
+          <div class="font-semibold text-slate-900 dark:text-white">${safeName}</div>
+          <div class="text-xs text-slate-600 dark:text-slate-400">Уровень ${lvl} • ${xp} / ${nextXp} XP</div>
         </div>
       </div>
 
-      <div class="mb-3">
-        <div class="flex justify-between text-xs text-slate-500 mb-1">
-          <span>Опыт</span><span>${xp} / ${nextXp}</span>
-        </div>
-        <div class="h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-          <div class="h-2 bg-indigo-500" style="width:${pct}%"></div>
-        </div>
+      <div class="mt-2 h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden" role="progressbar"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Прогресс уровня">
+        <div class="h-full" style="width:${pct}%; background:linear-gradient(90deg,#6366f1,#22d3ee,#34d399)"></div>
       </div>
 
-      <div class="flex items-center justify-between py-2">
-        <div class="text-sm">Coins</div>
-        <div class="font-semibold">${coins}</div>
-      </div>
-
-      <div class="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
-        <a href="/profile" class="rounded-lg px-3 py-2 bg-slate-100/70 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-center">Профиль</a>
-        <a href="/achievements" class="rounded-lg px-3 py-2 bg-slate-100/70 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-center">Ачивки</a>
-        <a href="/store" class="rounded-lg px-3 py-2 bg-slate-100/70 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-center">Магазин</a>
-        <a href="/training" class="rounded-lg px-3 py-2 bg-slate-100/70 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-center">Курсы</a>
-      </div>
+      <div class="mt-3 text-sm text-slate-700 dark:text-slate-300">🪙 Coins: <b>${coins}</b></div>
     </aside>
   `;
 
-  if(!aside){
-    const wrap = document.createElement('div');
-    wrap.innerHTML = panelHtml.trim();
-    document.body.appendChild(wrap.firstChild);
-  } else {
+  if (aside) {
     aside.outerHTML = panelHtml;
+    aside = document.getElementById(ASIDE_ID);
+  } else {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = panelHtml;
+    document.body.appendChild(wrap.firstElementChild);
   }
 }
 
 // ---------------- Helper: call after onboarding registration step -----------
 window.addEventListener('onboarding:registered', async () => {
-  // Перечитываем /api/me (сессия уже установлена на шаге регистрации)
   if(window.Alpine?.store('auth')){
     await Alpine.store('auth').refresh();
   }
 });
+
 // Глобальный помощник тостов (используется везде)
 window.toast = function(msg, opts){
   try {
@@ -221,7 +285,7 @@ window.toast = function(msg, opts){
 };
 
 // ========================= Публичный онбординг (РАСШИРЕННАЯ ВЕРСИЯ) ==========================
-window.OnboardingPage = window.OnboardingPage = function (slug, isAuth = false) {
+window.OnboardingPage = function (slug, isAuth = false) {
   return {
     /* -------- Состояние -------- */
     slug,
@@ -237,7 +301,7 @@ window.OnboardingPage = window.OnboardingPage = function (slug, isAuth = false) 
     emptyFlow: false,
     selectedKeys: [],
 
-/* Регистрация (расширенная) */
+    /* Регистрация (расширенная) */
     regName: "", regEmail: "", regPassword: "",
     regGender: null, regTermsAccepted: false,
 
@@ -256,8 +320,7 @@ window.OnboardingPage = window.OnboardingPage = function (slug, isAuth = false) 
     currentUserId: null,
     avatarIntro: false,
 
-/* Приветственная модалка/компания */
-
+    /* Приветственная модалка/компания */
     showWelcome: false,
     companyTitle: "",
     companySlug: "",
@@ -270,80 +333,75 @@ window.OnboardingPage = window.OnboardingPage = function (slug, isAuth = false) 
 
     /* -------- Инициализация -------- */
     async start() {
-  this.companySlug = this.slug || "";
-  this.openWelcome();
-  this.resolveCompanyTitle().catch(()=>{});
+      this.companySlug = this.slug || "";
+      this.openWelcome();
+      this.resolveCompanyTitle().catch(()=>{});
 
-  try {
-    const r = await fetch('/api/reg/start', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ slug: this.slug })
-    });
+      try {
+        const r = await fetch('/api/reg/start', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ slug: this.slug })
+        });
 
-    // 🔒 Только для новеньких: сервер вернул 403 — онбординг уже пройден
-    if (r.status === 403) {
-      const j = await r.json().catch(()=>({}));
-      this.toast(j.description || 'Онбординг уже пройден');
-      // мягкий редирект в профиль (или главную)
-      setTimeout(()=>{ window.location.href = '/profile'; }, 1000);
-      return;
-    }
+        // 🔒 Только для новеньких: сервер вернул 403 — онбординг уже пройден
+        if (r.status === 403) {
+          const j = await r.json().catch(()=>({}));
+          this.toast(j.description || 'Онбординг уже пройден');
+          setTimeout(()=>{ window.location.href = '/profile'; }, 1000);
+          return;
+        }
 
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.description || 'Ошибка старта');
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.description || 'Ошибка старта');
 
-    this.sessionId = j.session_id;
+        this.sessionId = j.session_id;
 
-    // Название/slug компании из ответа (если пришли)
-    const fromStartName =
-      (j.company && j.company.name) || j.company_name ||
-      (j.flow && j.flow.company && j.flow.company.name) || j.flow_company_name || "";
-    if (fromStartName && !this.companyTitle) this.companyTitle = fromStartName;
+        const fromStartName =
+          (j.company && j.company.name) || j.company_name ||
+          (j.flow && j.flow.company && j.flow.company.name) || j.flow_company_name || "";
+        if (fromStartName && !this.companyTitle) this.companyTitle = fromStartName;
 
-    const fromStartSlug =
-      (j.company && j.company.slug) || j.company_slug ||
-      (j.flow && j.flow.company && j.flow.company.slug) || j.flow_company_slug || "";
-    if (fromStartSlug) this.companySlug = fromStartSlug;
+        const fromStartSlug =
+          (j.company && j.company.slug) || j.company_slug ||
+          (j.flow && j.flow.company && j.flow.company.slug) || j.flow_company_slug || "";
+        if (fromStartSlug) this.companySlug = fromStartSlug;
 
-    if (j.next_step) {
-      this.currentStep = j.next_step;
-      this.stepsCache = [j.next_step.id];
+        if (j.next_step) {
+          this.currentStep = j.next_step;
+          this.stepsCache = [j.next_step.id];
 
-      if (this.currentStep?.type === 'first_assignment' && !this.interview) {
-        this.loadInterview().catch(()=>{});
+          if (this.currentStep?.type === 'first_assignment' && !this.interview) {
+            this.loadInterview().catch(()=>{});
+          }
+          if (this.currentStep.type === 'ask_input') {
+            this.regStage.active = true;
+            this.regStage.startedFromStepId = this.currentStep.id;
+            this.stage = 2;
+          } else {
+            this.stage = 1;
+          }
+        } else {
+          this.emptyFlow = true;
+          this.currentStep = null;
+          this.stepsCache = [];
+        }
+      } catch (e) {
+        this.toast(e.message);
       }
-      if (this.currentStep.type === 'ask_input') {
-        this.regStage.active = true;
-        this.regStage.startedFromStepId = this.currentStep.id;
-        this.stage = 2;
-      } else {
-        this.stage = 1;
-      }
-    } else {
-      this.emptyFlow = true;
-      this.currentStep = null;
-      this.stepsCache = [];
-    }
-  } catch (e) {
-    this.toast(e.message);
-  }
-},
+    },
 
-
-/* -------- Методы UI / helpers -------- */
-    // Тосты: используем твой глобальный window.toast
+    /* -------- Методы UI / helpers -------- */
     toast(msg, opts){ try { window.toast(msg, opts); } catch(_) { alert(msg); } },
 
     // ➕ новое: мгновенная перерисовка аватара (cache-busting)
     refreshAvatar(){
-  if(!this.currentUserId) return;
-  this.avatarUrl = `/avatar_svg/${this.currentUserId}?t=${Date.now()}`;
-},
-avatarPreview(g){
-  return `/avatar_svg/preview?gender=${encodeURIComponent(g)}`;
-},
-
+      if(!this.currentUserId) return;
+      this.avatarUrl = `/avatar_svg/${this.currentUserId}?t=${Date.now()}`;
+    },
+    avatarPreview(g){
+      return `/avatar_svg/preview?gender=${encodeURIComponent(g)}`;
+    },
 
     // ➕ новое: мягкая интро-анимация появления панели
     animateAvatarIntro(){
@@ -359,7 +417,7 @@ avatarPreview(g){
 
     async registerFromSection() {
       if (!this.regGender) { this.toast('Пожалуйста, выберите вашего персонажа', { title:'Внимание' }); return; }
-      if (!this.regName || !this.regEmail || !this.regPassword) ...Заполните имя, email и пароль', { title:'Внимание' }); return; }
+      if (!this.regName || !this.regEmail || !this.regPassword) { this.toast('Заполните имя, email и пароль', { title:'Внимание' }); return; }
       if (!this.regTermsAccepted) { this.toast('Необходимо принять условия оферты', { title:'Внимание' }); return; }
 
       try {
@@ -392,14 +450,12 @@ avatarPreview(g){
         this.toast('Аккаунт создан! Добро пожаловать!', { title: 'Успех', emoji: '🎉' });
 
         await this.submitStep({});
-
       } catch (e) {
         this.toast(e.message, { title: 'Ошибка регистрации' });
       }
     },
 
-
-    // Пакетная отправка последовательных ask_input шагов
+    // Пакетная отправка ask_input шагов
     async submitBulkRegistration() {
       if (!this.regStage.active) {
         this.regStage.active = true;
@@ -446,7 +502,7 @@ avatarPreview(g){
       } catch (e) { this.toast(e.message); }
     },
 
-    /* Переходы между шагами (фикс: добавляем reg_session_id) */
+    /* Переходы между шагами */
     async submitStep(payload) {
       try {
         const r = await fetch(`/api/reg/step/${this.currentStep.id}/submit`, {
@@ -460,7 +516,7 @@ avatarPreview(g){
         this.xp = j.xp || 0;
         this.inputValue = "";
 
-        this.refreshAvatar(); // ➕ перерисовка после изменения стейта
+        this.refreshAvatar();
 
         if (j.next_step) {
           this.currentStep = j.next_step;
@@ -489,12 +545,11 @@ avatarPreview(g){
         if (!r.ok) throw new Error(j.description || 'Ошибка финала');
         this.coins = j.coins_total || this.coins;
         this.prizes = j.prizes || [];
-        this.refreshAvatar(); // ➕
+        this.refreshAvatar();
       } catch(e) { this.toast(e.message); }
     },
 
-
-async pickReward(itemId, cost) {
+    async pickReward(itemId, cost) {
       try {
         const r = await fetch(`/api/reg/reward/pick`, {
           method:'POST', headers:{'Content-Type':'application/json'},
@@ -504,7 +559,7 @@ async pickReward(itemId, cost) {
         if (!r.ok) throw new Error(j.description || 'Нельзя выбрать приз');
         this.picked = true;
         this.coins = this.coins - (cost || 0);
-        this.refreshAvatar(); // ➕ мгновенно перерисуем
+        this.refreshAvatar();
         this.toast('Приз выбран!', {emoji:'🎁'});
       } catch(e) { this.toast(e.message); }
     },
@@ -519,47 +574,38 @@ async pickReward(itemId, cost) {
     },
 
     async finishAndRegister() {
-  if (!this.prizes.length) await this.finish();
+      if (!this.prizes.length) await this.finish();
 
-  if (!this.regName || !this.regEmail || !this.regPassword) {
-    this.toast('Заполните имя, email и пароль', { title:'Внимание' });
-    return;
-  }
-  if (!this.regGender) {
-    this.toast('Пожалуйста, выберите вашего персонажа', { title:'Внимание' });
-    return;
-  }
-  if (!this.regTermsAccepted) {
-    this.toast('Необходимо принять условия оферты', { title:'Внимание' });
-    return;
-  }
+      if (!this.regName || !this.regEmail || !this.regPassword) {
+        this.toast('Заполните имя, email и пароль', { title:'Внимание' }); return;
+      }
+      if (!this.regGender) { this.toast('Пожалуйста, выберите вашего персонажа', { title:'Внимание' }); return; }
+      if (!this.regTermsAccepted) { this.toast('Необходимо принять условия оферты', { title:'Внимание' }); return; }
 
-  try {
-    const r = await fetch('/api/auth/register', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        email: this.regEmail,
-        password: this.regPassword,
-        display_name: this.regName,
-        reg_session_id: this.sessionId,
-        gender: this.regGender
-      })
-    });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.description || 'Ошибка регистрации');
+      try {
+        const r = await fetch('/api/auth/register', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            email: this.regEmail,
+            password: this.regPassword,
+            display_name: this.regName,
+            reg_session_id: this.sessionId,
+            gender: this.regGender
+          })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.description || 'Ошибка регистрации');
 
-    const user = j.user || {};
-    this.currentUserId = user.id || 0;
-    this.userNameForAvatar = user.display_name || this.regName;
+        const user = j.user || {};
+        this.currentUserId = user.id || 0;
+        this.userNameForAvatar = user.display_name || this.regName;
 
-    this.refreshAvatar();
-    this.animateAvatarIntro(); // показываем правую панель с приветственной анимацией
+        this.refreshAvatar();
+        this.animateAvatarIntro();
 
-    this.toast('Аккаунт создан и привязан к компании!', {emoji:'✅'});
-    // остаёмся на этой странице без редиректа
-  } catch(e) { this.toast(e.message); }
-},
-
+        this.toast('Аккаунт создан и привязан к компании!', {emoji:'✅'});
+      } catch(e) { this.toast(e.message); }
+    },
 
     /* -------- Утилиты -------- */
     async resolveCompanyTitle(){
@@ -586,7 +632,7 @@ async pickReward(itemId, cost) {
 
     companyLink(){ return this.companySlug ? `/company/${this.companySlug}` : '#'; },
 
-    // Приветственная модалка + локальный канвас-конфетти (без зависимостей)
+    // Приветственная модалка + локальный канвас-конфетти
     openWelcome(){
       this.showWelcome = true;
       document.body.style.overflow = 'hidden';
@@ -783,34 +829,34 @@ function partnerCompanyPageLegacy(companyId) {
     inviteModal: false,
     invite: null,
 
-    // --- вкладки/кнопки в правой колонке и левой части (чтобы Alpine-переменные существовали)
+    // --- вкладки/кнопки
     tab: 'feed',
     tabBtn(kind){
       return `px-3 py-1 rounded-lg border ${this.tab===kind ? 'bg-white/10 border-white/20' : 'border-white/10 hover:bg-white/5'}`;
     },
 
-    // --- лента компании
-    canPost: false,        // выставь true по своей логике прав
+    // --- лента
+    canPost: false,
     newPost: '',
     newPostPreview: '',
     newPinned: false,
     feed: [],
 
-    // --- задачи компании
-    canCreateTasks: false, // выставь true по своей логике прав
+    // --- задачи
+    canCreateTasks: false,
     tasks: [],
     taskModal: {
       open: false,
-      mode: 'create', // 'create' | 'edit'
+      mode: 'create',
       form: {
         id: null,
         title: '',
         description: '',
         points_xp: 0,
         coins: 0,
-        priority: 'normal',     // 'low' | 'normal' | 'high'
+        priority: 'normal',
         require_proof: false,
-        _due_date: '',          // строка даты для инпута
+        _due_date: '',
         reward_achievement_id: null,
       },
       members: [],
@@ -820,7 +866,7 @@ function partnerCompanyPageLegacy(companyId) {
 
     async init() {
       try {
-        if (!this.companyId) return; // <- не делаем запрос без id
+        if (!this.companyId) return;
         await this.loadDashboard();
       } catch (e) {
         console.error(e);
@@ -875,7 +921,7 @@ function partnerCompanyPageLegacy(companyId) {
       try { await navigator.clipboard.writeText(text); } catch (e) {}
     },
 
-    // --- заглушки (если шаблон уже вызывает эти методы — чтобы не падал)
+    // --- заглушки
     async loadFeed(){ /* наполни feed */ },
     async loadTasks(){ /* наполни tasks */ },
     async checkCanPost(){ return false; },
@@ -885,11 +931,9 @@ function partnerCompanyPageLegacy(companyId) {
 
 // ================== Partner page with Onboarding builder =====================
 window.partnerCompanyPage = function(companyId){
-  // Берём id как есть — без «умной» нормализации
   const base = partnerCompanyPageLegacy(companyId);
   const baseInit = base.init ? base.init.bind(base) : async () => {};
 
-  // Дополняем конструктором онбординга
   const addon = {
     // === Онбординг ===
     onb: {
@@ -904,8 +948,8 @@ window.partnerCompanyPage = function(companyId){
     formStep: { id:null, type:'intro_page', title:'', ask_field:'', coins_award:0, xp_award:0, body_md:'', cfg_date_time:'', cfg_location:'', cfg_message:'' },
 
     async init(){
-      await baseInit();            // сначала стандартная инициализация
-      await this.loadFlows();      // затем онбординг-флоу
+      await baseInit();
+      await this.loadFlows();
     },
 
     async loadFlows(){
@@ -1108,10 +1152,162 @@ window.partnerCompanyPage = function(companyId){
     }
   };
 
-  // Собираем объект
   const obj = Object.assign(base, addon);
   return obj;
 };
+
+// === HOTFIX: дополнение partnerCompanyPage под привязки из шаблона ===
+(function(){
+  const orig = window.partnerCompanyPage;
+  if (!orig) return;
+
+  window.partnerCompanyPage = function(companyId){
+    const vm = orig(companyId);
+
+    // Состояние, которого не хватало
+    vm.onbLoading = false;
+    vm.onbDrawer  = vm.onbDrawer  || { open: false };
+    vm.optDrawer  = vm.optDrawer  || { open: false };
+
+    vm.onb = vm.onb || {};
+    vm.onb.statsOpen      = vm.onb.statsOpen      || false;
+    vm.onb.stats          = vm.onb.stats          || null;
+    vm.onb.sessions       = vm.onb.sessions       || null;
+    vm.onb.sessionsQuery  = vm.onb.sessionsQuery  || '';
+    vm.onb.statsDays      = vm.onb.statsDays      || 30;
+    vm.onb.onlyActive     = vm.onb.onlyActive     || false;
+    vm.onb.onlyCompleted  = vm.onb.onlyCompleted  || false;
+    vm.onb.optEditor      = vm.onb.optEditor      || null;
+
+    vm.youtubeEmbed = vm.youtubeEmbed || function(u){
+      try{
+        if(!u) return '';
+        const m1 = u.match(/youtu\.be\/([\w-]+)/);
+        const m2 = u.match(/[?&]v=([\w-]+)/);
+        const id = (m1 && m1[1]) || (m2 && m2[1]) || '';
+        return id ? `https://www.youtube.com/embed/${id}` : u;
+      }catch(e){ return u; }
+    };
+
+    // Дроверы
+    vm.openOnbDrawer  = vm.openOnbDrawer  || function(){
+      this.onbDrawer.open = true;
+      document.body.style.overflow = 'hidden';
+      if(!this.onb.flows?.length) this.loadFlows();
+    };
+    vm.closeOnbDrawer = vm.closeOnbDrawer || function(){
+      this.onbDrawer.open = false;
+      document.body.style.overflow = '';
+    };
+    vm.openFlowStats  = vm.openFlowStats  || function(flowId){
+      if(!flowId) return;
+      this.onb.statsOpen = true;
+      this.onb.optEditor = null;
+      this.optDrawer.open = true;
+      this.loadFlowStats(flowId);
+      this.loadFlowSessions(flowId, 1);
+    };
+    vm.closeOptDrawer = vm.closeOptDrawer || function(){
+      this.optDrawer.open = false;
+      this.onb.optEditor = null;
+      this.onb.statsOpen = false;
+    };
+
+    // Оборачиваем loadFlows индикатором
+    if (typeof vm.loadFlows === 'function'){
+      const _loadFlows = vm.loadFlows.bind(vm);
+      vm.loadFlows = async function(){
+        this.onbLoading = true;
+        try { await _loadFlows(); }
+        finally { this.onbLoading = false; }
+      };
+    }
+
+    // Статистика и сессии
+    vm.loadFlowStats = vm.loadFlowStats || async function(flowId){
+      try{
+        const r = await fetch(`/api/partners/onboarding/flows/${flowId}/stats?days=${this.onb.statsDays}`);
+        const j = await r.json();
+        this.onb.stats = j;
+      }catch(e){ toast(e.message); }
+    };
+    vm.loadFlowSessions = vm.loadFlowSessions || async function(flowId, page=1){
+      try{
+        const p = new URLSearchParams();
+        p.set('days', String(this.onb.statsDays||30));
+        p.set('page', String(page||1));
+        p.set('per_page','20');
+        if(this.onb.sessionsQuery?.trim()) p.set('q', this.onb.sessionsQuery.trim());
+        if(this.onb.onlyActive && !this.onb.onlyCompleted) p.set('only_active','1');
+        if(this.onb.onlyCompleted && !this.onb.onlyActive) p.set('only_completed','1');
+        const r = await fetch(`/api/partners/onboarding/flows/${flowId}/sessions?`+p.toString());
+        const j = await r.json();
+        this.onb.sessions = j;
+      }catch(e){ toast(e.message); }
+    };
+    vm.debouncedLoadSessions = vm.debouncedLoadSessions || function(){
+      clearTimeout(this._debSess);
+      this._debSess = setTimeout(()=>{
+        if(this.onb.activeFlow?.id) this.loadFlowSessions(this.onb.activeFlow.id, 1);
+      }, 350);
+    };
+
+    // Тумблеры активности
+    vm.setFlowActive = vm.setFlowActive || (async function(flow, value){
+      try{
+        const r = await fetch(`/api/partners/onboarding/flows/${flow.id}`, {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ is_active: !!value })
+        });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.description||'Ошибка');
+        flow.is_active = !!value;
+      }catch(e){ toast(e.message); }
+    });
+    vm.toggleStepActive = vm.toggleStepActive || (async function(s, checked){
+      try{
+        const r = await fetch(`/api/partners/onboarding/steps/${s.id}`, {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ is_active: !!checked })
+        });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.description||'Ошибка');
+        s.is_active = !!checked;
+      }catch(e){ toast(e.message); }
+    });
+
+    // Левый редактор опции
+    vm.editOption = vm.editOption || function(o, stepId){
+      this.onb.statsOpen = false;
+      this.optDrawer.open = true;
+      this.onb.optEditor = {
+        step_id: stepId,
+        id: (o.id || o.option_id || null),
+        key: o.key || o.slug || '',
+        title: o.title || '',
+        body_md: o.body_md || '',
+        media_url: o.media_url || ''
+      };
+    };
+    vm.saveOption = vm.saveOption || async function(){
+      const e = this.onb.optEditor;
+      if(!e?.id){ toast('ID опции не найден'); return; }
+      try{
+        const r = await fetch(`/api/partners/onboarding/options/${e.id}`, {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ title:e.title, body_md:e.body_md||null, media_url:e.media_url||null })
+        });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.description || 'Не удалось обновить опцию');
+        toast('Опция обновлена');
+        this.closeOptDrawer();
+        if(this.onb.activeFlow?.id) await this.openFlow(this.onb.activeFlow.id);
+      }catch(err){ toast(err.message); }
+    };
+
+    return vm;
+  };
+})();
 
 // =============== Кнопка с состоянием загрузки (Alpine data) =================
 document.addEventListener('alpine:init', () => {
@@ -1148,7 +1344,7 @@ document.addEventListener('alpine:init', () => {
   function pushToast(opts) {
     var root = ensureToastRoot();
     var box = document.createElement('div');
-    box.style.background = 'rgba(15,23,42,0.92)'; // slate-900/90
+    box.style.background = 'rgba(15,23,42,0.92)';
     box.style.color = 'white';
     box.style.border = '1px solid rgba(255,255,255,0.1)';
     box.style.borderRadius = '12px';
@@ -1205,7 +1401,6 @@ document.addEventListener('alpine:init', () => {
 
 // =================== Reports Drawer (панель отчётов) =========================
 (function () {
-  // Работает на странице партнёра/компании. Требуется SJ_COMPANY_ID.
   var companyId = (typeof window.SJ_COMPANY_ID !== 'undefined' && window.SJ_COMPANY_ID)
     ? window.SJ_COMPANY_ID
     : (document.body && document.body.dataset && document.body.dataset.companyId ? document.body.dataset.companyId : null);
@@ -1408,8 +1603,7 @@ document.addEventListener('alpine:init', () => {
           toast(approve ? 'Зачтено' : 'Отклонено');
         }
       } catch (_) {}
-    }
- catch (e) {
+    } catch (e) {
       console.warn('review error', e);
       alert('Не удалось выполнить действие: ' + (e && e.message ? e.message : 'ошибка'));
     }

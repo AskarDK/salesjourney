@@ -4,113 +4,124 @@
 <section class="max-w-7xl mx-auto px-4 py-10" aria-labelledby="profile-title">
   <h1 id="profile-title" class="sr-only">Профиль пользователя</h1>
 
-  <div class="grid md:grid-cols-[320px,1fr] lg:grid-cols-[320px,1fr,320px] gap-8 items-start">
-
-    <!-- ЛЕВАЯ КОЛОНКА: карточка профиля -->
-    <aside class="relative rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6"
-           aria-label="Карточка профиля">
-
-      <!-- Кнопка-карандаш (открывает панель редактирования) -->
-      <button type="button"
-              class="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-lg
-                     border border-slate-300 dark:border-white/10
-                     hover:bg-black/5 dark:hover:bg-white/10
-                     focus:outline-none focus:ring focus:ring-indigo-500/30"
-              aria-label="Редактировать профиль"
-              @click="$dispatch('open-profile-editor')"
-              @keydown.enter.prevent="$dispatch('open-profile-editor')">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M16.862 3.487a2.25 2.25 0 013.182 3.182L7.5 19.313l-4.25.567.567-4.25L16.862 3.487z" />
-        </svg>
-      </button>
-
-      <!-- Аватар + имя/уровень -->
-      <div class="flex flex-col items-center">
-        <div class="relative">
+  <!-- HERO -->
+  <div class="relative mb-8 overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10">
+    <div class="absolute inset-0 bg-[radial-gradient(1200px_500px_at_0%_0%,rgba(99,102,241,.20),transparent_50%),radial-gradient(800px_400px_at_100%_100%,rgba(16,185,129,.18),transparent_50%)]"></div>
+    <div class="relative px-6 py-8 md:px-10">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div class="flex items-center gap-5">
           <img src="/avatar_svg/{{ user.id }}" alt="Аватар"
-               class="w-44 h-44 rounded-2xl ring-1 ring-slate-300 dark:ring-white/10 transition-all duration-300">
+               class="w-20 h-20 md:w-24 md:h-24 rounded-2xl ring-1 ring-black/10 dark:ring-white/10 bg-white/60 dark:bg-slate-900/60 backdrop-blur">
+          <div>
+            <div class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white" data-profile-name>
+              {{ user.display_name }}
+            </div>
+            <div class="mt-1 text-slate-600 dark:text-slate-300">
+              Уровень <b>{{ user.level }}</b> • ID #{{ user.id }}
+            </div>
+          </div>
         </div>
 
-        <div class="mt-4 text-center">
-          <div class="text-xl font-bold text-slate-900 dark:text-slate-100" data-profile-name>
-            {{ user.display_name }}
-          </div>
-          <div class="text-sm text-slate-600 dark:text-slate-400 mt-1">Уровень {{ user.level }}</div>
-
-          <!-- Прогресс XP -->
-          {% set pct = (user.xp / user_next_xp * 100) | round(1) %}
-          <div class="mt-3 w-full max-w-xs" aria-label="Прогресс опыта">
-            <div class="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden"
-                 role="progressbar"
-                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}"
-                 aria-valuetext="{{ pct }}%">
-              <div class="h-full bg-gradient-to-r from-indigo-400 via-cyan-300 to-emerald-300"
+        <!-- KPI pills -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div class="group rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-slate-900/50 px-4 py-3 backdrop-blur transition hover:shadow-md">
+            <div class="text-sm text-slate-500 dark:text-slate-400">Опыт</div>
+            {% set pct = (user.xp / user_next_xp * 100) | round(1) %}
+            <div class="mt-1 flex items-baseline gap-2">
+              <div class="text-xl font-bold">{{ user.xp }}</div>
+              <div class="text-xs text-slate-500">/ {{ user_next_xp }}</div>
+            </div>
+            <div class="mt-2 h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden" role="progressbar"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}" aria-valuetext="{{ pct }}%">
+              <div class="h-full w-0 bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 transition-[width] duration-1000 ease-out will-change-[width]"
                    style="width: {{ pct }}%"></div>
             </div>
-            <div class="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              XP: <span class="font-semibold">{{ user.xp }}</span> / {{ user_next_xp }} ({{ pct }}%)
-            </div>
           </div>
+          <div class="group rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-slate-900/50 px-4 py-3 backdrop-blur transition hover:shadow-md">
+            <div class="text-sm text-slate-500 dark:text-slate-400">Coins</div>
+            <div class="mt-1 text-xl font-bold">{{ user.coins }}</div>
+            <div class="text-xs text-slate-500">Магазин скинов</div>
+          </div>
+          <a href="/achievements"
+             class="rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-slate-900/50 px-4 py-3 backdrop-blur transition hover:shadow-md focus:outline-none focus:ring focus:ring-indigo-500/30">
+            <div class="text-sm text-slate-500 dark:text-slate-400">Ачивки</div>
+            <div class="mt-1 text-xl font-bold">Открыть 🏆</div>
+            <div class="text-xs text-slate-500">Посмотреть прогресс</div>
+          </a>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Статы и быстрые ссылки -->
-      <div class="mt-6 grid grid-cols-3 gap-3 text-center" aria-label="Статистика и быстрые действия">
-        <div class="rounded-xl bg-white/70 dark:bg-black/30 border border-slate-300 dark:border-white/10 p-3">
-          <div class="text-2xl">🪙</div>
-          <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ user.coins }}</div>
-          <div class="text-[11px] text-slate-600 dark:text-slate-400">Coins</div>
+  <!-- ТРИ КОЛОНКИ -->
+  <div class="grid md:grid-cols-[320px,1fr] lg:grid-cols-[320px,1fr,360px] gap-8 items-start">
+
+    <!-- ЛЕВАЯ: профиль + компания + аккаунт -->
+    <aside class="space-y-6">
+
+      <!-- Профильная карточка -->
+      <section class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6 backdrop-blur">
+        <header class="flex items-center justify-between">
+          <h2 class="text-lg font-bold">Профиль</h2>
+          <button type="button"
+                  class="inline-flex items-center gap-2 rounded-xl border border-slate-300 dark:border-white/10 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
+                  aria-label="Редактировать профиль"
+                  @click="$dispatch('open-profile-editor')">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 3.487a2.25 2.25 0 013.182 3.182L7.5 19.313l-4.25.567.567-4.25L16.862 3.487z"/></svg>
+            Редактировать
+          </button>
+        </header>
+
+        <div class="mt-4 grid grid-cols-3 gap-3 text-center">
+          <a href="/store"
+             class="group rounded-2xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-black/30 p-3 hover:shadow-md transition">
+            <div class="text-2xl">🛒</div>
+            <div class="text-sm font-semibold mt-1">Магазин</div>
+            <div class="text-[11px] text-slate-500">Бусты и скины</div>
+          </a>
+          <a href="/training"
+             class="group rounded-2xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-black/30 p-3 hover:shadow-md transition">
+            <div class="text-2xl">🎓</div>
+            <div class="text-sm font-semibold mt-1">Тренинг</div>
+            <div class="text-[11px] text-slate-500">Курсы и тесты</div>
+          </a>
+          <a href="/contests"
+             class="group rounded-2xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-black/30 p-3 hover:shadow-md transition">
+            <div class="text-2xl">🏁</div>
+            <div class="text-sm font-semibold mt-1">Конкурсы</div>
+            <div class="text-[11px] text-slate-500">Лидеры и туры</div>
+          </a>
         </div>
-        <a href="/achievements"
-           class="rounded-2xl bg-white/70 dark:bg-black/30 border border-slate-300 dark:border-white/10 p-3 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
-           aria-label="Ачивки">
-          <div class="text-2xl">🏆</div>
-          <div class="text-lg font-bold text-slate-900 dark:text-slate-100">ACH</div>
-          <div class="text-[11px] text-slate-600 dark:text-slate-400">Открыть</div>
-        </a>
-        <a href="/contests"
-           class="rounded-2xl bg-white/70 dark:bg-black/30 border border-slate-300 dark:border-white/10 p-3 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
-           aria-label="Конкурсы">
-          <div class="text-2xl">🏁</div>
-          <div class="text-lg font-bold text-slate-900 dark:text-slate-100">Tour</div>
-          <div class="text-[11px] text-slate-600 dark:text-slate-400">Открыть</div>
-        </a>
-      </div>
+      </section>
 
-      <!-- История прокачки -->
-      <button type="button"
-              class="mt-6 w-full text-center px-4 py-3 rounded-xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
-              @click="$dispatch('open-xp-history')">
-        История прокачки (XP / coins / ачивки)
-      </button>
-
-      <!-- Блок компании -->
-      <section class="mt-6 rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-black/30 p-4"
+      <!-- Компания -->
+      <section class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6 backdrop-blur"
                x-data="companyJoin()" x-init="init()" aria-labelledby="company-title">
-        <h2 id="company-title" class="text-sm font-semibold text-slate-800 dark:text-slate-200">Компания</h2>
+        <h2 id="company-title" class="text-lg font-bold">Компания</h2>
 
         <!-- Участник -->
         <template x-if="member">
-          <div class="mt-2">
-            <div class="text-sm text-slate-700 dark:text-slate-300">Вы состоите в компании</div>
-            <div class="mt-1 text-slate-900 dark:text-slate-100 font-semibold" x-text="company_name"></div>
-            <a href="/partner/company"
-               class="mt-3 inline-block px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30">
-              Открыть панель компании
-            </a>
+          <div class="mt-3">
+            <div class="rounded-xl bg-emerald-50/70 dark:bg-emerald-900/20 border border-emerald-200/70 dark:border-emerald-500/20 p-4">
+              <div class="text-sm text-emerald-900 dark:text-emerald-200">Вы состоите в компании</div>
+              <div class="mt-1 font-semibold" x-text="company_name"></div>
+              <a href="/partner/company"
+                 class="mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-300/60 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100/60 dark:hover:bg-emerald-800/30">
+                Открыть панель
+              </a>
+            </div>
           </div>
         </template>
 
         <!-- Заявка отправлена -->
         <template x-if="!member && pending">
-          <div class="mt-2">
-            <div class="text-sm font-semibold text-slate-800 dark:text-slate-200">Заявка отправлена</div>
-            <div class="mt-1 text-slate-700 dark:text-slate-300">Компания: <span class="font-semibold" x-text="company_name"></span></div>
+          <div class="mt-3 rounded-xl border border-amber-300/60 bg-amber-50/70 dark:bg-amber-900/20 p-4">
+            <div class="text-sm font-semibold text-amber-800 dark:text-amber-200">Заявка отправлена</div>
+            <div class="text-sm mt-1 text-slate-700 dark:text-slate-300">Компания: <span class="font-semibold" x-text="company_name"></span></div>
             <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Ожидает одобрения. Новую заявку отправить нельзя.</div>
             <div class="mt-3 flex gap-2">
               <button type="button" @click="cancel"
-                      class="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30">
+                      class="px-3 py-2 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-sm">
                 Отменить заявку
               </button>
             </div>
@@ -118,75 +129,191 @@
           </div>
         </template>
 
-        <!-- Нет компании и нет заявки — форма -->
+        <!-- Форма присоединения -->
         <template x-if="!member && !pending">
-          <form class="mt-2" @submit.prevent="submit" aria-label="Присоединиться к компании по коду">
-            <label class="block text-sm text-slate-700 dark:text-slate-300 mb-1">Присоединиться по коду</label>
+          <form class="mt-3 space-y-2" @submit.prevent="submit" aria-label="Присоединиться к компании по коду">
+            <label class="block text-sm text-slate-600 dark:text-slate-300">Код приглашения</label>
             <div class="flex gap-2">
-              <input x-model="code"
-                     inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="16"
+              <input x-model="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="16"
                      class="flex-1 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900/60
-                            text-slate-900 dark:text-slate-100 px-3 py-2 outline-none
-                            focus:ring focus:ring-indigo-500/30"
-                     placeholder="Напр. 9F3A2C1B" aria-label="Код компании">
+                            text-slate-900 dark:text-slate-100 px-3 py-2 outline-none focus:ring focus:ring-indigo-500/30"
+                     placeholder="Напр. 9F3A2C1B">
               <button type="submit"
                       class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold focus:outline-none focus:ring focus:ring-indigo-500/30"
                       :disabled="!code.trim()">
                 Отправить
               </button>
             </div>
-            <div class="text-xs text-slate-500 dark:text-slate-400 mt-2" x-text="status" aria-live="polite"></div>
+            <div class="text-xs text-slate-500 dark:text-slate-400" x-text="status" aria-live="polite"></div>
           </form>
         </template>
       </section>
+
+      <!-- Аккаунт -->
+      <section class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6 backdrop-blur"
+               aria-labelledby="account-title">
+        <h2 id="account-title" class="text-lg font-bold">Аккаунт</h2>
+        <dl class="mt-3 text-sm space-y-1">
+          <div class="flex justify-between gap-3"><dt class="text-slate-600 dark:text-slate-400">E-mail</dt><dd class="font-medium">{{ user.email }}</dd></div>
+          <div class="flex justify-between gap-3"><dt class="text-slate-600 dark:text-slate-400">Создан</dt><dd class="font-medium">{{ user.created_at }}</dd></div>
+        </dl>
+      </section>
     </aside>
 
-    <!-- ПРАВАЯ КОЛОНКА -->
+    <!-- ЦЕНТР: активности -->
     <div class="space-y-6">
 
       <!-- Добро пожаловать -->
-      <section class="rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6"
-               aria-labelledby="welcome-title">
-        <h2 id="welcome-title" class="text-2xl font-bold text-slate-900 dark:text-slate-100">
+      <section class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6 backdrop-blur">
+        <h2 class="text-xl md:text-2xl font-bold">
           Добро пожаловать, <span data-profile-name>{{ user.display_name }}</span>!
         </h2>
         <p class="text-slate-700 dark:text-slate-300 mt-2">
-          Здесь появятся твои квесты, активность и рекомендации.
-          Загляни в <a href="/training" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">Тренинг</a>,
-          <a href="/achievements" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">ачивки</a> или
-          проверь <a href="/contests" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">конкурсы</a>.
+          Здесь твои квесты, ачивки и активности. Загляни в
+          <a href="/training" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">Тренинг</a>,
+          <a href="/achievements" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">Ачивки</a>,
+          <a href="/contests" class="text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline">Конкурсы</a>.
         </p>
       </section>
 
-      <!-- Быстрые действия -->
-      <section class="grid md:grid-cols-2 gap-4" aria-label="Быстрые действия">
-        <a href="/store"
-           class="group rounded-2xl border border-slate-300 dark:border-white/10 p-5
-                  bg-gradient-to-br from-white/40 dark:from-white/0 to-white/80 dark:to-white/[0.03]
-                  hover:to-white/90 dark:hover:to-white/[0.06] focus:outline-none focus:ring focus:ring-indigo-500/30">
-          <div class="text-3xl mb-2" aria-hidden="true">🛒</div>
-          <div class="font-semibold text-slate-900 dark:text-slate-100">Магазин</div>
-          <div class="text-sm text-slate-700 dark:text-slate-400">Трать монеты на скины и бонусы</div>
-        </a>
-        <a href="/partner/company"
-           class="group rounded-2xl border border-slate-300 dark:border-white/10 p-5
-                  bg-gradient-to-br from-white/40 dark:from-white/0 to-white/80 dark:to-white/[0.03]
-                  hover:to-white/90 dark:hover:to-white/[0.06] focus:outline-none focus:ring focus:ring-indigo-500/30">
-          <div class="text-3xl mb-2" aria-hidden="true">📊</div>
-          <div class="font-semibold text-slate-900 dark:text-slate-100">Компания</div>
-          <div class="text-sm text-slate-700 dark:text-slate-400">Соревнования и сводки по отделу</div>
-        </a>
-      </section>
+      <!-- Лента активности -->
+      <section class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6 backdrop-blur"
+               aria-labelledby="activity-title" x-data="xpHistoryModal()" x-init="open()">
+        <div class="flex items-center justify-between gap-4">
+          <h2 id="activity-title" class="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400">Последнее</h2>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <button :class="tabBtn('all')" @click="filter='all'">Все</button>
+            <button :class="tabBtn('achievement')" @click="filter='achievement'">Ачивки</button>
+            <button :class="tabBtn('events')" @click="filter='events'">События</button>
+          </div>
+        </div>
 
-      <!-- Плейсхолдер активности -->
-      <section class="rounded-2xl border border-slate-300 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6"
-               aria-labelledby="activity-title">
-        <h2 id="activity-title" class="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2">Последнее</h2>
-        <div class="rounded-xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-black/30 p-4">
-          <div class="text-slate-700 dark:text-slate-400 text-sm">Здесь будет лента активности и персональные задания.</div>
+        <!-- skeleton -->
+        <div class="mt-4 grid gap-3" x-show="loading" x-cloak>
+          <div class="animate-pulse h-16 rounded-xl bg-slate-200/60 dark:bg-white/10"></div>
+          <div class="animate-pulse h-16 rounded-xl bg-slate-200/60 dark:bg-white/10"></div>
+          <div class="animate-pulse h-16 rounded-xl bg-slate-200/60 dark:bg-white/10"></div>
+        </div>
+
+        <div class="mt-4 max-h-[65vh] overflow-auto space-y-3 pr-1">
+          <template x-for="row in filtered" :key="row.key">
+            <article class="group flex items-start gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-black/30 p-3 transition hover:shadow-md">
+              <div class="text-2xl" x-text="row.emoji" aria-hidden="true"></div>
+              <div class="flex-1">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-semibold text-slate-900 dark:text-slate-100" x-text="row.title"></h3>
+                  <time class="text-xs text-slate-600 dark:text-slate-400" x-text="row.when"></time>
+                </div>
+                <p class="text-sm text-slate-700 dark:text-slate-300" x-text="row.subtitle"></p>
+                <div class="mt-1 text-xs text-slate-600 dark:text-slate-400" x-show="row.meta" x-text="row.meta"></div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-emerald-600 dark:text-emerald-400 font-semibold" x-show="row.points">+<span x-text="row.points"></span> XP</div>
+                <div class="text-amber-600 dark:text-amber-300 font-semibold" x-show="row.coins">+<span x-text="row.coins"></span> 🪙</div>
+              </div>
+            </article>
+          </template>
+
+          <div class="text-sm text-slate-600 dark:text-slate-400 text-center py-6" x-show="!loading && filtered.length===0" aria-live="polite">
+            Пусто. Сделай первый квест или получи ачивку!
+          </div>
         </div>
       </section>
+    </div>
 
+    <!-- ПРАВАЯ: Telegram, подсказки (sticky) -->
+    <div class="space-y-6 lg:sticky lg:top-6">
+
+      <!-- Telegram linking -->
+      <section
+        x-data="tgLinker()"
+        x-init="init()"
+        :class="state.linked ? 'border-emerald-300/70 bg-emerald-50/60 dark:bg-emerald-900/20' : 'border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60'"
+        class="rounded-2xl border p-6 backdrop-blur transition-colors">
+
+        <header class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-bold">Привязка Telegram</h2>
+          <span class="inline-flex items-center gap-2"
+                :class="state.linked ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600'">
+            <span class="w-2 h-2 rounded-full" :class="state.linked ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+            <span x-text="state.linked ? 'Привязан' : 'Не привязан'"></span>
+          </span>
+        </header>
+
+        <!-- Не привязан -->
+        <template x-if="!state.linked">
+          <div class="space-y-3">
+            <p class="text-sm text-slate-600 dark:text-slate-300">
+              Сначала сгенерируйте код. Затем скопируйте его и перейдите к боту.
+            </p>
+
+            <!-- Генерация кода -->
+            <button @click="generate()"
+                    class="w-full px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-sm hover:shadow focus:outline-none focus:ring focus:ring-indigo-500/30"
+                    :disabled="loading">
+              <span x-show="!loading">Сгенерировать код</span>
+              <span x-show="loading">Генерируем…</span>
+            </button>
+
+            <!-- Результат -->
+            <div x-show="state.code"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-2 scale-[.98]"
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="mt-3 space-y-3">
+
+              <div class="flex items-center gap-2">
+                <div class="font-mono px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10 text-sm" x-text="state.code"></div>
+                <button @click="copyCode()"
+                        class="px-2 py-1 rounded-lg border text-sm hover:bg-black/5 dark:hover:bg-white/10">
+                  Скопировать
+                </button>
+              </div>
+
+              <a :href="botDeepLink()" target="_blank" rel="noopener"
+                 class="inline-flex items-center justify-center w-full px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">
+                Перейти к боту
+              </a>
+
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                Код действует ограниченное время. После перехода к боту просто отправьте его.
+              </p>
+            </div>
+          </div>
+        </template>
+
+        <!-- Привязан -->
+        <template x-if="state.linked">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-sm text-emerald-800 dark:text-emerald-200 font-medium">
+                ✅ Всё настроено — уведомления будут приходить в Telegram.
+              </div>
+              <div class="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                Chat ID: <span class="font-mono" x-text="state.chat_id"></span>
+              </div>
+            </div>
+            <button @click="resetLink()"
+                    class="px-3 py-1.5 rounded-md border border-emerald-300/60 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100/60 dark:hover:bg-emerald-800/30 text-xs"
+                    :disabled="loading">
+              Сбросить
+            </button>
+          </div>
+        </template>
+      </section>
+
+      <!-- Подсказки -->
+      <section class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-6 backdrop-blur">
+        <h2 class="text-sm uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2">Подсказки</h2>
+        <ul class="space-y-2 text-sm list-disc pl-5 text-slate-700 dark:text-slate-300">
+          <li>Включи Telegram — все уведомления будут дублироваться в чат.</li>
+          <li>Следи за прогрессом в ленте активности и ачивках.</li>
+          <li>Загляни в «Магазин» за бустами.</li>
+        </ul>
+      </section>
     </div>
   </div>
 </section>
@@ -236,52 +363,11 @@
         <button type="button"
                 class="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring focus:ring-indigo-500/30"
                 @click="close()" :disabled="saving">Отмена</button>
-        <button type="button" class="btn-primary" @click="save()" :disabled="saving">
-          <span x-show="saving" class="btn-spinner"></span>
+        <button type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold focus:outline-none focus:ring focus:ring-indigo-500/30"
+                @click="save()" :disabled="saving">
+          <span x-show="saving" class="inline-block w-4 h-4 mr-2 align-[-2px] rounded-full border-2 border-white/60 border-r-transparent animate-spin"></span>
           <span x-text="saving ? 'Сохраняю…' : 'Сохранить'"></span>
         </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Модалка: История прокачки -->
-<div x-data="xpHistoryModal()" @open-xp-history.window="open()" x-cloak>
-  <div x-show="openModal" x-transition.opacity class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" aria-hidden="true"></div>
-  <div x-show="openModal" x-transition class="fixed z-50 inset-0 grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="xp-title">
-    <div class="w-full max-w-3xl rounded-2xl border border-slate-300 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 p-5">
-      <div class="flex items-center justify-between">
-        <h2 id="xp-title" class="text-xl font-bold text-slate-900 dark:text-slate-100">История прокачки</h2>
-        <button class="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white" @click="close()" aria-label="Закрыть">✕</button>
-      </div>
-      <div class="mt-4 flex flex-wrap gap-2 text-sm">
-        <button :class="tabBtn('all')" @click="filter='all'">Все</button>
-        <button :class="tabBtn('achievement')" @click="filter='achievement'">Ачивки</button>
-        <button :class="tabBtn('events')" @click="filter='events'">События</button>
-      </div>
-      <div class="mt-4 max-h-[65vh] overflow-auto space-y-3 pr-1">
-        <template x-for="row in filtered" :key="row.key">
-          <article class="flex items-start gap-3 rounded-xl border border-slate-300 dark:border-white/10 bg-white/70 dark:bg-black/30 p-3">
-            <div class="text-2xl" x-text="row.emoji" aria-hidden="true"></div>
-            <div class="flex-1">
-              <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-slate-900 dark:text-slate-100" x-text="row.title"></h3>
-                <time class="text-xs text-slate-600 dark:text-slate-400" x-text="row.when"></time>
-              </div>
-              <p class="text-sm text-slate-700 dark:text-slate-300" x-text="row.subtitle"></p>
-              <div class="mt-1 text-xs text-slate-600 dark:text-slate-400" x-show="row.meta" x-text="row.meta"></div>
-            </div>
-            <div class="text-right shrink-0">
-              <div class="text-emerald-600 dark:text-emerald-400 font-semibold" x-show="row.points">+<span x-text="row.points"></span> XP</div>
-              <div class="text-amber-600 dark:text-amber-300 font-semibold" x-show="row.coins">+<span x-text="row.coins"></span> 🪙</div>
-            </div>
-          </article>
-        </template>
-
-        <div class="text-sm text-slate-600 dark:text-slate-400 text-center py-6" x-show="!loading && filtered.length===0" aria-live="polite">
-          Пусто. Сделай первый квест или получи ачивку!
-        </div>
-        <div class="text-sm text-slate-700 dark:text-slate-300" x-show="loading">Загрузка…</div>
       </div>
     </div>
   </div>
@@ -289,6 +375,9 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- имя бота в клиент (для deep-link) -->
+<script>window.TELEGRAM_BOT_USERNAME = "{{ TELEGRAM_BOT_USERNAME }}";</script>
+
 <script>
 /* --- Company join block --- */
 function companyJoin(){
@@ -330,7 +419,7 @@ function companyJoin(){
             this.pending = true;
             this.company_name = j.company_name || j.company?.name || this.company_name;
             this.status = j.description || 'Заявка уже отправлена и ожидает одобрения.';
-            Alpine.store('toasts').push({title:'Заявка', text:this.status, emoji:'⏳'});
+            Alpine.store('toasts')?.push({title:'Заявка', text:this.status, emoji:'⏳'});
             return;
           }
           throw new Error(j.error || j.description || 'Ошибка');
@@ -339,16 +428,16 @@ function companyJoin(){
           this.member = true; this.pending = false;
           this.company_name = j.company_name || j.company?.name || this.company_name;
           this.status = 'Вы уже участник компании.';
-          Alpine.store('toasts').push({title:'Компания', text:'Вы в компании', emoji:'🏢'});
+          Alpine.store('toasts')?.push({title:'Компания', text:'Вы в компании', emoji:'🏢'});
         } else {
           this.pending = true;
           this.company_name = j.company_name || j.company?.name || this.company_name;
           this.status = 'Заявка отправлена. Ожидайте одобрения.';
-          Alpine.store('toasts').push({title:'Заявка', text:'Отправлена на одобрение', emoji:'📨'});
+          Alpine.store('toasts')?.push({title:'Заявка', text:'Отправлена на одобрение', emoji:'📨'});
         }
       }catch(e){
         this.status = e.message || 'Ошибка';
-        Alpine.store('toasts').push({title:'Ошибка', text:this.status, emoji:'⚠️'});
+        Alpine.store('toasts')?.push({title:'Ошибка', text:this.status, emoji:'⚠️'});
       }
     },
 
@@ -366,10 +455,10 @@ function companyJoin(){
         this.pending = false;
         this.company_name = '';
         this.status = 'Заявка отменена.';
-        Alpine.store('toasts').push({title:'Заявка', text:'Отменена', emoji:'🗑️'});
+        Alpine.store('toasts')?.push({title:'Заявка', text:'Отменена', emoji:'🗑️'});
       }catch(e){
         this.status = e.message || 'Ошибка';
-        Alpine.store('toasts').push({title:'Ошибка', text:this.status, emoji:'⚠️'});
+        Alpine.store('toasts')?.push({title:'Ошибка', text:this.status, emoji:'⚠️'});
       }
     }
   }
@@ -404,15 +493,13 @@ function profileEditor(initName, initEmail){
           const msg = j.error || j.description || (r.status===409 ? 'E-mail уже занят' : 'Не удалось сохранить');
           throw new Error(msg);
         }
-        Alpine.store('toasts').push({title:'Профиль', text:'Обновлён', emoji:'✅'});
+        Alpine.store('toasts')?.push({title:'Профиль', text:'Обновлён', emoji:'✅'});
 
-        // Обновим имя в карточке (все элементы с data-profile-name)
         document.querySelectorAll('[data-profile-name]').forEach(el => el.textContent = this.name);
-
         this.close();
       }catch(e){
         this.error = e.message || 'Ошибка';
-        Alpine.store('toasts').push({title:'Ошибка', text:this.error, emoji:'⚠️'});
+        Alpine.store('toasts')?.push({title:'Ошибка', text:this.error, emoji:'⚠️'});
       }finally{
         this.saving = false;
       }
@@ -420,7 +507,7 @@ function profileEditor(initName, initEmail){
   }
 }
 
-/* --- XP history modal --- */
+/* --- XP history modal (как блок) --- */
 function xpHistoryModal(){
   return {
     openModal: false,
@@ -435,7 +522,7 @@ function xpHistoryModal(){
 
     get filtered(){
       if (this.filter === 'all') return this.items;
-      return this.items.filter(x => x.type === this.filter); // 'achievement' | 'events'
+      return this.items.filter(x => x.type === this.filter);
     },
 
     open(){ this.openModal = true; if (!this.items.length) this.load(); },
@@ -475,5 +562,162 @@ function xpHistoryModal(){
     }
   }
 }
+
+/* --- Alpine registration for Telegram linker (if provided globally) --- */
+document.addEventListener('alpine:init', () => {
+  if (typeof window.tgLinker === 'function') {
+    Alpine.data('tgLinker', window.tgLinker);
+  }
+});
 </script>
+<script defer>
+(() => {
+  'use strict';
+
+  // ---- Toasts (минимальный стор) ----
+  document.addEventListener('alpine:init', () => {
+    if (!Alpine.store('toasts')) {
+      Alpine.store('toasts', {
+        id: 1,
+        items: [],
+        push(t) { // {title, text, emoji}
+          const id = this.id++;
+          const item = { id, ...(t || {}), show: true };
+          this.items.push(item);
+          setTimeout(() => this.dismiss(id), 4000);
+        },
+        dismiss(id) {
+          const it = this.items.find(x => x.id === id);
+          if (!it) return;
+          it.show = false;
+          setTimeout(() => {
+            this.items = this.items.filter(x => x.id !== id);
+          }, 200);
+        }
+      });
+    }
+  });
+
+  // Глобальный fallback-тост (используется в коде)
+  window.toast = function (msg, opts) {
+    try {
+      Alpine.store('toasts')?.push({
+        title: (opts && opts.title) || 'Сообщение',
+        text: msg,
+        emoji: (opts && opts.emoji) || undefined
+      });
+    } catch (_) {
+      try { alert(msg); } catch (_) {}
+    }
+  };
+
+  // ---- Telegram linker: глобальная фабрика ----
+  // Работает и как window.tgLinker() и как зарегистрированный x-data="tgLinker"
+  window.tgLinker = function () {
+    return {
+      state: {
+        linked: false,
+        chat_id: null,
+        code: null,
+        bot_username: (typeof window.TELEGRAM_BOT_USERNAME !== 'undefined' && window.TELEGRAM_BOT_USERNAME) ? window.TELEGRAM_BOT_USERNAME : null
+      },
+      loading: false,
+      _pollTimer: null,
+      _pollUntil: 0,
+
+      init() { // x-init="init()"
+        this.fetchStatus();
+      },
+
+      async fetchStatus() {
+        try {
+          const r = await fetch('/api/telegram/status', { credentials: 'same-origin' });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok && j && j.ok) {
+            this.state.linked = !!(j.data && j.data.linked);
+            this.state.chat_id = (j.data && j.data.chat_id) || null;
+            this.state.bot_username = (j.data && j.data.bot_username) || this.state.bot_username;
+            if (this.state.linked) this._stopPolling();
+          }
+        } catch (_) { /* молча */ }
+      },
+
+      botDeepLink() {
+        const u = this.state.bot_username || (typeof window.TELEGRAM_BOT_USERNAME !== 'undefined' ? window.TELEGRAM_BOT_USERNAME : '');
+        const code = this.state.code ? encodeURIComponent(this.state.code) : '';
+        return u ? `https://t.me/${u}${code ? `?start=${code}` : ''}` : 'https://t.me/';
+      },
+
+      async generate() {
+        if (this.loading) return;
+        this.loading = true;
+        try {
+          const r = await fetch('/api/telegram/generate', { method: 'POST', credentials: 'same-origin' });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || !j.ok) throw new Error(j.error || 'Не удалось сгенерировать код');
+          this.state.code = j.code || null;
+          // запускаем опрос на минуту раз в 3с
+          this._startPolling(60_000, 3000);
+        } catch (e) {
+          window.toast(e.message || 'Ошибка', { title: 'Telegram', emoji: '⚠️' });
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      async copyCode() {
+        try {
+          if (!this.state.code) return;
+          await navigator.clipboard.writeText(this.state.code);
+          Alpine.store('toasts')?.push({ title: 'Telegram', text: 'Код скопирован', emoji: '📋' });
+        } catch (_) { /* игнор */ }
+      },
+
+      async resetLink() {
+        if (this.loading) return;
+        if (!confirm('Сбросить привязку Telegram?')) return;
+        this.loading = true;
+        try {
+          const r = await fetch('/api/telegram/reset', { method: 'POST', credentials: 'same-origin' });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || !j.ok) throw new Error(j.error || 'Не удалось сбросить привязку');
+          this.state.linked = false;
+          this.state.chat_id = null;
+          this.state.code = null;
+          Alpine.store('toasts')?.push({ title: 'Telegram', text: 'Привязка сброшена', emoji: 'ℹ️' });
+        } catch (e) {
+          Alpine.store('toasts')?.push({ title: 'Telegram', text: e.message || 'Ошибка', emoji: '⚠️' });
+        } finally {
+          this.loading = false;
+          this._stopPolling();
+        }
+      },
+
+      _startPolling(totalMs = 60000, stepMs = 3000) {
+        this._stopPolling();
+        this._pollUntil = Date.now() + totalMs;
+        this._pollTimer = setInterval(async () => {
+          await this.fetchStatus();
+          if (this.state.linked || Date.now() > this._pollUntil) {
+            this._stopPolling();
+          }
+        }, stepMs);
+      },
+
+      _stopPolling() {
+        if (this._pollTimer) {
+          clearInterval(this._pollTimer);
+          this._pollTimer = null;
+        }
+      }
+    };
+  };
+
+  // ---- Alpine registration (для x-data="tgLinker") ----
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('tgLinker', window.tgLinker);
+  });
+})();
+</script>
+
 {% endblock %}

@@ -5,10 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>{{ title or "Sales Journey" }}</title>
   <meta name="theme-color" content="#0b1220" id="themeColorMeta">
-   <script>
-  // Задерживаем автозапуск Alpine, чтобы успеть зарегистрировать компоненты
-  window.deferLoadingAlpine = (start) => { window._startAlpine = start }
-</script>
+   <style>
+/* Онбординг: растянуть хедер/футер до 100% даже если внутри есть max-w-* */
+header.sticky > div[class*="max-w-"],
+header.sticky [class*="max-w-"].mx-auto,
+footer > div[class*="max-w-"],
+footer [class*="max-w-"].mx-auto{
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* На мобилках дополнительно — вдруг контейнер вложен глубже */
+@media (max-width: 768px){
+  header.sticky [class*="max-w-"],
+  footer [class*="max-w-"]{
+    max-width: none !important;
+    width: 100% !important;
+  }
+}
+
+/* (опционально) Безопасные отступы по краям, если используется «голая» ширина */
+header.sticky > div,
+footer > div{
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+</style>
+
   <script>
     (function(){
       try{
@@ -86,10 +111,10 @@
     .spa-fade-enter-active{transition:opacity .18s ease, transform .18s ease;opacity:1;transform:none}
   </style>
 
+  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
   <script defer src="{{ url_for('static', filename='admin.js') }}"></script>
 
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -285,8 +310,9 @@
        x-transition:leave="transition transform ease-in duration-150"
        x-transition:leave-start="translate-x-0"
        x-transition:leave-end="-translate-x-full"
-       class="fixed inset-0 z-50 w-screen max-w-none bg-white dark:bg-slate-900 shadow-soft md:hidden overscroll-contain">
-  <div class="h-full flex flex-col">
+       class="fixed inset-0 z-50 w-full bg-white dark:bg-slate-900 shadow-soft md:hidden overscroll-contain">
+  <div class="h-full w-full flex flex-col">
+
     <div class="p-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
       <span class="text-lg font-extrabold">Навигация</span>
       <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -353,13 +379,14 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="border-t border-slate-200 dark:border-slate-800">
-    <div class="max-w-7xl mx-auto px-4 py-8 grid sm:grid-cols-3 gap-6 text-sm text-slate-500 dark:text-slate-400">
-      <div>© 2025 Sales Journey</div>
-      <div class="sm:text-center">Геймификация продаж, которая реально двигает цифры</div>
-      <div class="sm:text-right">hello@salesjourney.app</div>
-    </div>
-  </footer>
+<footer class="border-t border-slate-200 dark:border-slate-800 w-full">
+  <div class="w-full px-4 py-8 grid sm:grid-cols-3 gap-6 text-sm text-slate-500 dark:text-slate-400 safe-x">
+    <div class="text-left">© 2025 Sales Journey</div>
+    <div class="sm:text-center">Геймификация продаж, которая реально двигает цифры</div>
+    <div class="sm:text-right">hello@salesjourney.app</div>
+  </div>
+</footer>
+
 
   <div class="fixed top-3 right-3 z-[100] space-y-3 w-[92vw] max-w-80" aria-live="polite">
     <template x-for="t in $store.toasts?.items || []" :key="t.id">
@@ -580,5 +607,30 @@
 
     })();
   </script>
+<script>
+(function(){
+  function stretch(root){
+    if(!root) return;
+    root.querySelectorAll('[class*="max-w-"]').forEach(el=>{
+      // удаляем любые max-w-* и добавляем w-full
+      el.className = el.className.replace(/\bmax-w-[^\s]+/g, '').trim();
+      el.classList.add('w-full');
+      // убираем центрирование, если было
+      el.classList.remove('mx-auto');
+    });
+  }
+
+  // сразу после загрузки
+  stretch(document.querySelector('header.sticky'));
+  stretch(document.querySelector('footer'));
+
+  // если у тебя PJAX/SPA навигация — повторяем после переходов
+  window.addEventListener('spa:navigated', ()=>{
+    stretch(document.querySelector('header.sticky'));
+    stretch(document.querySelector('footer'));
+  });
+})();
+</script>
+
 </body>
 </html>

@@ -2,6 +2,54 @@
 {% set title = "Онбординг" %}
 
 {% block content %}
+<style>
+/* Онбординг: растянуть шапку/футер, не ломая основную сетку */
+body.onboarding header.sticky,
+body.onboarding footer{
+  width: 100% !important;
+  max-width: none !important;
+  left: auto; right: auto;
+  margin: 0 !important;
+}
+
+/* Внутренние контейнеры в шапке/футере — тоже на 100% */
+body.onboarding header.sticky [class*="max-w-"],
+body.onboarding footer [class*="max-w-"]{
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Безопасные боковые отступы по краям экрана на мобилках */
+@supports(padding: max(0px)){
+  body.onboarding header.sticky > div,
+  body.onboarding footer > div{
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Дровер */
+body.onboarding #mobileNav{
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100dvw !important;
+  max-width: 100dvw !important;
+  transform: none !important;
+}
+
+/* Снимаем масштаб/фильтры, если были */
+body.onboarding [data-page="onboarding"]{
+  transform: none !important;
+  perspective: none !important;
+  filter: none !important;
+}
+
+/* Горизонталь не скроллим */
+html, body { overflow-x: clip; }
+
+</style>
 
 <style>
   [x-cloak]{display:none!important}
@@ -253,6 +301,45 @@
   /* Небольшой пульс для привлечения внимания к блоку Телеграм */
   @keyframes softPulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.35)} 70%{box-shadow:0 0 0 16px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
   .pulse-soft { animation: softPulse 1.3s ease-out 3; border-radius: 20px; }
+</style>
+<style>
+@media (max-width: 640px){
+  body.onboarding header.sticky [class*="max-w-"],
+  body.onboarding footer [class*="max-w-"],
+  body.onboarding header.sticky [class*="container"],
+  body.onboarding footer [class*="container"]{
+    max-width: none !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Дровер на всю ширину, без сюрпризов iOS */
+  body.onboarding #mobileNav{
+    left: 0 !important;
+    right: auto !important;
+    width: 100dvw !important;
+    max-width: 100dvw !important;
+  }
+}
+
+/* Онбординг: контейнер на всю ширину начиная с 1024px */
+@media (min-width: 1024px){
+  body.onboarding section[data-page="onboarding"].container{
+    max-width: none !important;
+    width: 100% !important;
+    /* безопасные поля по краям */
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+
+/* На всякий случай выключим горизонтальный скролл */
+html, body { width: 100%; }
+body { overflow-x: hidden; }
 </style>
 
 <!-- имя бота для диплинка -->
@@ -895,16 +982,19 @@
   };
 </script>
 
-<section class="max-w-7xl mx-auto px-4 py-10"
-         x-data="OnboardingPage('{{ slug }}', {{ 'true' if current_user else 'false' }})"
-         x-init="start()"
-         x-cloak
-         data-page="onboarding">
+<section class="container mx-auto px-4 sm:px-6 lg:px-8 py-10"
+          x-data="OnboardingPage('{{ slug }}', {{ 'true' if current_user else 'false' }})"
+          x-init="start()"
+          x-cloak
+          data-page="onboarding">
 
-  <div class="grid gap-6 2xl:grid-cols-10">
+
+<div class="grid gap-6 grid-cols-1 lg:grid-cols-12 2xl:grid-cols-12">
     <!-- LEFT -->
-    <div :class="isAuthorized ? 'lg:col-span-10 2xl:col-span-7' : 'lg:col-span-10 2xl:col-span-10'">
-      <!-- Хедер -->
+<div class="col-span-full"
+     :class="isAuthorized
+       ? 'lg:col-span-8 xl:col-span-9'
+       : 'lg:col-span-12'">      <!-- Хедер -->
       <div class="flex items-center justify-between mb-6 glass-card p-4">
         <div class="flex items-center gap-3">
           <div class="h-11 w-11 rounded-xl var-border border surface flex items-center justify-center text-lg font-bold">
@@ -1273,10 +1363,11 @@
     </div>
 
     <!-- RIGHT (десктоп) -->
-    <div x-show="isAuthorized"
-         x-transition.opacity
-         class="lg:col-span-3 space-y-6 hidden lg:block"
-         x-cloak>
+<div x-show="isAuthorized"
+     x-transition.opacity
+     class="hidden lg:block lg:col-span-4 xl:col-span-3"
+     x-cloak>
+
       <div class="avatar-card p-4">
         <div class="flex items-center justify-between mb-2">
           <div class="font-semibold truncate" x-text="userNameForAvatar || 'Вы'"></div>
@@ -1512,4 +1603,15 @@
   </div>
 
 </section>
+<script>
+  // помечаем body, чтобы переопределить стили хедера/футера только на этой странице
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('onboarding');
+  });
+  // если у тебя PJAX/SPA — пометку повторяем после навигации
+  window.addEventListener('spa:navigated', () => {
+    document.body.classList.add('onboarding');
+  });
+</script>
+
 {% endblock %}

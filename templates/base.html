@@ -4,147 +4,141 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>{{ title or "Sales Journey" }}</title>
-  <meta name="theme-color" content="#0b1220" id="themeColorMeta">
-   <style>
-/* Онбординг: растянуть хедер/футер до 100% даже если внутри есть max-w-* */
-header.sticky > div[class*="max-w-"],
-header.sticky [class*="max-w-"].mx-auto,
-footer > div[class*="max-w-"],
-footer [class*="max-w-"].mx-auto{
-  max-width: none !important;
-  width: 100% !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
+  <meta name="theme-color" content="#0c1222" id="themeColorMeta">
 
-/* На мобилках дополнительно — вдруг контейнер вложен глубже */
-@media (max-width: 768px){
-  header.sticky [class*="max-w-"],
-  footer [class*="max-w-"]{
-    max-width: none !important;
-    width: 100% !important;
-  }
-}
-
-/* (опционально) Безопасные отступы по краям, если используется «голая» ширина */
-header.sticky > div,
-footer > div{
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
-}
-</style>
-
-  <script>
-    (function(){
-      try{
-        const KEY='sj_theme';
-        const saved = localStorage.getItem(KEY);
-        // ИЗМЕНЕНИЕ: Убрана проверка системных настроек, чтобы по умолчанию всегда была тёмная тема
-        const mode = saved || 'dark';
-        const root = document.documentElement;
-        root.classList.toggle('dark', mode==='dark');
-        root.dataset.theme = mode;
-        const meta = document.getElementById('themeColorMeta');
-        if (meta) meta.setAttribute('content', mode==='dark' ? '#0b1220' : '#ffffff');
-        window.__setTheme = function(m){
-          const dark = m==='dark';
-          root.classList.toggle('dark', dark);
-          root.dataset.theme = m;
-          localStorage.setItem(KEY, m);
-          if (meta) meta.setAttribute('content', dark ? '#0b1220' : '#ffffff');
-          window.dispatchEvent(new CustomEvent('sj:theme', { detail:{ mode:m } }));
-        };
-      }catch(e){}
-    })();
-  </script>
-
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+  <!-- Tailwind (для продакшена собери через CLI/PostCSS) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
-          colors: { brand: '#4F46E5' },
+          colors: { brand: '#6D5CF7' },
           boxShadow: {
-            soft: '0 10px 30px -12px rgba(0,0,0,.20)',
+            soft: '0 10px 30px -12px rgba(0,0,0,.25)',
             'inner-soft': 'inset 0 1px 0 rgba(255,255,255,.04), inset 0 -1px 0 rgba(0,0,0,.08)'
           },
-          transitionTimingFunction: {
-            'swift': 'cubic-bezier(.2,.8,.2,1)'
-          }
+          transitionTimingFunction: { 'swift': 'cubic-bezier(.2,.8,.2,1)' }
         }
       }
     };
   </script>
 
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Стили -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
   <style>
+    body{font-family:'Inter',sans-serif}
     [x-cloak]{display:none!important}
 
-    /* Skeleton shimmer */
-    .skeleton{
-      position:relative; overflow:hidden; background:linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.08), rgba(148,163,184,.15));
-      background-size:200% 100%; animation:sk 1.4s linear infinite;
+    /* Растянуть только контейнер в header/footer */
+    header.sticky > div[class*="max-w-"],
+    header.sticky [class*="max-w-"].mx-auto,
+    footer > div[class*="max-w-"],
+    footer [class*="max-w-"].mx-auto{
+      max-width: none !important;
+      width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
     }
-    @keyframes sk { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-    /* Микроэффекты */
-    .hover-lift{ transition:transform .25s var(--swift, cubic-bezier(.2,.8,.2,1)), box-shadow .25s var(--swift, cubic-bezier(.2,.8,.2,1)); }
-    .hover-lift:hover{ transform:translateY(-2px); box-shadow:var(--shadow, 0 10px 20px -12px rgba(0,0,0,.25)); }
+    @media (max-width: 768px){
+      header.sticky [class*="max-w-"],
+      footer [class*="max-w-"]{
+        max-width: none !important;
+        width: 100% !important;
+      }
+    }
+    header.sticky > div,
+    footer > div{
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
 
     /* Градиентная линия под шапкой */
     .grad-anim { background: linear-gradient(90deg,#22d3ee,#6366f1,#22c55e,#f59e0b,#22d3ee); background-size: 300% 100%; animation: shift 12s ease infinite; }
     @keyframes shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 
-    /* Плавающая кнопка "вверх" */
-    .float { animation: float 6s ease-in-out infinite; }
-    @keyframes float { 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
+    /* Skeleton */
+    .skeleton{
+      position:relative; overflow:hidden;
+      background:linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.08), rgba(148,163,184,.15));
+      background-size:200% 100%; animation:sk 1.4s linear infinite;
+    }
+    @keyframes sk { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-    /* Уменьшаем анимации для reduce-motion */
+    .hover-lift{ transition:transform .25s var(--swift, cubic-bezier(.2,.8,.2,1)), box-shadow .25s var(--swift, cubic-bezier(.2,.8,.2,1)); }
+    .hover-lift:hover{ transform:translateY(-2px); box-shadow:var(--shadow, 0 10px 20px -12px rgba(0,0,0,.25)); }
+
     @media (prefers-reduced-motion: reduce){
       * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
     }
-
-    /* === SPA прогресс-бар и анимация появления контента === */
-    #spa-bar{position:fixed;left:0;top:0;height:3px;width:0;z-index:9999;transition:width .25s ease; background:linear-gradient(90deg,#6366f1,#22d3ee,#22c55e)}
-    .spa-fade-enter{opacity:0;transform:translateY(4px)}
-    .spa-fade-enter-active{transition:opacity .18s ease, transform .18s ease;opacity:1;transform:none}
   </style>
 
+  <!-- Тёмная тема: токены -->
+  <script>
+    (function(){
+      try{
+        const KEY='sj_theme';
+        const saved = localStorage.getItem(KEY);
+        const mode = saved || 'dark';
+        const root = document.documentElement;
+        const meta = document.getElementById('themeColorMeta');
+
+        const DARK_BG      = '#0c1222';
+        const DARK_ELEV    = '#121a30';
+        const DARK_BORDER  = '#1c2a4a';
+        const DARK_TEXT    = '#e9eeff';
+        const DARK_MUTED   = '#a6b1cf';
+        const DARK_PRIMARY = '#7c6cff';
+
+        root.style.setProperty('--sj-bg',      DARK_BG);
+        root.style.setProperty('--sj-elev',    DARK_ELEV);
+        root.style.setProperty('--sj-border',  DARK_BORDER);
+        root.style.setProperty('--sj-text',    DARK_TEXT);
+        root.style.setProperty('--sj-muted',   DARK_MUTED);
+        root.style.setProperty('--sj-primary', DARK_PRIMARY);
+
+        root.classList.toggle('dark', mode==='dark');
+        root.dataset.theme = mode;
+        if (meta) meta.setAttribute('content', mode==='dark' ? DARK_BG : '#ffffff');
+
+        window.__setTheme = function(m){
+          const dark = m==='dark';
+          root.classList.toggle('dark', dark);
+          root.dataset.theme = m;
+          localStorage.setItem(KEY, m);
+          if (meta) meta.setAttribute('content', dark ? DARK_BG : '#ffffff');
+          window.dispatchEvent(new CustomEvent('sj:theme', { detail:{ mode:m } }));
+        };
+      }catch(e){}
+    })();
+  </script>
+
+  <!-- Приложение -->
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
   <script defer src="{{ url_for('static', filename='admin.js') }}"></script>
-
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <style>
-    body{font-family:'Inter',sans-serif}
-    .glow { box-shadow: 0 0 30px rgba(59,130,246,.35), inset 0 0 15px rgba(99,102,241,.25); }
-    .sparkle { position:relative; }
-    .sparkle:after{ content:""; position:absolute; inset:-2px; border-radius:14px; background: radial-gradient(white,rgba(255,255,255,0)) center/150% 150% no-repeat; filter: blur(8px); opacity:.15; }
-    .link-underline{ position:relative; }
-    .link-underline:after{ content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px; background: currentColor; opacity:.2; transition:opacity .2s; }
-    .link-underline:hover:after{ opacity:.55; }
-  </style>
 </head>
 
-<body class="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-  <div id="spa-bar" aria-hidden="true"></div>
+<body class="min-h-screen bg-white text-slate-900 dark:bg-[var(--sj-bg)] dark:text-[var(--sj-text)]">
+  <!-- HEADER -->
+  <header x-data="headerUI()" class="sticky top-0 z-40 border-b border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-bg)] transition-shadow">
+    <div class="h-0.5 grad-anim"></div>
 
-  <header x-data="headerUI()" class="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 transition-shadow">
-    <div class="h-0-5 grad-anim"></div>
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 
+      <!-- ЛОГО + БУРГЕР -->
       <div class="flex items-center gap-3">
-        <button class="md:hidden p-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+        <button class="md:hidden p-2 rounded-lg border border-slate-300 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
                 @click="toggleMobile()" :aria-expanded="mobileOpen.toString()" aria-controls="mobileNav" aria-label="Открыть меню">
-            <svg x-show="!mobileOpen" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <svg x-show="mobileOpen" x-cloak class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <i x-show="!mobileOpen" class="bi bi-list text-xl"></i>
+          <i x-show="mobileOpen" x-cloak class="bi bi-x-lg text-xl"></i>
         </button>
+
         <a href="/" class="text-xl font-extrabold tracking-tight hover:opacity-90 transition">
           <span class="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 text-transparent bg-clip-text">
             Sales Journey
@@ -156,69 +150,102 @@ footer > div{
       {% set is_partner = current_partner is not none %}
       {% set is_admin = current_admin is not none %}
 
+      <!-- NAV (desktop) -->
       <nav class="hidden md:flex items-center gap-3">
         {% if is_user %}
-          <a href="{{ url_for('page_training_list') }}" class="px-3 py-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover-lift link-underline">Курсы</a>
-          <a href="/contests" class="px-3 py-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover-lift link-underline">Конкурсы</a>
-          <a href="/store" class="px-3 py-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 hover-lift link-underline">Магазин</a>
+          <a href="{{ url_for('page_training_list') }}" class="px-3 py-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hover-lift">Курсы</a>
+          <a href="/contests" class="px-3 py-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hover-lift">Конкурсы</a>
+          <a href="/store" class="px-3 py-2 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hover-lift">Магазин</a>
           {% if current_user.company and is_manager(current_user.company.id) %}
-            <a href="/company/requests" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover-lift">Заявки</a>
-            <a href="/partner/reports" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover-lift">Отчёты по задачам</a>
-            <a href="/training/create" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold hover-lift">Создать курс</a>
+            <a href="/company/requests" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hover-lift">Заявки</a>
+            <a href="/partner/reports" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hover-lift">Отчёты по задачам</a>
+            <a href="/training/create" class="px-3 py-2 rounded-xl bg-[var(--sj-primary)] hover:opacity-90 text-white font-semibold hover-lift">Создать курс</a>
           {% endif %}
         {% endif %}
 
         {% if is_partner %}
-          <a href="/partner/company" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover-lift">Моя компания</a>
-          <a href="/partner/training/create" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold hover-lift">Курс для сотрудников</a>
+          <a href="/partner/company" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hover-lift">Моя компания</a>
+          <a href="/partner/training/create" class="px-3 py-2 rounded-xl bg-[var(--sj-primary)] hover:opacity-90 text-white font-semibold hover-lift">Курс для сотрудников</a>
         {% endif %}
 
         {% if is_admin %}
-          <a href="/partner/requests" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover-lift">Заявки</a>
-          <a href="/partner/reports" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover-lift">Отчёты по задачам</a>
+          <a href="/partner/requests" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hover-lift">Заявки</a>
+          <a href="/partner/reports" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hover-lift">Отчёты по задачам</a>
           <a href="{{ url_for('page_admin_dashboard') }}" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold hover-lift">Админ-панель</a>
         {% endif %}
       </nav>
 
-      <div class="flex items-center gap-3" data-nav-auth data-auth-slot>
-        <button class="rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+      <!-- Правый блок -->
+      <div class="flex items-center gap-2 sm:gap-3">
+
+        <!-- Переключатель темы -->
+        <button class="rounded-xl border border-slate-300 dark:border-[var(--sj-border)] px-3 py-2 hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
                 @click="toggleTheme()" aria-label="Сменить тему">
-          <span class="dark:hidden">🌙 Тёмная</span>
-          <span class="hidden dark:inline">☀️ Светлая</span>
+          <span class="flex items-center gap-2">
+            <i class="bi bi-moon-stars-fill dark:hidden"></i>
+            <i class="bi bi-sun-fill hidden dark:inline"></i>
+            <span class="hidden sm:inline">Тема</span>
+          </span>
         </button>
 
         {% if is_user %}
-          <div class="relative" x-data="notifMenu()" @keydown.escape="open=false">
-            <button @click="toggle()"
-                    class="relative rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    aria-label="Уведомления">
-              🔔
+          <!-- Уведомления -->
+          <div class="relative" x-data="notifMenu()" @click.outside="open=false" @keydown.escape="open=false">
+            <button @click.stop="toggle()"
+                    class="relative rounded-xl border border-slate-300 dark:border-[var(--sj-border)] px-3 py-2 hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+                    aria-label="Уведомления" aria-haspopup="menu" :aria-expanded="open.toString()">
+              <i class="bi bi-bell"></i>
               <span x-show="unreadCount"
-                    class="absolute -top-1 -right-1 text-[10px] px-1 rounded bg-rose-600 text-white animate-pulse"
+                    class="absolute -top-1 -right-1 text-[10px] px-1.5 rounded bg-rose-600 text-white"
                     x-text="unreadCount"></span>
             </button>
 
-            <div x-show="open" x-transition
-                 class="absolute right-0 mt-2 w-80 max-w-[90vw] z-50
-                        rounded-xl border border-slate-200 dark:border-slate-700
-                        bg-white dark:bg-slate-900 p-2 shadow-soft"
-                 @click.outside="open=false" x-cloak>
+            <!-- Панель -->
+            <div x-show="open"
+                 x-transition.opacity
+                 class="absolute right-0 mt-2 z-50 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] shadow-soft
+                        min-w-[20rem] w-[22rem] sm:w-[26rem]">
+              <!-- Шапка -->
+              <div class="sticky top-0 bg-white dark:bg-[var(--sj-elev)] rounded-t-xl px-2 py-2 border-b border-slate-200 dark:border-[var(--sj-border)]">
+                <div class="flex items-center justify-between">
+                  <div class="text-sm font-medium text-slate-700 dark:text-[var(--sj-text)]">Уведомления</div>
+                  <button class="text-xs flex items-center gap-1 text-slate-600 dark:text-[var(--sj-muted)] hover:text-slate-900 dark:hover:text-[var(--sj-text)]"
+                          @click="markAllRead()">
+                    <i class="bi bi-check2-all"></i> Прочитать все
+                  </button>
+                </div>
 
-              <div class="text-sm text-slate-500 dark:text-slate-400 px-2 py-1">Уведомления</div>
-
-              <div class="flex flex-wrap items-center gap-1.5 px-2 py-1">
-                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs whitespace-nowrap hover:bg-slate-100 dark:hover:bg-slate-800"
-                        :class="{'bg-slate-100 dark:bg-slate-800': tab==='all'}" @click="tab='all'">Все</button>
-                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs whitespace-nowrap hover:bg-slate-100 dark:hover:bg-slate-800"
-                        :class="{'bg-slate-100 dark:bg-slate-800': tab==='system'}" @click="tab='system'">Системные</button>
-                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs whitespace-nowrap hover:bg-slate-100 dark:hover:bg-slate-800"
-                        :class="{'bg-slate-100 dark:bg-slate-800': tab==='review'}" @click="tab='review'">Проверки</button>
-                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs whitespace-nowrap hover:bg-slate-100 dark:hover:bg-slate-800"
-                        :class="{'bg-slate-100 dark:bg-slate-800': tab==='achievement'}" @click="tab='achievement'">Ачивки</button>
-                <button class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs whitespace-nowrap hover:bg-slate-100 dark:hover:bg-slate-800"
-                        :class="{'bg-slate-100 dark:bg-slate-800': tab==='purchase'}" @click="tab='purchase'">Покупки</button>
+                <!-- Фильтры -->
+                <div class="mt-2 grid grid-cols-5 gap-1">
+                  <button @click="setTab('all')"
+                          class="px-2 py-1 rounded-lg text-xs border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)]"
+                          :class="{'bg-slate-100 dark:bg-[var(--sj-bg)] font-semibold': tab==='all'}">
+                    Все <span class="opacity-70 ml-1" x-text="counts.all"></span>
+                  </button>
+                  <button @click="setTab('system')"
+                          class="px-2 py-1 rounded-lg text-xs border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)] flex items-center gap-1"
+                          :class="{'bg-slate-100 dark:bg-[var(--sj-bg)] font-semibold': tab==='system'}">
+                    <i class="bi bi-gear text-[.9rem]"></i> <span x-text="counts.system"></span>
+                  </button>
+                  <button @click="setTab('review')"
+                          class="px-2 py-1 rounded-lg text-xs border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)] flex items-center gap-1"
+                          :class="{'bg-slate-100 dark:bg-[var(--sj-bg)] font-semibold': tab==='review'}">
+                    <i class="bi bi-clipboard-check text-[.9rem]"></i> <span x-text="counts.review"></span>
+                  </button>
+                  <button @click="setTab('achievement')"
+                          class="px-2 py-1 rounded-lg text-xs border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)] flex items-center gap-1"
+                          :class="{'bg-slate-100 dark:bg-[var(--sj-bg)] font-semibold': tab==='achievement'}">
+                    <i class="bi bi-trophy text-[.9rem]"></i> <span x-text="counts.achievement"></span>
+                  </button>
+                  <button @click="setTab('purchase')"
+                          class="px-2 py-1 rounded-lg text-xs border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)] flex items-center gap-1"
+                          :class="{'bg-slate-100 dark:bg-[var(--sj-bg)] font-semibold': tab==='purchase'}">
+                    <i class="bi bi-bag text-[.9rem]"></i> <span x-text="counts.purchase"></span>
+                  </button>
+                </div>
               </div>
 
+              <!-- Лоадер -->
               <template x-if="loading">
                 <div class="p-2 space-y-2">
                   <div class="skeleton h-10 rounded-lg"></div>
@@ -226,44 +253,59 @@ footer > div{
                 </div>
               </template>
 
-              <div class="px-2 py-3 text-sm text-slate-500 dark:text-slate-400"
-                   x-show="!loading && filtered.length===0">
+              <!-- Пусто -->
+              <div class="px-3 py-3 text-sm text-slate-500 dark:text-[var(--sj-muted)]" x-show="!loading && filtered.length===0">
                 Пока уведомлений нет.
               </div>
 
-              <div class="overflow-y-auto max-h-[60vh] pr-1">
-                <template x-for="n in filtered" :key="n.id">
-                  <div class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    <div class="text-sm font-semibold" x-text="n.title"></div>
-                    <div class="text-xs text-slate-500 dark:text-slate-400" x-text="n.body"></div>
-                  </div>
+              <!-- Список -->
+              <div class="max-h-[60vh] overflow-y-auto">
+                <template x-for="n in filtered" :key="n.id || JSON.stringify(n)">
+                  <a :href="n.href || '#'"
+                     class="flex items-start gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-[var(--sj-bg)] border-b border-slate-100 dark:border-[var(--sj-border)] last:border-0">
+                    <div class="mt-0.5 shrink-0">
+                      <i :class="iconFor(n)"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2">
+                        <div class="text-sm font-semibold text-slate-800 dark:text-[var(--sj-text)] truncate" x-text="n.title || 'Без заголовка'"></div>
+                        <span x-show="!n.is_read" class="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-[var(--sj-primary)]"></span>
+                      </div>
+                      <div class="text-xs text-slate-600 dark:text-[var(--sj-muted)] mt-0.5" x-text="n.body || ''"></div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 dark:text-[var(--sj-muted)] whitespace-nowrap mt-0.5" x-text="fmtDate(n.created_at)"></div>
+                  </a>
                 </template>
-              </div>
-
-              <div class="flex justify-end" x-show="!loading && filtered.length">
-                <button class="text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-2 py-1"
-                        @click="markAllRead()">Отметить всё прочитанным</button>
               </div>
             </div>
           </div>
 
+          <!-- Профиль -->
           <div class="relative" x-data="{open:false}" @keydown.escape="open=false">
             <button class="flex items-center gap-3 group" @click="open=!open" :aria-expanded="open.toString()" aria-haspopup="menu">
               <img src="{{ url_for('avatar_svg', user_id=current_user.id) }}?part=head&t={{ (current_user.updated_at.timestamp()|int) if current_user.updated_at else 0 }}"
-                   alt="avatar" class="w-9 h-9 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 transition group-hover:ring-indigo-400">
-              <span class="font-semibold">{{ current_user.display_name }}</span>
+                   alt="avatar" class="w-9 h-9 rounded-full ring-2 ring-slate-200 dark:ring-[var(--sj-border)] transition group-hover:ring-indigo-400">
+              <span class="font-semibold hidden sm:inline">{{ current_user.display_name }}</span>
+              <i class="bi bi-caret-down-fill text-xs opacity-60 hidden sm:inline"></i>
             </button>
             <div x-show="open" x-transition
-                 class="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 shadow-soft"
+                 class="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-2 shadow-soft"
                  @click.outside="open=false" x-cloak role="menu">
-              <a class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" href="/profile" role="menuitem">Профиль</a>
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)]" href="/profile" role="menuitem">
+                <i class="bi bi-person-circle"></i> Профиль
+              </a>
               {% if current_user.company and is_manager(current_user.company.id) %}
-              <a class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" href="/company/requests" role="menuitem">Заявки</a>
-              <a class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" href="/partner/reports" role="menuitem">Отчёты по задачам</a>
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)]" href="/company/requests" role="menuitem">
+                <i class="bi bi-inboxes"></i> Заявки
+              </a>
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)]" href="/partner/reports" role="menuitem">
+                <i class="bi bi-clipboard-data"></i> Отчёты по задачам
+              </a>
               {% endif %}
-              <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                      onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/login'}})))" role="menuitem">
-                Выйти
+              <button class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)]"
+                      onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href('/login'))"
+                      role="menuitem">
+                <i class="bi bi-box-arrow-right"></i> Выйти
               </button>
             </div>
           </div>
@@ -271,150 +313,208 @@ footer > div{
         {% elif is_partner %}
           <div class="relative" x-data="{open:false}" @keydown.escape="open=false">
             <button class="flex items-center gap-3 group" @click="open=!open" :aria-expanded="open.toString()" aria-haspopup="menu">
-              <div class="w-9 h-9 grid place-items-center rounded-full ring-2 ring-slate-200 dark:ring-slate-700 bg-indigo-500/10">🤝</div>
-              <span class="font-semibold">{{ current_partner.email }}</span>
+              <div class="w-9 h-9 grid place-items-center rounded-full ring-2 ring-slate-200 dark:ring-[var(--sj-border)] bg-[color-mix(in_srgb,var(--sj-primary)_20%,transparent)] text-[var(--sj-primary)]">🤝</div>
+              <span class="font-semibold hidden sm:inline">{{ current_partner.email }}</span>
+              <i class="bi bi-caret-down-fill text-xs opacity-60 hidden sm:inline"></i>
             </button>
             <div x-show="open" x-transition
-                 class="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 shadow-soft"
+                 class="absolute right-0 mt-2 w-60 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-2 shadow-soft"
                  @click.outside="open=false" x-cloak role="menu">
-              <a class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" href="/partner/company" role="menuitem">Моя компания</a>
-              <a class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" href="/partner/training/create" role="menuitem">Создать курс</a>
-              <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/partner/login'}})))" role="menuitem">
-                Выйти (партнёр)
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)]" href="/partner/company" role="menuitem">
+                <i class="bi bi-building"></i> Моя компания
+              </a>
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)]" href="/partner/training/create" role="menuitem">
+                <i class="bi bi-bookmark-plus"></i> Создать курс
+              </a>
+              <button class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-bg)]"
+                      onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>location.href='/partner/login')"
+                      role="menuitem">
+                <i class="bi bi-box-arrow-right"></i> Выйти (партнёр)
               </button>
             </div>
           </div>
 
         {% elif is_admin %}
-          <form onsubmit="event.preventDefault(); fetch('/api/admin/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/admin/login'}})))">
-            <button class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Выйти (админ)</button>
+          <form onsubmit="event.preventDefault(); fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">
+            <button class="px-3 py-2 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-shield-lock"></i> Выйти (админ)
+            </button>
           </form>
 
         {% else %}
-          <a href="/login" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hidden sm:inline-block">Войти</a>
-          <a href="/register" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold hidden sm:inline-block">Регистрация</a>
-          <a href="{{ url_for('page_admin_login') }}" class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hidden md:inline-block">Вход для админа</a>
-          <a href="/partner/login" class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hidden md:inline-block">Вход партнёра</a>
+          <div class="hidden sm:flex items-center gap-2">
+            <a href="/login" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[var(--sj-elev)] dark:hover:bg-[var(--sj-bg)] border border-slate-200 dark:border-[var(--sj-border)] flex items-center gap-2">
+              <i class="bi bi-box-arrow-in-right"></i> Войти
+            </a>
+            <a href="/register" class="px-3 py-2 rounded-xl bg-[var(--sj-primary)] hover:opacity-90 text-white font-semibold flex items-center gap-2">
+              <i class="bi bi-person-plus"></i> Регистрация
+            </a>
+            <a href="{{ url_for('page_admin_login') }}" class="px-3 py-2 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hidden md:inline-flex items-center gap-2">
+              <i class="bi bi-shield-lock"></i> Вход для админа
+            </a>
+            <a href="/partner/login" class="px-3 py-2 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] hidden md:inline-flex items-center gap-2">
+              <i class="bi bi-people"></i> Вход партнёра
+            </a>
+          </div>
         {% endif %}
       </div>
     </div>
 
+    <!-- Оверлей и мобильное меню -->
     <div x-cloak x-show="mobileOpen" x-transition.opacity class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden" @click="closeMobile()" aria-hidden="true"></div>
-    <!-- Оверлей остаётся как есть выше -->
 
-<aside id="mobileNav" x-cloak x-show="mobileOpen"
-       x-transition:enter="transition transform ease-out duration-200"
-       x-transition:enter-start="-translate-x-full"
-       x-transition:enter-end="translate-x-0"
-       x-transition:leave="transition transform ease-in duration-150"
-       x-transition:leave-start="translate-x-0"
-       x-transition:leave-end="-translate-x-full"
-       class="fixed inset-0 z-50 w-full bg-white dark:bg-slate-900 shadow-soft md:hidden overscroll-contain">
-  <div class="h-full w-full flex flex-col">
+    <aside id="mobileNav" x-cloak x-show="mobileOpen"
+           x-transition:enter="transition transform ease-out duration-200"
+           x-transition:enter-start="-translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           x-transition:leave="transition transform ease-in duration-150"
+           x-transition:leave-start="translate-x-0"
+           x-transition:leave-end="-translate-x-full"
+           class="fixed inset-0 z-50 w-full bg-white dark:bg-[var(--sj-bg)] shadow-soft md:hidden overscroll-contain">
+      <div class="h-full w-full flex flex-col">
+        <div class="p-4 flex items-center justify-between border-b border-slate-200 dark:border-[var(--sj-border)]">
+          <span class="text-lg font-extrabold">Навигация</span>
+          <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+                  @click="closeMobile()" aria-label="Закрыть меню">
+            <i class="bi bi-x-lg text-xl"></i>
+          </button>
+        </div>
 
-    <div class="p-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
-      <span class="text-lg font-extrabold">Навигация</span>
-      <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-              @click="closeMobile()" aria-label="Закрыть меню">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
+        <nav class="p-3 flex-1 overflow-y-auto flex flex-col gap-2 text-sm">
+          {% if is_user %}
+            <a href="{{ url_for('page_training_list') }}" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-journals"></i> Курсы
+            </a>
+            <a href="/contests" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-trophy"></i> Конкурсы
+            </a>
+            <a href="/store" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-bag"></i> Магазин
+            </a>
+            {% if current_user.company and is_manager(current_user.company.id) %}
+              <a href="/company/requests" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+                <i class="bi bi-inboxes"></i> Заявки
+              </a>
+              <a href="/partner/reports" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+                <i class="bi bi-clipboard-data"></i> Отчёты по задачам
+              </a>
+              <a href="/training/create" class="px-3 py-2 rounded-lg bg-[var(--sj-primary)] hover:opacity-90 text-white font-semibold flex items-center gap-2">
+                <i class="bi bi-plus-circle"></i> Создать курс
+              </a>
+            {% endif %}
+            <hr class="my-2 border-slate-200 dark:border-[var(--sj-border)]">
+            <a href="/profile" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-person-circle"></i> Профиль
+            </a>
+            <button class="text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2"
+                    onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/login')">
+              <i class="bi bi-box-arrow-right"></i> Выйти
+            </button>
+          {% elif is_partner %}
+            <a href="/partner/company" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-building"></i> Моя компания
+            </a>
+            <a href="/partner/training/create" class="px-3 py-2 rounded-lg bg-[var(--sj-primary)] hover:opacity-90 text-white font-semibold flex items-center gap-2">
+              <i class="bi bi-bookmark-plus"></i> Создать курс
+            </a>
+            <hr class="my-2 border-slate-200 dark:border-[var(--sj-border)]">
+            <button class="text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2"
+                    onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>location.href='/partner/login')">
+              <i class="bi bi-box-arrow-right"></i> Выйти (партнёр)
+            </button>
+          {% elif is_admin %}
+            <a href="/partner/requests" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-inboxes"></i> Заявки
+            </a>
+            <a href="/partner/reports" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-clipboard-data"></i> Отчёты по задачам
+            </a>
+            <a href="{{ url_for('page_admin_dashboard') }}" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-2">
+              <i class="bi bi-speedometer2"></i> Админ-панель
+            </a>
+            <hr class="my-2 border-slate-200 dark:border-[var(--sj-border)]">
+            <button class="text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2"
+                    onclick="fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">
+              <i class="bi bi-box-arrow-right"></i> Выйти (админ)
+            </button>
+          {% else %}
+            <a href="/login" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-[var(--sj-elev)] hover:bg-slate-200 dark:hover:bg-[var(--sj-bg)] border border-slate-200 dark:border-[var(--sj-border)] flex items-center gap-2">
+              <i class="bi bi-box-arrow-in-right"></i> Войти
+            </a>
+            <a href="/register" class="px-3 py-2 rounded-lg bg-[var(--sj-primary)] hover:opacity-90 text-white font-semibold flex items-center gap-2">
+              <i class="bi bi-person-plus"></i> Регистрация
+            </a>
+            <hr class="my-2 border-slate-200 dark:border-[var(--sj-border)]">
+            <a href="{{ url_for('page_admin_login') }}" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-shield-lock"></i> Вход админа
+            </a>
+            <a href="/partner/login" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center gap-2">
+              <i class="bi bi-people"></i> Вход партнёра
+            </a>
+          {% endif %}
+        </nav>
 
-    <!-- контент тянется и скроллится, ширина 100% -->
-    <nav class="p-3 flex-1 overflow-y-auto flex flex-col gap-2 text-sm">
-      {% if is_user %}
-        <a href="{{ url_for('page_training_list') }}" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Курсы</a>
-        <a href="/contests" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Конкурсы</a>
-        <a href="/store" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Магазин</a>
-        {% if current_user.company and is_manager(current_user.company.id) %}
-          <a href="/company/requests" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Заявки</a>
-          <a href="/partner/reports" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Отчёты по задачам</a>
-          <a href="/training/create" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Создать курс</a>
-        {% endif %}
-        <hr class="my-2 border-slate-200 dark:border-slate-800">
-        <a href="/profile" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Профиль</a>
-        <button class="text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/login'}})))">
-          Выйти
-        </button>
-      {% elif is_partner %}
-        <a href="/partner/company" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Моя компания</a>
-        <a href="/partner/training/create" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Создать курс</a>
-        <hr class="my-2 border-slate-200 dark:border-slate-800">
-        <button class="text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                onclick="fetch('/api/partners/auth/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/partner/login'}})))">
-          Выйти (партнёр)
-        </button>
-      {% elif is_admin %}
-        <a href="/partner/requests" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Заявки</a>
-        <a href="/partner/reports" class="px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">Отчёты по задачам</a>
-        <a href="{{ url_for('page_admin_dashboard') }}" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Админ-панель</a>
-        <hr class="my-2 border-slate-200 dark:border-slate-800">
-        <button class="text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                onclick="fetch('/api/admin/logout',{method:'POST'}).then(()=>window.dispatchEvent(new CustomEvent('spa:goto',{detail:{url:'/admin/login'}})))">
-          Выйти (админ)
-        </button>
-      {% else %}
-        <a href="/login" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">Войти</a>
-        <a href="/register" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Регистрация</a>
-        <hr class="my-2 border-slate-200 dark:border-slate-800">
-        <a href="{{ url_for('page_admin_login') }}" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Вход для админа</a>
-        <a href="/partner/login" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Вход партнёра</a>
-      {% endif %}
-    </nav>
-
-    <div class="p-3 border-t border-slate-200 dark:border-slate-800">
-      <button class="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800"
-              @click="toggleTheme()">Сменить тему</button>
-    </div>
-  </div>
-</aside>
-
+        <div class="p-3 border-t border-slate-200 dark:border-[var(--sj-border)]">
+          <button class="w-full rounded-lg border border-slate-300 dark:border-[var(--sj-border)] px-3 py-2 hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)] flex items-center justify-center gap-2"
+                  @click="toggleTheme()">
+            <i class="bi bi-moon-stars-fill dark:hidden"></i>
+            <i class="bi bi-sun-fill hidden dark:inline"></i>
+            Сменить тему
+          </button>
+        </div>
+      </div>
+    </aside>
   </header>
 
-  <main id="pjax-root" data-pjax-root class="min-h-[80vh]">
+  <!-- MAIN -->
+  <main class="min-h-[80vh]">
     {% block content %}{% endblock %}
   </main>
 
-<footer class="border-t border-slate-200 dark:border-slate-800 w-full">
-  <div class="w-full px-4 py-8 grid sm:grid-cols-3 gap-6 text-sm text-slate-500 dark:text-slate-400 safe-x">
-    <div class="text-left">© 2025 Sales Journey</div>
-    <div class="sm:text-center">Геймификация продаж, которая реально двигает цифры</div>
-    <div class="sm:text-right">hello@salesjourney.app</div>
-  </div>
-</footer>
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-200 dark:border-[var(--sj-border)] w-full">
+    <div class="w-full px-4 py-8 grid sm:grid-cols-3 gap-6 text-sm text-slate-500 dark:text-[var(--sj-muted)] safe-x">
+      <div class="text-left">© 2025 Sales Journey</div>
+      <div class="sm:text-center">Геймификация продаж, которая реально двигает цифры</div>
+      <div class="sm:text-right">hello@salesjourney.app</div>
+    </div>
+  </footer>
 
-
+  <!-- TOASTS -->
   <div class="fixed top-3 right-3 z-[100] space-y-3 w-[92vw] max-w-80" aria-live="polite">
     <template x-for="t in $store.toasts?.items || []" :key="t.id">
       <div x-show="t.show" x-transition.opacity.duration.200ms
-           class="rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl bg-white dark:bg-slate-800 p-4 flex gap-3">
-        <div class="text-2xl" x-text="t.emoji || '✨'"></div>
-        <div class="flex-1">
-          <div class="font-semibold text-slate-800 dark:text-slate-100" x-text="t.title"></div>
-          <div class="text-sm text-slate-600 dark:text-slate-300" x-text="t.text"></div>
+           class="rounded-xl border border-slate-200 dark:border-[var(--sj-border)] shadow-xl bg-white dark:bg-[var(--sj-elev)] p-4 flex gap-3">
+        <div class="text-2xl leading-none flex items-center justify-center">
+          <i x-show="t.icon" :class="t.icon"></i>
+          <span x-show="!t.icon">✨</span>
         </div>
-        <button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" @click="$store.toasts.dismiss(t.id)">✕</button>
+        <div class="flex-1">
+          <div class="font-semibold text-slate-800 dark:text-[var(--sj-text)]" x-text="t.title"></div>
+          <div class="text-sm text-slate-600 dark:text-[var(--sj-muted)]" x-text="t.text"></div>
+        </div>
+        <button class="text-slate-500 dark:text-[var(--sj-muted)] hover:text-slate-800 dark:hover:text-[var(--sj-text)]" @click="$store.toasts.dismiss(t.id)">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
     </template>
   </div>
 
+  <!-- FX -->
   <canvas id="confetti" class="pointer-events-none fixed inset-0 z-[90]"></canvas>
 
+  <!-- Scroll Top -->
   <button x-data="scrollTopBtn()" x-show="visible" x-transition.opacity
           @click="go()" aria-label="Наверх"
           class="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-40
-                 rounded-full p-3 bg-indigo-600 hover:bg-indigo-500 text-white shadow-soft float">
-    ↑
+                 rounded-full p-3 bg-[var(--sj-primary)] hover:opacity-90 text-white shadow-soft float">
+    <i class="bi bi-arrow-up"></i>
   </button>
 
   {% block scripts %}{% endblock %}
 
   <script>
-    // Header logic: shadow on scroll, mobile drawer, theme toggle
+    // Header UI
     function headerUI(){
       return {
         mobileOpen:false,
@@ -424,19 +524,7 @@ footer > div{
       }
     }
 
-    // Sticky header shadow on scroll
-    (function(){
-      const hdr = document.querySelector('header.sticky');
-      if(!hdr) return;
-      const onScroll = () => {
-        const sc = window.scrollY || document.documentElement.scrollTop;
-        hdr.style.boxShadow = sc > 4 ? '0 8px 24px -18px rgba(0,0,0,.25)' : 'none';
-      };
-      window.addEventListener('scroll', onScroll, { passive: true });
-      onScroll();
-    })();
-
-    // "Наверх" btn
+    // Кнопка "Наверх"
     function scrollTopBtn(){
       return {
         visible:false,
@@ -449,188 +537,94 @@ footer > div{
       }
     }
 
-    // Уведомления (логика без изменений)
-    function notifMenu(){ return {
-      open:false, items:[], unreadCount:0, loading:false, tab:'all',
-      get filtered(){
-        if (this.tab==='all') return this.items;
-        const key = this.tab;
-        return this.items.filter(n => (n.type||n.category||'').toLowerCase() === key);
-      },
-      async toggle(){ this.open=!this.open; if(this.open){ await this.load(); } },
-      async load(){
-        this.loading = true;
-        try{
-          const r = await fetch('/api/notifications'); if(!r.ok) return;
-          const d = await r.json();
-          this.items = d.notifications || [];
-          this.unreadCount = this.items.filter(x=>!x.is_read).length;
-        } finally {
-          this.loading = false;
-        }
-      },
-      async markAllRead(){ await fetch('/api/notifications/read',{method:'POST'}); await this.load(); }
-    }}
+    // ===== Уведомления (полная версия) =====
+    function notifMenu(){
+      return {
+        open:false,
+        loading:false,
+        tab:'all',
+        items:[],
+        unreadCount:0,
+        counts:{ all:0, system:0, review:0, achievement:0, purchase:0 },
 
-    /* ======================= SPA (PJAX) НАВИГАЦИЯ (без изменений) ======================== */
-    (()=>{
-      const PJAX_SELECTOR='[data-pjax-root]';
-      const AUTH_SLOT_SELECTOR='[data-auth-slot]';
-      const bar=document.getElementById('spa-bar');
+        toggle(){ this.open = !this.open; if(this.open && !this.items.length){ this.load(); } },
+        setTab(t){ this.tab = t; },
 
-      function startBar(){ if(bar){ bar.style.width='20%'; requestAnimationFrame(()=>bar.style.width='60%'); } }
-      function finishBar(){ if(bar){ bar.style.width='100%'; setTimeout(()=>{ bar.style.width='0'; },180);} }
+        kind(n){ return (n.type || n.category || 'system').toString().toLowerCase(); },
+        iconFor(n){
+          const k = this.kind(n);
+          return ({
+            system: 'bi bi-gear',
+            review: 'bi bi-clipboard-check',
+            achievement: 'bi bi-trophy',
+            purchase: 'bi bi-bag'
+          }[k]) || 'bi bi-bell';
+        },
+        fmtDate(s){
+          if(!s) return '';
+          const d = new Date(s);
+          return isNaN(d) ? '' : d.toLocaleString();
+        },
 
-      function sameOrigin(url){
-        try{ const u=new URL(url, location.href); return u.origin===location.origin; }catch(_){return false;}
-      }
+        get filtered(){
+          if(this.tab === 'all') return this.items;
+          return this.items.filter(n => this.kind(n) === this.tab);
+        },
 
-      function extract(html){
-        const doc=new DOMParser().parseFromString(html,'text/html');
-        const next=doc.querySelector(PJAX_SELECTOR);
-        const title=doc.querySelector('title');
-        return { next, titleText: title ? title.textContent : document.title, doc };
-      }
+        async load(){
+          this.loading = true;
+          try{
+            const r = await fetch('/api/notifications', { credentials:'same-origin' });
+            if(!r.ok) return;
+            const data = await r.json().catch(()=>({}));
+            let arr = Array.isArray(data?.notifications) ? data.notifications
+                    : Array.isArray(data) ? data : [];
 
-      function executeScripts(el){
-        const scripts=el.querySelectorAll('script');
-        scripts.forEach(s=>{
-          const n=document.createElement('script');
-          if(s.src){ n.src=s.src; n.defer=s.defer; n.async=s.async; }
-          else{ n.textContent=s.textContent; }
-          for(const a of s.attributes) n.setAttribute(a.name,a.value);
-          s.replaceWith(n);
-        });
-      }
+            arr = arr.map(n => ({ ...n, is_read: !!n.is_read, _kind: this.kind(n) }));
 
-      async function pjaxNavigate(url, push=true){
-        try{
-          startBar();
-          const res=await fetch(url,{ headers:{ 'X-Requested-With':'SPAFetch' }});
-          if(res.redirected) return pjaxNavigate(res.url, push);
-          const text=await res.text();
-          const { next, titleText }=extract(text);
-          const root=document.querySelector(PJAX_SELECTOR);
-          if(!next || !root){ location.href=url; return; }
+            this.items = arr;
+            this.unreadCount = arr.filter(n => !n.is_read).length;
 
-          next.classList.add('spa-fade-enter');
-          root.replaceWith(next);
-          requestAnimationFrame(()=>next.classList.add('spa-fade-enter-active'));
-          setTimeout(()=>next.classList.remove('spa-fade-enter','spa-fade-enter-active'), 200);
-
-          executeScripts(next);
-          try{ if(window.Alpine) Alpine.initTree(next); }catch(_){}
-          document.title=titleText;
-          if(push) history.pushState({url},'',url);
-
-          window.dispatchEvent(new CustomEvent('spa:navigated',{ detail:{ url } }));
-        }catch(e){
-          console.error('SPA nav error', e);
-          location.href=url;
-        }finally{ finishBar(); }
-      }
-
-      window.addEventListener('spa:goto',(e)=>{
-        const url=e.detail?.url||'/';
-        pjaxNavigate(url,true);
-      });
-
-      document.addEventListener('click', (e)=>{
-        const a=e.target.closest('a');
-        if(!a) return;
-        if(a.hasAttribute('download') || a.target==='_blank' || a.getAttribute('rel')==='external' || a.dataset.noSpa!==undefined) return;
-        const href=a.getAttribute('href');
-        if(!href || href.startsWith('#')) return;
-        if(!sameOrigin(href)) return;
-
-        e.preventDefault();
-        const url=new URL(href, location.href).href;
-        pjaxNavigate(url, true);
-      }, { capture:true });
-
-      document.addEventListener('submit', async (e)=>{
-        const form=e.target;
-        if(!(form instanceof HTMLFormElement)) return;
-        if(!form.closest(PJAX_SELECTOR)) return;
-        if(!form.hasAttribute('data-ajax')) return;
-
-        e.preventDefault();
-        startBar();
-
-        const url=form.action || location.href;
-        const method=(form.method || 'POST').toUpperCase();
-        const enctype=form.enctype || 'application/x-www-form-urlencoded';
-        let body, headers={'X-Requested-With':'SPAFetch'};
-
-        if(enctype.includes('multipart/form-data')){
-          body=new FormData(form);
-        }else{
-          body=new URLSearchParams(new FormData(form));
-          headers['Content-Type']='application/x-www-form-urlencoded;charset=UTF-8';
-        }
-
-        try{
-          const res=await fetch(url,{ method, body, headers, redirect:'follow' });
-          const ctype=res.headers.get('Content-Type')||'';
-          if(ctype.includes('application/json')){
-            const j=await res.json();
-            if(j.user && window.Alpine?.store('auth')) Alpine.store('auth').setUser(j.user);
-            if(j.redirect){ await pjaxNavigate(j.redirect,true); return; }
-            return;
+            const c = { system:0, review:0, achievement:0, purchase:0 };
+            arr.forEach(n => { if (c[n._kind] !== undefined) c[n._kind]++; });
+            this.counts = { all: arr.length, ...c };
+          } finally {
+            this.loading = false;
           }
-          const html=await res.text();
-          const { next, titleText }=extract(html);
-          const root=document.querySelector(PJAX_SELECTOR);
-          if(next && root){
-            next.classList.add('spa-fade-enter');
-            root.replaceWith(next);
-            requestAnimationFrame(()=>next.classList.add('spa-fade-enter-active'));
-            setTimeout(()=>next.classList.remove('spa-fade-enter','spa-fade-enter-active'), 200);
-            executeScripts(next);
-            try{ if(window.Alpine) Alpine.initTree(next); }catch(_){}
-            document.title=titleText;
-            history.pushState({url},'',url);
-            window.dispatchEvent(new CustomEvent('spa:navigated',{ detail:{ url } }));
-          }else{
-            location.href=url;
-          }
-        }catch(err){
-          console.error('SPA form error', err);
-          location.href=url;
-        }finally{ finishBar(); }
-      });
+        },
 
-      window.addEventListener('popstate',(e)=>{
-        const url=(e.state && e.state.url) ? e.state.url : location.href;
-        pjaxNavigate(url, false);
-      });
+        async markAllRead(){
+          try{
+            const r = await fetch('/api/notifications/read', { method:'POST', credentials:'same-origin' });
+            if(r.ok){
+              this.items = this.items.map(n => ({ ...n, is_read:true }));
+              this.unreadCount = 0;
+            }
+          }catch(_){}
+        }
+      }
+    }
 
+    // Тень для sticky header
+    (function(){
+      const hdr = document.querySelector('header.sticky');
+      if(!hdr) return;
+      const onScroll = () => {
+        const sc = window.scrollY || document.documentElement.scrollTop;
+        hdr.style.boxShadow = sc > 4 ? '0 8px 24px -18px rgba(0,0,0,.25)' : 'none';
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
     })();
-  </script>
-<script>
-(function(){
-  function stretch(root){
-    if(!root) return;
-    root.querySelectorAll('[class*="max-w-"]').forEach(el=>{
-      // удаляем любые max-w-* и добавляем w-full
-      el.className = el.className.replace(/\bmax-w-[^\s]+/g, '').trim();
-      el.classList.add('w-full');
-      // убираем центрирование, если было
-      el.classList.remove('mx-auto');
+
+    // Alpine store для тостов
+    window.addEventListener('alpine:init', () => {
+      Alpine.store('toasts', {
+        id: 1, items: [],
+        push(t){ const id=this.id++; const item={ id, icon:null, ...t, show:true }; this.items.push(item); setTimeout(()=>{ this.dismiss(id); }, 4000); },
+        dismiss(id){ const it=this.items.find(x=>x.id===id); if(!it) return; it.show=false; setTimeout(()=>{ this.items=this.items.filter(x=>x.id!==id); }, 200); }
+      });
     });
-  }
-
-  // сразу после загрузки
-  stretch(document.querySelector('header.sticky'));
-  stretch(document.querySelector('footer'));
-
-  // если у тебя PJAX/SPA навигация — повторяем после переходов
-  window.addEventListener('spa:navigated', ()=>{
-    stretch(document.querySelector('header.sticky'));
-    stretch(document.querySelector('footer'));
-  });
-})();
-</script>
-
+  </script>
 </body>
 </html>

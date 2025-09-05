@@ -1,50 +1,362 @@
 {% extends "base.html" %}
+
 {% block content %}
-<section class="max-w-3xl mx-auto px-4 py-10" x-data="contestPage({{ contest_id }})">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold" x-text="contest?.title || 'Конкурс'"></h1>
-    <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold"
-            @click="join()">Участвовать</button>
-  </div>
-  <p class="text-slate-300 mt-2" x-text="contest?.description"></p>
-  <div class="text-xs text-slate-500 mt-2" x-show="contest">
-    Приз: <span x-text="contest.prize || '—'"></span> · Мин. уровень: <span x-text="contest.min_rating || 1"></span>
+<section class="mx-auto max-w-6xl px-4 py-10" x-data="contestPage({{ contest_id }})" x-cloak>
+  <style>
+    /* Мягкие анимации и эффекты */
+    @keyframes shine { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+    @keyframes glow { 0%,100% { box-shadow: 0 10px 30px -10px rgba(99,102,241,.25); } 50% { box-shadow: 0 14px 40px -12px rgba(99,102,241,.35); } }
+    @keyframes tick { 0% { transform: translateY(0); } 50% { transform: translateY(-1px); } 100% { transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) {
+      .anim, .anim-slow { animation: none !important; transition: none !important; }
+    }
+  </style>
+
+  <!-- HEADER: титул + таймер + CTA -->
+  <div class="mb-8 grid gap-6 md:grid-cols-[auto_1fr_auto] md:items-center">
+    <!-- Кольцо прогресса + «живой» таймер -->
+    <div class="flex items-center gap-5">
+      <!-- Кольцо времени -->
+      <div class="relative grid place-items-center h-20 w-20">
+        <div class="absolute inset-0 rounded-full" :style="ringStyle()"></div>
+        <div class="relative grid place-items-center h-20 w-20 rounded-full
+                    bg-white/70 dark:bg-slate-900/60 backdrop-blur ring-1 ring-black/5 dark:ring-white/10">
+          <span class="text-[10px] font-semibold text-slate-700 dark:text-slate-200" x-text="ringLabel()"></span>
+        </div>
+      </div>
+
+      <!-- «Живой» таймер -->
+      <div>
+        <div class="inline-flex items-center gap-2">
+          <span class="inline-flex items-center rounded-lg border border-black/10 dark:border-white/10
+                       bg-white/70 dark:bg-slate-900/60 backdrop-blur px-2 py-1 text-[11px]"
+                x-text="statusLabel()"></span>
+          <span class="text-[11px] text-slate-600 dark:text-slate-400" x-show="isUpcoming()">До старта</span>
+          <span class="text-[11px] text-slate-600 dark:text-slate-400" x-show="isActive()">До окончания</span>
+        </div>
+
+        <!-- Блок цифр -->
+        <div class="mt-1 flex items-end gap-2">
+          <template x-for="p in [
+            {k:'d', l:'дн.'},
+            {k:'h', l:'ч'},
+            {k:'m', l:'мин'},
+            {k:'s', l:'с'}
+          ]" :key="p.k">
+            <div class="grid">
+              <div class="grid grid-cols-2 gap-1">
+                <div class="rounded-xl bg-white/80 dark:bg-white/5 ring-1 ring-black/5 dark:ring-white/10
+                            px-2 py-2 min-w-[2.4rem] text-center text-xl font-bold text-slate-900 dark:text-slate-100
+                            anim" :class="bumpClass[p.k]">
+                  <span x-text="countdown[p.k][0]"></span>
+                </div>
+                <div class="rounded-xl bg-white/80 dark:bg-white/5 ring-1 ring-black/5 dark:ring-white/10
+                            px-2 py-2 min-w-[2.4rem] text-center text-xl font-bold text-slate-900 dark:text-slate-100
+                            anim" :class="bumpClass[p.k]">
+                  <span x-text="countdown[p.k][1]"></span>
+                </div>
+              </div>
+              <div class="mt-1 text-center text-[10px] text-slate-500 dark:text-slate-400" x-text="p.l"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- пустая колонка (для выравнивания в md+) -->
+    <div class="hidden md:block"></div>
+
+    <!-- CTA -->
+    <div class="flex items-center justify-start gap-2 md:justify-end">
+      <button type="button"
+              class="rounded-2xl bg-indigo-600 px-5 py-2.5 text-white font-semibold
+                     shadow-sm shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:bg-indigo-500
+                     active:scale-[.98] transition-all duration-200 ease-out anim"
+              :class="canJoin() ? 'animate-[glow_3s_ease-in-out_infinite]' : 'opacity-60 cursor-not-allowed'"
+              :disabled="!canJoin()" @click="join()"
+              x-text="joined ? 'Вы участвуете' : 'Участвовать'"></button>
+      <button type="button"
+              class="rounded-2xl border border-black/10 dark:border-white/10
+                     bg-white/70 dark:bg-slate-900/60 backdrop-blur px-4 py-2 text-sm
+                     hover:bg-white/90 dark:hover:bg-slate-900/80 transition-colors"
+              @click="shareLink()">Поделиться</button>
+    </div>
   </div>
 
-  <h2 class="text-lg font-semibold mt-8">Лидерборд</h2>
-  <div class="mt-3 space-y-2">
-    <template x-for="row in leaderboard" :key="row.user.id">
-      <div class="flex items-center justify-between rounded-xl border border-white/10 bg-slate-900/60 p-3">
-        <div class="flex items-center gap-3">
-          <img :src="`/avatar_svg/${row.user.id}`" class="w-10 h-10 rounded-lg ring-1 ring-white/10">
-          <div>
-            <div class="font-semibold" x-text="row.user.display_name"></div>
-            <div class="text-xs text-slate-400">lvl <span x-text="row.user.level"></span></div>
+  <div class="grid gap-8 md:grid-cols-3">
+    <!-- ЛЕВО: карточка приза + детали -->
+    <div class="md:col-span-2 space-y-6">
+      <!-- Карточка приза (мягкая, «дорогая») -->
+      <div class="rounded-3xl p-[1px] bg-gradient-to-r from-amber-400 via-pink-400 to-indigo-400
+                  [background-size:200%_200%] anim-slow" style="animation: shine 10s linear infinite;">
+        <div class="rounded-3xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl
+                    ring-1 ring-black/5 dark:ring-white/10 p-6">
+          <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div class="relative shrink-0">
+              <img x-show="contest?.prize_image_url" :src="contest?.prize_image_url"
+                   class="h-28 w-28 rounded-2xl object-cover ring-1 ring-black/10 dark:ring-white/10
+                          shadow-lg transform transition-all duration-300 hover:scale-[1.03] anim"
+                   alt="Приз">
+              <div class="pointer-events-none absolute inset-0 rounded-2xl blur-2xl"
+                   style="background: radial-gradient(40% 40% at 50% 50%, rgba(251,191,36,.25), transparent);"></div>
+              <div class="absolute -top-2 -left-2 rounded-lg px-2 py-1 text-[10px] font-semibold
+            text-amber-900 dark:text-amber-100 bg-amber-200 dark:bg-amber-500
+            ring-1 ring-amber-400">🏆 Главный приз</div>
+
+            </div>
+
+            <div class="flex-1">
+              <div class="text-xl font-bold text-slate-900 dark:text-slate-100" x-text="contest?.prize || '—'"></div>
+
+              <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                <div class="rounded-xl border border-black/5 dark:border-white/10 bg-black/[.03] dark:bg-white/[.03] p-3">
+                  <div class="text-xs text-slate-500 dark:text-slate-400">Мин. уровень</div>
+                  <div class="mt-1 font-medium text-slate-800 dark:text-slate-200" x-text="contest?.min_rating ?? '—'"></div>
+                </div>
+                <div class="rounded-xl border border-black/5 dark:border-white/10 bg-black/[.03] dark:bg-white/[.03] p-3">
+                  <div class="text-xs text-slate-500 dark:text-slate-400">Участники</div>
+                  <div class="mt-1 font-medium text-slate-800 dark:text-slate-200" x-text="participantsText()"></div>
+                  <div class="mt-2 h-1.5 w-full overflow-hidden rounded bg-black/10 dark:bg-white/10">
+                    <div class="h-full rounded bg-gradient-to-r from-indigo-400 to-emerald-400 transition-[width] duration-500"
+                         :style="`width:${participantsProgress()}%`"></div>
+                  </div>
+                </div>
+                <div class="rounded-xl border border-black/5 dark:border-white/10 bg-black/[.03] dark:bg-white/[.03] p-3">
+                  <div class="text-xs text-slate-500 dark:text-slate-400">Статус</div>
+                  <div class="mt-1 font-medium"
+                       :class="isActive() ? 'text-emerald-600 dark:text-emerald-400'
+                              : isUpcoming() ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-slate-600 dark:text-slate-400'"
+                       x-text="statusLabel()"></div>
+                </div>
+              </div>
+
+              <p class="mt-4 leading-relaxed text-slate-700 dark:text-slate-300"
+                 x-text="contest?.description || 'Описание не указано'"></p>
+            </div>
           </div>
         </div>
-        <div class="text-lg font-bold" x-text="row.score"></div>
       </div>
-    </template>
+
+      <!-- Краткие правила -->
+      <div class="rounded-3xl ring-1 ring-black/5 dark:ring-white/10 bg-white/80 dark:bg-slate-900/60 backdrop-blur p-5">
+        <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Как это работает</h3>
+        <ul class="mt-3 space-y-2 list-disc pl-5 text-sm text-slate-700 dark:text-slate-300">
+          <li>Вступай в активный конкурс — мест может быть ограничено.</li>
+          <li>Звони ИИ-клиенту, набирай очки за скрипт, возражения и темп.</li>
+          <li>Топ-1 по очкам на момент окончания получает приз.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ПРАВО: липкий лидерборд -->
+    <aside class="md:col-span-1">
+      <div class="sticky top-6 overflow-hidden rounded-3xl ring-1 ring-black/5 dark:ring-white/10
+                  bg-white/80 dark:bg-slate-900/60 backdrop-blur shadow-lg">
+        <div class="flex items-center justify-between border-b border-black/5 dark:border-white/10 p-4">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Лидерборд</h2>
+          <span class="text-xs text-slate-500 dark:text-slate-400" x-text="isActive() ? 'обновляется…' : ''"></span>
+        </div>
+
+        <div class="max-h-[70vh] overflow-auto p-2">
+          <template x-if="!leaderboard?.length">
+            <div class="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Пока пусто</div>
+          </template>
+
+          <template x-for="(row, i) in leaderboard" :key="row.user.id">
+            <div class="mt-2 flex items-center justify-between rounded-2xl p-3
+                        transition-colors hover:bg-black/[.04] dark:hover:bg-white/[.04]">
+              <div class="flex items-center gap-3">
+                <div class="grid h-8 w-8 place-items-center rounded-lg text-sm font-bold ring-1"
+                     :class="i===0 ? 'bg-amber-500/20 text-amber-700 ring-amber-400/30 dark:text-amber-200'
+                           : i===1 ? 'bg-slate-500/20 text-slate-700 ring-slate-300/30 dark:text-slate-200'
+                           : i===2 ? 'bg-orange-500/20 text-orange-700 ring-orange-400/30 dark:text-orange-200'
+                                   : 'bg-white/50 text-slate-700 ring-black/10 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10'">
+                  <span x-text="i+1"></span>
+                </div>
+                <img :src="`/avatar_svg/${row.user.id}`"
+                     class="h-9 w-9 rounded-lg ring-1 ring-black/10 dark:ring-white/10" alt="">
+                <div>
+                  <div class="font-medium leading-4 text-slate-900 dark:text-slate-100" x-text="row.user.display_name"></div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400">lvl <span x-text="row.user.level"></span></div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-base font-bold text-slate-900 dark:text-slate-100" x-text="row.score"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </aside>
   </div>
 </section>
 {% endblock %}
+
 {% block scripts %}
 <script>
 function contestPage(id){
   return {
-    contest:null, leaderboard:[],
+    // ---- state ----
+    contest: null,
+    leaderboard: [],
+    joined: false,
+
+    nowTs: Date.now(),
+    refreshTimer: null,
+
+    // для анимированного «подпрыгивания» цифр при изменении
+    countdown: { d: '00', h: '00', m: '00', s: '00' },
+    bumpClass: { d:'', h:'', m:'', s:'' },
+
+    // ---- lifecycle ----
     async init(){
-      const c = await fetch(`/api/contests/${id}`).then(r=>r.json()); this.contest = c.contest;
+      await this.fetchContest();
       await this.loadLb();
+      this.joined = !!(this.contest?.is_joined || this.contest?.joined);
+
+      this.tick(); // моментальный пересчёт
+      setInterval(() => this.tick(), 1000);
+
+      this.armAutoRefresh();
+    },
+
+    // ---- status helpers ----
+    isUpcoming(){ if(!this.contest) return false; const n=this.nowTs; return n < Date.parse(this.contest.start_at); },
+    isActive(){ if(!this.contest) return false; const n=this.nowTs; return n >= Date.parse(this.contest.start_at) && n <= Date.parse(this.contest.end_at); },
+    isFinished(){ if(!this.contest) return false; const n=this.nowTs; return n > Date.parse(this.contest.end_at); },
+    statusLabel(){
+      if(!this.contest) return 'Загрузка...';
+      if(this.isUpcoming()) return 'Скоро старт';
+      if(this.isActive())   return 'Идёт конкурс';
+      return 'Завершён';
+    },
+
+    // ---- timer / ring ----
+    tick(){
+      this.nowTs = Date.now();
+      if(!this.contest){ return; }
+
+      // целевая точка: до старта или до конца
+      const target = this.isUpcoming()
+        ? Date.parse(this.contest.start_at)
+        : Date.parse(this.contest.end_at);
+
+      let ms = Math.max(0, target - this.nowTs);
+      const s  = Math.floor(ms/1000);
+      const d  = Math.floor(s/86400);
+      const h  = Math.floor((s%86400)/3600);
+      const m  = Math.floor((s%3600)/60);
+      const ss = s%60;
+
+      // формат 2 цифры и аним. bump при изменении
+      this.bumpDigit('d', this.two(d));
+      this.bumpDigit('h', this.two(h));
+      this.bumpDigit('m', this.two(m));
+      this.bumpDigit('s', this.two(ss));
+    },
+    bumpDigit(key, val){
+      if(this.countdown[key] !== val){
+        this.countdown[key] = val;
+        this.bumpClass[key] = 'animate-[tick_.7s_ease-in-out]';
+        setTimeout(()=>{ this.bumpClass[key] = ''; }, 650);
+      }
+    },
+    two(n){ return String(n).padStart(2,'0'); },
+
+    // процент времени конкурса (для кольца)
+    timePercent(){
+      if(!this.contest) return 0;
+      const now = this.nowTs;
+      const start = Date.parse(this.contest.start_at);
+      const end   = Date.parse(this.contest.end_at);
+      if(now <= start) return 0;
+      if(now >= end) return 100;
+      return Math.round(((now - start) / (end - start)) * 100);
+    },
+    ringStyle(){
+      const pct = this.isUpcoming() ? 0 : this.timePercent();
+      const color1 = this.isActive() ? 'rgba(99,102,241,0.95)' : (this.isUpcoming() ? 'rgba(251,191,36,0.95)' : 'rgba(148,163,184,0.95)');
+      const color2 = 'rgba(203,213,225,0.28)';
+      return {
+        background: `conic-gradient(${color1} ${pct*3.6}deg, ${color2} 0)`,
+        filter: 'blur(.8px)',
+        borderRadius: '9999px'
+      };
+    },
+    ringLabel(){
+      if(this.isUpcoming()) return 'до старта';
+      if(this.isActive())   return this.timePercent() + '%';
+      return 'завершён';
+    },
+
+    // ---- participants helpers ----
+    participantsText(){
+      if(!this.contest) return '';
+      const cnt = this.contest.participants_count ?? 0;
+      const max = this.contest.max_participants ?? '∞';
+      return `${cnt} / ${max}`;
+    },
+    participantsProgress(){
+      if(!this.contest || !this.contest.max_participants) return 0;
+      const cnt = this.contest.participants_count ?? 0;
+      const max = this.contest.max_participants;
+      return Math.min(100, Math.round((cnt / max) * 100));
+    },
+
+    // ---- actions ----
+    canJoin(){
+      if(!this.contest) return false;
+      if(this.joined) return false;
+      if(this.isUpcoming() || this.isFinished()) return false;
+      if(this.contest.max_participants && (this.contest.participants_count ?? 0) >= this.contest.max_participants) return false;
+      return true;
+    },
+    async join(){
+      if(!this.canJoin()) return;
+      const r = await fetch(`/api/contests/${this.contest.id}/join`, { method:'POST' });
+      const j = await r.json().catch(()=>({}));
+      if(r.ok){
+        this.joined = true;
+        await this.fetchContest();
+        await this.loadLb();
+        this.toast('Вы участвуете!', '🎉');
+        try { Alpine.store('fx')?.confetti?.(); } catch(_) {}
+      }else{
+        this.toast(j.description || 'Ошибка', '⚠️');
+      }
+    },
+
+    // автообновление, пока активен
+    armAutoRefresh(){
+      if(this.refreshTimer){ clearInterval(this.refreshTimer); this.refreshTimer=null; }
+      if(this.isActive()){
+        this.refreshTimer = setInterval(() => { this.loadLb(); this.fetchContest(); }, 10000);
+      }
+    },
+
+    // ---- API ----
+    async fetchContest(){
+      const c = await fetch(`/api/contests/${id}`).then(r=>r.json());
+      this.contest = c.contest;
+      this.armAutoRefresh();
     },
     async loadLb(){
+      if(!this.contest) return;
       const lb = await fetch(`/api/contests/${this.contest.id}/leaderboard`).then(r=>r.json());
       this.leaderboard = lb.leaderboard || [];
     },
-    async join(){
-      const r = await fetch(`/api/contests/${this.contest.id}/join`, {method:'POST'});
-      if(r.ok){ await this.loadLb(); alert('Вы участвуете!'); }
-      else { const e = await r.json().catch(()=>({})); alert(e.description || 'Ошибка'); }
+
+    // ---- UX ----
+    shareLink(){
+      const url = window.location.href;
+      if(navigator.share) navigator.share({ title: this.contest?.title || 'Конкурс', url }).catch(()=>{});
+      else navigator.clipboard.writeText(url).then(()=> this.toast('Ссылка скопирована', '🔗'));
+    },
+    toast(text, emoji){
+      if(window.Alpine?.store && Alpine.store('toasts')){
+        Alpine.store('toasts').push({title:'', text, emoji});
+      } else { alert(text); }
     }
   }
 }

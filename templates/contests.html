@@ -4,19 +4,28 @@
   <h1 class="text-2xl font-bold">Конкурсы</h1>
   <div class="mt-6 space-y-4">
     <template x-for="c in contests" :key="c.id">
-      <a :href="`/contest/${c.id}`"
-         class="block rounded-2xl border border-white/10 bg-slate-900/60 p-5 hover:bg-white/5">
+  <a :href="`/contest/${c.id}`"
+     class="block rounded-2xl border border-white/10 bg-slate-900/60 p-5 hover:bg-white/5">
+    <div class="flex gap-4">
+      <img x-show="c.prize_image_url" :src="c.prize_image_url"
+           class="w-16 h-16 rounded-xl object-cover border border-white/10" alt="">
+      <div class="flex-1">
         <div class="flex items-center justify-between">
           <div class="text-lg font-semibold" x-text="c.title"></div>
           <div class="text-sm text-slate-400" x-text="c.prize || '—'"></div>
         </div>
         <div class="text-sm text-slate-400 mt-1" x-text="c.description || 'Без описания'"></div>
-        <div class="text-xs text-slate-500 mt-2">
-          с <span x-text="new Date(c.start_at).toLocaleString()"></span>
-          по <span x-text="new Date(c.end_at).toLocaleString()"></span>
+        <div class="text-xs text-slate-500 mt-2 flex items-center gap-3">
+          <span>с <span x-text="new Date(c.start_at).toLocaleString()"></span>
+          по <span x-text="new Date(c.end_at).toLocaleString()"></span></span>
+          <span>· Мин. уровень: <span x-text="c.min_rating || '—'"></span></span>
+          <span>· Участники: <span x-text="(c.participants_count ?? 0) + ' / ' + (c.max_participants ?? '∞')"></span></span>
         </div>
-      </a>
-    </template>
+      </div>
+    </div>
+  </a>
+</template>
+
   </div>
 </section>
 {% endblock %}

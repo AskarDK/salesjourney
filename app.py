@@ -421,7 +421,6 @@ class UserAvatar(db.Model):
 
     user = db.relationship("User", back_populates="avatar", lazy="joined")
 
-# Конкурсы
 class Contest(db.Model):
     __tablename__ = "contests"
     id          = db.Column(db.Integer, primary_key=True)
@@ -429,8 +428,10 @@ class Contest(db.Model):
     description = db.Column(db.Text, nullable=True)
     start_at    = db.Column(db.DateTime, nullable=False)
     end_at      = db.Column(db.DateTime, nullable=False)
-    prize       = db.Column(db.String(255), nullable=True)
-    min_rating  = db.Column(db.Integer, nullable=True)   # минимальный уровень, например
+    prize       = db.Column(db.String(255), nullable=True)   # текст награды
+    min_rating  = db.Column(db.Integer, nullable=True)       # минимальный уровень допуска
+    max_participants = db.Column(db.Integer, nullable=True)  # лимит участников (NULL = без лимита)
+    prize_image_url  = db.Column(db.String(255), nullable=True)  # изображение награды
     is_company_only = db.Column(db.Boolean, nullable=False, default=False)
     company_id  = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=True)
     created_at  = db.Column(db.DateTime, default=now_utc)
@@ -1240,13 +1241,17 @@ def user_avatar_to_dict(ua: UserAvatar) -> Dict[str, Any]:
     return {"user_id": ua.user_id, "selected_by_slot": selected}
 
 def contest_to_dict(c: Contest) -> Dict[str, Any]:
+    participants = ContestEntry.query.filter_by(contest_id=c.id).count()
     return {
         "id": c.id, "title": c.title, "description": c.description,
         "start_at": c.start_at.isoformat(), "end_at": c.end_at.isoformat(),
-        "prize": c.prize, "min_rating": c.min_rating,
+        "prize": c.prize, "prize_image_url": c.prize_image_url,
+        "min_rating": c.min_rating, "max_participants": c.max_participants,
+        "participants_count": participants,
         "is_company_only": c.is_company_only,
         "company": c.company.slug if c.company else None
     }
+
 
 def contest_entry_to_dict(e: ContestEntry) -> Dict[str, Any]:
     return {
@@ -2609,14 +2614,31 @@ def get_contest(contest_id):
 def join_contest(contest_id):
     u = current_user()
     c = db.session.get(Contest, contest_id)
-    if not c:
-        abort(404)
+    if not c: abort(404)
+
+    # Временные рамки
+    now = now_utc()
+    if now < c.start_at:
+        abort(403, description="Contest not started")
+    if now > c.end_at:
+        abort(403, description="Contest finished")
+
+    # Порог уровня и принадлежность компании (если требуется)
     if c.min_rating and u.level < c.min_rating:
         abort(403, description="Level is too low for this contest")
     if c.is_company_only and u.company_id != c.company_id:
         abort(403, description="Company-only contest")
+
+    # Лимит участников
+    if c.max_participants is not None:
+        cnt = ContestEntry.query.filter_by(contest_id=c.id).count()
+        if cnt >= c.max_participants:
+            abort(403, description="Participant limit reached")
+
+    # Уже участвует — ок
     if ContestEntry.query.filter_by(contest_id=c.id, user_id=u.id).first():
         return as_json({"ok": True, "already": True})
+
     entry = ContestEntry(contest_id=c.id, user_id=u.id)
     db.session.add(entry)
     db.session.commit()
@@ -2650,6 +2672,14 @@ def contest_add_score(contest_id):
     e = ContestEntry.query.filter_by(contest_id=contest_id, user_id=u.id).first()
     if not e:
         abort(403, description="Join first")
+
+    # Запрещаем скоринг вне окон конкурса
+    c = db.session.get(Contest, contest_id)
+    if not c: abort(404)
+    now = now_utc()
+    if now < c.start_at or now > c.end_at:
+        abort(403, description="Contest not active")
+
     delta = safe_int(request.json.get("score_delta"), 0)
     e.score += max(0, delta)
     db.session.commit()
@@ -4597,6 +4627,39 @@ def _get_company_or_404(cid: int) -> Company:
         abort(404, description="Company not found")
     return c
 
+# ---- ADMIN USERS ----
+@app.get("/api/admin/admin_users")
+@admin_required
+def admin_admin_users_list():
+    q = AdminUser.query.order_by(AdminUser.created_at.desc()).limit(500)
+    admins = [{"id": a.id, "email": a.email, "created_at": a.created_at.isoformat()} for a in q.all()]
+    return as_json({"admins": admins})
+
+@app.post("/api/admin/admin_users")
+@admin_required
+def admin_admin_users_create():
+    require_json()
+    d = request.get_json()
+    email = (d.get("email") or "").strip().lower()
+    password = d.get("password") or ""
+    if not email or not password:
+        abort(400, description="email, password required")
+    if AdminUser.query.filter_by(email=email).first():
+        abort(409, description="Admin email exists")
+    a = AdminUser(email=email, password=generate_password_hash(password))
+    db.session.add(a); db.session.commit()
+    return as_json({"admin": {"id": a.id, "email": a.email, "created_at": a.created_at.isoformat()}})
+
+@app.delete("/api/admin/admin_users/<int:aid>")
+@admin_required
+def admin_admin_users_delete(aid: int):
+    a = db.session.get(AdminUser, aid)
+    if not a:
+        abort(404, description="Admin not found")
+    db.session.delete(a); db.session.commit()
+    return as_json({"ok": True})
+
+
 # ---- USERS ----
 @app.get("/api/admin/users")
 @admin_required
@@ -5193,10 +5256,30 @@ def admin_contest_create():
         end_at=datetime.fromisoformat(d["end_at"].replace("Z","+00:00")),
         prize=d.get("prize"),
         min_rating=safe_int(d.get("min_rating"), None),
+        max_participants=safe_int(d.get("max_participants"), None),
         is_company_only=bool(d.get("is_company_only", False)),
         company_id=d.get("company_id"),
     )
     db.session.add(c); db.session.commit()
+    return as_json({"contest": contest_to_dict(c)})
+
+@app.post("/api/admin/contests/<int:contest_id>/prize_image")
+@admin_required
+def admin_contest_prize_image(contest_id):
+    c = db.session.get(Contest, contest_id)
+    if not c: abort(404)
+
+    f = request.files.get("image")
+    if not f: abort(400, description="image required")
+
+    up_dir = pathlib.Path(app.root_path) / "static" / "uploads" / "prizes"
+    up_dir.mkdir(parents=True, exist_ok=True)
+    ext = os.path.splitext(f.filename or "")[1].lower() or ".jpg"
+    fn = f"{uuid.uuid4().hex}{ext}"
+    f.save(up_dir / fn)
+
+    c.prize_image_url = f"/static/uploads/prizes/{fn}"
+    db.session.commit()
     return as_json({"contest": contest_to_dict(c)})
 
 @app.delete("/api/admin/contests/<int:contest_id>")

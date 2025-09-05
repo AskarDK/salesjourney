@@ -3,153 +3,148 @@
 
 {% block content %}
 
-<!-- design tokens + animations (safe to inline) -->
+<!-- ===== Design tokens (light/dark via .dark) ===== -->
 <style>
   :root{
-    --sj-radius: 16px;
-    --sj-radius-lg: 20px;
+    /* surfaces */
+    --sj-bg:            #f7fafc;
+    --sj-card:          #ffffff;
+    --sj-muted:         #f1f5f9;
+    --sj-border:        rgba(2,6,23,.10);
+    --sj-border-strong: rgba(2,6,23,.16);
+    --sj-glass:         rgba(255,255,255,.75);
+    --sj-overlay:       rgba(0,0,0,.55);
+
+    /* text */
+    --sj-text:          #0f172a;
+    --sj-muted-text:    #475569;
+
+    /* rings */
+    --sj-ring: 79, 70, 229;   /* indigo-600 */
+
+    /* palette (tailwind rgb) */
+    --indigo: 79 70 229;
+    --emerald: 16 185 129;
+    --sky: 14 165 233;
+    --amber: 217 119 6;
+    --rose: 225 29 72;
+    --slate: 100 116 139;
+
+    --sj-radius: 14px;
+    --sj-radius-lg: 18px;
     --sj-radius-xl: 24px;
-    --sj-glass: rgba(15,23,42,.7);
-    --sj-border: rgba(255,255,255,.12);
-    --sj-ring: 70, 97, 230;  /* indigo */
   }
+  .dark{
+    --sj-bg:            #0b1220;
+    --sj-card:          rgba(15,23,42,.88);
+    --sj-muted:         rgba(15,23,42,.68);
+    --sj-border:        rgba(255,255,255,.10);
+    --sj-border-strong: rgba(255,255,255,.16);
+    --sj-glass:         rgba(15,23,42,.78);
+    --sj-overlay:       rgba(0,0,0,.6);
 
-  .glass-card{
-    position: relative;
-    border-radius: var(--sj-radius-xl);
-    background: var(--sj-glass);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--sj-border);
-    box-shadow:
-      0 10px 30px rgba(2,6,23,.35),
-      inset 0 1px 0 rgba(255,255,255,.06);
-  }
-
-  .glass-gradient{
-    position: relative;
-    border-radius: var(--sj-radius-xl);
-    padding: 1px;
-    background: linear-gradient(135deg, rgba(99,102,241,.35), rgba(168,85,247,.25), rgba(16,185,129,.25));
-  }
-  .glass-gradient > .glass-inner{
-    border-radius: inherit;
-    background: var(--sj-glass);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--sj-border);
-  }
-
-  .btn {
-    border-radius: var(--sj-radius);
-    padding: .6rem 1rem;
-    font-weight: 600;
-    transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
-    border: 1px solid rgba(255,255,255,.12);
-    will-change: transform;
-  }
-  .btn:hover { transform: translateY(-1px); }
-  .btn:active { transform: translateY(0); }
-
-  .btn-primary{
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: #fff;
-    border-color: transparent;
-    box-shadow: 0 10px 25px rgba(99,102,241,.25);
-  }
-  .btn-primary:hover{ filter: brightness(1.05); }
-  .btn-ghost{
-    background: rgba(255,255,255,.06);
-    color: #e2e8f0;
-  }
-  .btn-ghost:hover{ background: rgba(255,255,255,.1); }
-  .btn-success{
-    background: linear-gradient(135deg, #10b981, #34d399);
-    color:#062c22;
-    border-color: transparent;
-  }
-  .btn-danger{
-    background: linear-gradient(135deg, #ef4444, #f97316);
-    color:#fff;
-    border-color: transparent;
-  }
-  .btn-outline{
-    background: transparent;
-    border-color: var(--sj-border);
-    color:#e2e8f0;
-  }
-
-  .input, .select, .textarea{
-    width: 100%;
-    background: rgba(2,6,23,.55);
-    border: 1px solid var(--sj-border);
-    color: #e5e7eb;
-    border-radius: var(--sj-radius);
-    padding: .65rem .85rem;
-    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-  }
-  .textarea{ min-height: 3.5rem; }
-  .input:focus, .select:focus, .textarea:focus{
-    outline: none;
-    border-color: rgba(var(--sj-ring), .45);
-    box-shadow: 0 0 0 3px rgba(var(--sj-ring), .18);
-    background: rgba(2,6,23,.7);
-  }
-
-  @keyframes fade-slide-up {
-    from { opacity: 0; transform: translateY(6px) scale(.98); }
-    to   { opacity: 1; transform: translateY(0)   scale(1); }
-  }
-  .animate-in{ animation: fade-slide-up .25s ease both; }
-
-  @keyframes soft-pop {
-    0% { transform: scale(.98); }
-    60%{ transform: scale(1.015); }
-    100%{ transform: scale(1); }
-  }
-  .pop{ animation: soft-pop .22s ease both; }
-
-  .toggle{
-    --w: 38px; --h: 22px;
-    width: var(--w); height: var(--h);
-    background: rgba(148,163,184,.2);
-    border: 1px solid var(--sj-border);
-    border-radius: var(--h);
-    position: relative;
-    cursor: pointer; transition: background .2s ease, border-color .2s ease;
-  }
-  .toggle::after{
-    content:""; position:absolute; top: 2px; left: 2px;
-    width: calc(var(--h) - 4px); height: calc(var(--h) - 4px);
-    background: #fff; border-radius: 999px;
-    box-shadow: 0 3px 10px rgba(0,0,0,.25);
-    transition: transform .2s cubic-bezier(.22,.61,.36,1), background .2s ease;
-  }
-  .toggle.is-on{ background: rgba(16,185,129,.32); border-color: rgba(16,185,129,.5);}
-  .toggle.is-on::after{ transform: translateX(calc(var(--w) - var(--h))); background: #d1fae5; }
-
-  .spinner {
-    width: 16px; height: 16px; border-radius: 999px;
-    border: 2px solid rgba(255,255,255,.2);
-    border-top-color: rgba(255,255,255,.9);
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .aurora{
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--sj-radius-xl);
+    --sj-text:          #e5e7eb;
+    --sj-muted-text:    #94a3b8;
   }
 
   [x-cloak]{ display:none !important; }
 
-  .aurora::before, .aurora::after{
-    content:""; position:relative; inset:-20%;
-    background:
-      radial-gradient(1200px 600px at 10% 0%, rgba(99,102,241,.15), transparent 60%),
-      radial-gradient(1200px 600px at 90% 10%, rgba(168,85,247,.15), transparent 60%),
-      radial-gradient(1000px 600px at 50% 100%, rgba(16,185,129,.12), transparent 60%);
-    filter: blur(14px);
+  /* cards / glass */
+  .card{
+    background: var(--sj-card);
+    color: var(--sj-text);
+    border:1px solid var(--sj-border);
+    border-radius: var(--sj-radius-lg);
   }
+  .glass{
+    position:relative;
+    background: var(--sj-glass);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--sj-border);
+    border-radius: var(--sj-radius-xl);
+    box-shadow: 0 12px 40px rgba(2,6,23,.10);
+  }
+  .muted{
+    background: var(--sj-muted);
+    border: 1px solid var(--sj-border);
+    border-radius: var(--sj-radius);
+  }
+
+  /* inputs */
+  .input, .select, .textarea{
+    width:100%;
+    background: color-mix(in oklab, var(--sj-card) 94%, transparent);
+    color: var(--sj-text);
+    border:1px solid var(--sj-border);
+    border-radius: 12px;
+    padding:.6rem .8rem;
+    transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .textarea{ min-height: 3.5rem; }
+  .input:focus, .select:focus, .textarea:focus{
+    outline:none; border-color: rgb(var(--sj-ring));
+    box-shadow: 0 0 0 3px rgba(var(--sj-ring), .25);
+    background: color-mix(in oklab, var(--sj-card) 98%, transparent);
+  }
+
+  /* buttons */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+    font-weight:700; border-radius:12px;
+    padding:.6rem .9rem; border:1px solid var(--sj-border);
+    transition: transform .06s ease, filter .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ filter:brightness(.98); }
+  .btn:active{ transform: translateY(1px); }
+  .btn:focus-visible{ outline:none; box-shadow: 0 0 0 3px rgba(var(--sj-ring), .28); }
+
+  .btn-outline{ background:transparent; }
+  .btn-ghost{ background:transparent; border-color: transparent; color: var(--sj-muted-text); }
+
+  .btn-indigo{  background: rgb(var(--indigo));  border-color: rgb(var(--indigo));  color:white; }
+  .btn-emerald{ background: rgb(var(--emerald)); border-color: rgb(var(--emerald)); color:white; }
+  .btn-sky{     background: rgb(var(--sky));     border-color: rgb(var(--sky));     color:white; }
+  .btn-amber{   background: rgb(var(--amber));   border-color: rgb(var(--amber));   color:black; }
+  .btn-rose{    background: rgb(var(--rose));    border-color: rgb(var(--rose));    color:white; }
+  .btn-slate{   background: rgb(var(--slate));   border-color: rgb(var(--slate));   color:white; }
+
+  /* table */
+  .table-wrap{ overflow-x:auto; border:1px solid var(--sj-border); border-radius: 14px; }
+  table{ width:100%; border-collapse: separate; border-spacing:0; }
+  thead th{
+    text-align:left; font-weight:700; font-size:.85rem;
+    color: var(--sj-muted-text);
+    background: var(--sj-muted);
+    border-bottom: 1px solid var(--sj-border);
+    padding:.6rem .75rem;
+    position: sticky; top:0; z-index:1;
+  }
+  tbody td{ padding:.6rem .75rem; border-top:1px solid var(--sj-border); }
+  tbody tr:hover{ background: color-mix(in oklab, var(--sj-muted) 70%, transparent); }
+
+  /* pills (tabs) */
+  .pill{ padding:.4rem .8rem; border:1px solid var(--sj-border); border-radius: 999px; }
+  .pill.active{ background: color-mix(in oklab, rgb(var(--indigo)) 14%, var(--sj-card)); border-color: rgba(var(--indigo), .45); color: white; }
+
+  .toggle{
+    --w: 40px; --h: 24px;
+    width:var(--w); height:var(--h);
+    background: color-mix(in oklab, var(--sj-muted) 70%, transparent);
+    border:1px solid var(--sj-border);
+    border-radius: var(--h); position:relative; cursor:pointer;
+    transition: background .2s ease, border-color .2s ease;
+  }
+  .toggle::after{
+    content:""; position:absolute; top:2px; left:2px;
+    width: calc(var(--h) - 4px); height: calc(var(--h) - 4px);
+    background: #fff; border-radius: 999px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    transition: transform .2s cubic-bezier(.22,.61,.36,1);
+  }
+  .toggle.is-on{ background: rgba(16,185,129,.35); border-color: rgba(16,185,129,.6); }
+  .toggle.is-on::after{ transform: translateX(calc(var(--w) - var(--h))); }
+
+  .badge{ display:inline-flex; gap:.35rem; align-items:center; font-size:.72rem; border-radius: 999px; padding:.15rem .55rem; border:1px solid var(--sj-border); color: var(--sj-muted-text); }
 </style>
 
 <section class="max-w-7xl mx-auto px-4 py-8"
@@ -157,298 +152,518 @@
          x-init="init()"
          x-cloak>
 
-  <!-- Header with aurora -->
-  <div class="aurora glass-gradient mb-6">
-    <div class="glass-inner px-5 py-5 sm:px-6 sm:py-6">
-      <div class="flex items-start sm:items-center justify-between gap-4">
-        <div class="min-w-0">
-          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Моя компания</h1>
-          <p class="text-slate-300/80 text-sm sm:text-base mt-1" x-text="headerSubtitle"></p>
-        </div>
-        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-          <button @click="openOnbDrawer()" class="btn btn-primary pop">Редактор онбординга</button>
+  <!-- Header -->
+  <div class="glass px-5 py-5 sm:px-6 sm:py-6 mb-6">
+    <div class="flex items-start sm:items-center justify-between gap-4">
+      <div class="min-w-0">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Моя компания</h1>
+        <p class="text-sm mt-1" style="color:var(--sj-muted-text)" x-text="headerSubtitle"></p>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <button @click="openOnbDrawer()" class="btn btn-indigo">Редактор онбординга</button>
 
-          <div class="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5"
-               x-show="onb.activeFlow"
-               x-transition
-               x-tooltip="onb.activeFlow?.name">
-            <span class="text-sm font-medium" x-text="onb.activeFlow?.name"></span>
-            <span class="text-slate-400">•</span>
-            <span class="text-xs text-slate-300" x-text="onb.steps.length + ' шаг(ов)'"></span>
+        <template x-if="companyId">
+          <div class="hidden md:flex items-center gap-2">
+            <a href="/partner/requests" class="btn btn-outline">Заявки</a>
+            <a href="/partner/reports"  class="btn btn-outline">Отчёты по задачам</a>
           </div>
-
-          <template x-if="companyId">
-            <div class="hidden md:flex items-center gap-2">
-              <a href="/partner/requests" class="btn btn-ghost">Заявки</a>
-              <a href="/partner/reports"  class="btn btn-ghost">Отчёты по задачам</a>
-            </div>
-          </template>
-          <template x-if="!companyId">
-            <a href="/partner/company/create" class="btn btn-success pop">Создать компанию</a>
-          </template>
-        </div>
+        </template>
+        <template x-if="!companyId">
+          <a href="/partner/company/create" class="btn btn-emerald">Создать компанию</a>
+        </template>
       </div>
     </div>
   </div>
 
-  <!-- === LEFT DRAWER (Option editor + Flow stats) === -->
-  <div x-show="optDrawer.open" x-cloak>
-    <div class="fixed inset-0 bg-black/60 backdrop-blur z-40"
-         x-transition.opacity
-         @click="closeOptDrawer()"></div>
+  <!-- Layout -->
+  <div class="grid md:grid-cols-[1fr,360px] gap-5">
+    <!-- MAIN -->
+    <div class="space-y-4">
 
-    <aside class="fixed inset-y-0 left-0 w-[620px] max-w-[95vw] z-50
-                  bg-slate-900/85 backdrop-blur-xl border-r border-white/10
-                  shadow-2xl rounded-r-3xl"
-           x-transition:enter="transform transition ease-out duration-250"
-           x-transition:enter-start="-translate-x-full"
-           x-transition:enter-end="translate-x-0"
-           x-transition:leave="transform transition ease-in duration-200"
-           x-transition:leave-start="translate-x-0"
-           x-transition:leave-end="-translate-x-full"
-           @click.stop>
+      <!-- Tabs -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button :class="['pill', tab==='feed'?'active':'']"  @click="tab='feed'">Лента</button>
+        <button :class="['pill', tab==='tasks'?'active':'']" @click="tab='tasks'">Задачи</button>
+        <button :class="['pill', tab==='people'?'active':'']" @click="tab='people'">Сотрудники</button>
+        <button :class="['pill', tab==='store'?'active':'']"  @click="tab='store'">Магазин</button>
+      </div>
 
-      <!-- Drawer header -->
-      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-        <div class="min-w-0">
-          <div class="text-lg font-semibold truncate"
-               x-text="onb.statsOpen ? 'Статистика флоу' : 'Редактор элемента'"></div>
+      <!-- FEED -->
+      <div x-show="tab==='feed'" x-transition.opacity class="space-y-4">
+        <div class="card p-4" x-show="canPost">
+          <div class="font-semibold mb-2">Новый пост</div>
+          <textarea x-model="newPost" class="textarea" placeholder="Текст объявления..."></textarea>
 
-          <!-- подзаголовок для редактора опций -->
-          <template x-if="!onb.statsOpen && onb.optEditor">
-            <div class="text-xs text-slate-400 mt-0.5">
-              Опция: <span class="font-mono" x-text="onb.optEditor?.key || '—'"></span>
-              <span class="mx-1 text-slate-600">•</span>
-              Шаг ID: <span class="font-mono" x-text="onb.optEditor?.step_id"></span>
+          <div class="mt-2">
+            <input type="file" accept="image/*" x-ref="newPostImageInput"
+                   class="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-[var(--sj-border)] file:bg-[var(--sj-muted)] file:px-3 file:py-1.5 hover:file:brightness-95"
+                   @change="onNewPostFile($event)">
+            <div x-show="newPostPreview" class="mt-2">
+              <img :src="newPostPreview" alt="" class="max-h-56 rounded-xl border border-[var(--sj-border)] object-contain">
+              <button type="button" class="mt-2 text-xs underline" style="color:var(--sj-muted-text)" @click="clearNewPostFile()">Убрать изображение</button>
             </div>
-          </template>
+          </div>
 
-          <!-- подзаголовок для статистики -->
-          <template x-if="onb.statsOpen && onb.activeFlow">
-            <div class="text-xs text-slate-400 mt-0.5">
-              Флоу: <span class="font-mono" x-text="onb.activeFlow?.name"></span>
-              <span class="mx-1 text-slate-600">•</span>
-              ID: <span class="font-mono" x-text="onb.activeFlow?.id"></span>
-            </div>
-          </template>
+          <label class="inline-flex items-center gap-2 text-sm mt-2" style="color:var(--sj-muted-text)">
+            <input type="checkbox" x-model="newPinned" class="rounded"> Закрепить
+          </label>
+
+          <button class="mt-3 w-full btn btn-indigo" @click="createPost()">Опубликовать</button>
         </div>
-        <div class="flex items-center gap-2">
-          <button x-show="!onb.statsOpen && onb.optEditor?.id" @click="deleteOption({id:onb.optEditor.id})" class="btn btn-danger">Удалить</button>
-          <button @click="closeOptDrawer()" class="btn btn-ghost px-3" aria-label="Закрыть">✕</button>
+
+        <div class="space-y-3">
+          <template x-for="p in feed" :key="p.id">
+            <div class="card p-4 group">
+              <div class="text-xs" style="color:var(--sj-muted-text)" x-text="new Date(p.created_at).toLocaleString()"></div>
+              <div class="font-semibold mt-1 flex items-center gap-2">
+                <span class="text-emerald-600 dark:text-emerald-300" x-text="p.author"></span>
+                <span class="text-xs" style="color:var(--sj-muted-text)" x-text="p.type==='partner'?'(партнёр)':'(менеджер)'"></span>
+                <span x-show="p.pinned" class="ml-2" style="color:rgb(var(--amber))">📌</span>
+              </div>
+              <div class="mt-1 whitespace-pre-line" x-text="p.text"></div>
+              <template x-if="(p.image_url || p.photo_url || p.image)">
+                <img :src="p.image_url || p.photo_url || p.image"
+                     class="mt-2 rounded-xl border border-[var(--sj-border)] max-h-80 object-contain"
+                     loading="lazy" alt="">
+              </template>
+            </div>
+          </template>
+          <div x-show="feed.length===0" class="text-sm" style="color:var(--sj-muted-text)">Пока пусто.</div>
         </div>
       </div>
 
-      <!-- Drawer body -->
-      <div class="h-[calc(100vh-64px)] overflow-y-auto overscroll-contain p-4 space-y-4">
-        <!-- режим редактирования опции -->
-        <template x-if="!onb.statsOpen && onb.optEditor">
-          <div class="glass-card p-4 space-y-3">
+      <!-- TASKS -->
+      <div x-show="tab==='tasks'" x-transition.opacity class="space-y-3">
+        <template x-for="t in tasks" :key="t.id">
+          <div class="card p-4 flex items-start justify-between gap-4">
             <div>
-              <label class="text-xs text-slate-400">Ключ</label>
-              <input class="input mt-1" x-model="onb.optEditor.key" disabled>
-            </div>
-            <div>
-              <label class="text-xs text-slate-400">Заголовок</label>
-              <input class="input mt-1" x-model="onb.optEditor.title" placeholder="Название опции">
-            </div>
-            <div>
-              <label class="text-xs text-slate-400">Текст (Markdown)</label>
-              <textarea class="textarea mt-1" rows="6" x-model="onb.optEditor.body_md" placeholder="Описание / контент опции"></textarea>
-            </div>
-            <div>
-              <label class="text-xs text-slate-400">Медиа (YouTube URL или mp4)</label>
-              <input class="input mt-1" x-model="onb.optEditor.media_url" placeholder="https://youtu.be/... или https://.../video.mp4">
+              <div class="font-semibold" x-text="t.title"></div>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-[11px] px-2 py-0.5 rounded-full border border-[var(--sj-border)]"
+                      :class="{
+                        'text-emerald-600 dark:text-emerald-300': t.priority==='low',
+                        'text-sky-600 dark:text-sky-300':     t.priority==='normal',
+                        'text-amber-600 dark:text-amber-300':   t.priority==='high',
+                        'text-rose-600 dark:text-rose-300':    t.priority==='critical',
+                      }"
+                      x-text="'приоритет: ' + (t.priority || 'normal')"></span>
+                <span class="text-[11px]" style="color:var(--sj-muted-text)" x-text="t.require_proof ? 'требуется отчёт' : 'без отчёта'"></span>
+              </div>
+
+              <div class="text-sm mt-1" x-text="t.description"></div>
+
+              <div class="text-xs mt-1" style="color:var(--sj-muted-text)">
+                Награда:
+                <b class="text-emerald-600 dark:text-emerald-300" x-text="t.points_xp + ' XP'"></b>,
+                <b class="text-amber-600 dark:text-amber-300"   x-text="t.coins + ' 🪙'"></b>
+                <span x-show="t.due_at"> · дедлайн:
+                  <span x-text="new Date(t.due_at).toLocaleDateString()"></span>
+                </span>
+                <span x-show="t.due_at" class="ml-2"
+                      :class="t.is_due_passed ? 'text-rose-600 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'"
+                      x-text="t.is_due_passed ? 'срок истёк' : 'срок не истёк'"></span>
+              </div>
+
+              <div class="text-xs mt-1"
+                   :class="{'text-sky-600 dark:text-sky-300': t.assign_status==='assigned', 'text-emerald-600 dark:text-emerald-300': t.assign_status==='approved', 'text-rose-600 dark:text-rose-300': t.assign_status==='rejected'}"
+                   x-show="t.assign_status"
+                   x-text="t.assign_status==='assigned' ? 'Назначена' : (t.assign_status==='approved' ? 'Зачтена' : 'Отклонена')">
+              </div>
             </div>
 
-            <!-- Preview -->
-            <div class="rounded-xl border border-white/10 p-3 bg-white/5" x-show="onb.optEditor.media_url">
-              <div class="text-xs text-slate-400 mb-2">Предпросмотр медиа</div>
-              <template x-if="/youtube\.com|youtu\.be/.test(onb.optEditor.media_url||'')">
-                <div class="rounded-xl overflow-hidden border border-white/10">
-                  <iframe class="w-full aspect-video" :src="youtubeEmbed(onb.optEditor.media_url)" frameborder="0" allowfullscreen></iframe>
+            <div class="shrink-0 flex items-center gap-2">
+              <template x-if="canCreateTasks">
+                <button class="btn btn-outline" @click="openTaskModal('edit', t)">Изменить</button>
+              </template>
+
+              <template x-if="t.submittable">
+                <div class="flex items-center gap-2">
+                  <input type="file" class="hidden" :id="'proof_'+t.id" @change="submitProof(t.id, $event)">
+                  <button class="btn btn-sky" @click="document.getElementById('proof_'+t.id).click()">Отправить отчёт</button>
                 </div>
               </template>
-              <template x-if="!/youtube\.com|youtu\.be/.test(onb.optEditor.media_url||'')">
-                <video class="w-full rounded-xl border border-white/10" controls :src="onb.optEditor.media_url"></video>
-              </template>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-2">
-              <button class="btn btn-ghost" @click="closeOptDrawer()">Отмена</button>
-              <button class="btn btn-primary" :disabled="saving" @click="saveOption()">
-                <span x-show="!saving">Сохранить</span>
-                <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Сохранение…</span>
-              </button>
             </div>
           </div>
         </template>
+        <div x-show="tasks.length===0" class="text-sm" style="color:var(--sj-muted-text)">Активных задач нет.</div>
 
-        <!-- режим статистики флоу -->
-        <template x-if="onb.statsOpen">
-          <div class="space-y-4">
-            <!-- фильтры -->
-            <div class="glass-card p-4">
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="text-xs text-slate-400">Окно (дней)</label>
-                  <select class="select mt-1" x-model.number="onb.statsDays" @change="loadFlowStats(onb.activeFlow.id); loadFlowSessions(onb.activeFlow.id, 1)">
-                    <option :value="7">7</option>
-                    <option :value="14">14</option>
-                    <option :value="30">30</option>
-                    <option :value="90">90</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-xs text-slate-400">Поиск по пользователю</label>
-                  <input class="input mt-1" placeholder="имя или email"
-                         x-model.debounce.400ms="onb.sessionsQuery"
-                         @input="debouncedLoadSessions()">
-                </div>
-              </div>
+        <div class="flex justify-end" x-show="canCreateTasks">
+          <button class="btn btn-indigo" @click="openTaskModal('create')">+ Создать задачу</button>
+        </div>
+      </div>
+
+      <!-- PEOPLE -->
+      <div x-show="tab==='people'" x-transition.opacity class="space-y-4">
+        <div class="card p-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <h3 class="text-lg font-semibold">Сотрудники</h3>
+            <span class="badge" x-text="people.items?.length ? ('всего: '+people.total) : '—'"></span>
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+              <input x-model.debounce.300ms="people.query" @input="loadPeople(1)" class="input" placeholder="поиск по имени или email" style="min-width:260px">
+              <button class="btn btn-outline" @click="openInviteModal()">Инвайт-ссылка</button>
+              <button class="btn btn-emerald" @click="openCreateAdmin()">+ Админ</button>
             </div>
+          </div>
 
-            <!-- KPI -->
-            <div class="grid grid-cols-3 gap-3">
-              <div class="p-4 rounded-xl bg-white/5">
-                <div class="text-slate-400 text-sm">Начали</div>
-                <div class="text-2xl font-bold" x-text="onb.stats?.started ?? 0"></div>
-              </div>
-              <div class="p-4 rounded-xl bg-white/5">
-                <div class="text-slate-400 text-sm">Завершили</div>
-                <div class="text-2xl font-bold" x-text="onb.stats?.completed ?? 0"></div>
-              </div>
-              <div class="p-4 rounded-xl bg-white/5">
-                <div class="text-slate-400 text-sm">Завершение</div>
-                <div class="text-2xl font-bold" x-text="(onb.stats?.completion_rate ?? 0) + '%'"></div>
-              </div>
-            </div>
-
-            <div class="glass-card p-4">
-              <div class="text-sm text-slate-400 mb-2">
-                Отток по шагам (последний достигнутый шаг у незавершённых; -1 = до первого шага)
-              </div>
-              <table class="w-full text-sm">
-                <thead class="text-slate-400">
+          <div class="table-wrap mt-3">
+            <table class="text-sm">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Имя</th><th>Email</th><th>Роль</th><th>Уровень</th><th class="text-right">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="u in people.items" :key="u.id">
                   <tr>
-                    <th class="text-left py-2">Шаг</th>
-                    <th class="text-left py-2">Название</th>
-                    <th class="text-right py-2">Отток</th>
+                    <td x-text="u.id"></td>
+                    <td>
+                      <div class="font-medium" x-text="u.display_name || '—'"></div>
+                    </td>
+                    <td x-text="u.email"></td>
+                    <td>
+                      <span class="badge" :class="u.is_admin ? 'border-emerald-500/40' : ''" x-text="u.is_admin ? 'админ' : 'сотрудник'"></span>
+                    </td>
+                    <td x-text="u.level != null ? u.level : '—'"></td>
+                    <td class="text-right">
+                      <div class="flex justify-end gap-2">
+                        <button class="btn btn-sky"    x-show="!u.is_admin" @click="setCompanyAdmin(u.id,true)">Сделать админом</button>
+                        <button class="btn btn-amber"  x-show="u.is_admin"  @click="setCompanyAdmin(u.id,false)">Снять админа</button>
+                        <button class="btn btn-rose"   @click="removeFromCompany(u.id)">Удалить</button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  <template x-for="row in (onb.stats?.funnel || [])" :key="row.order_index">
-                    <tr class="border-t border-white/5">
-                      <td class="py-2">#<span x-text="row.order_index"></span></td>
-                      <td class="py-2" x-text="row.title || row.type || '—'"></td>
-                      <td class="py-2 text-right" x-text="row.drop_count"></td>
-                    </tr>
-                  </template>
-                </tbody>
-              </table>
-              <div class="text-xs text-slate-400 mt-2">
-                Среднее время до завершения:
-                <b x-text="Math.round((onb.stats?.avg_time_to_complete_sec||0)/60) + ' мин'"></b>
-              </div>
+                </template>
+              </tbody>
+            </table>
+            <div x-show="!people.items?.length" class="text-sm p-4" style="color:var(--sj-muted-text)">Ничего не найдено.</div>
+          </div>
+
+          <!-- pagination -->
+          <div class="flex items-center justify-between mt-3" x-show="(people.total||0) > (people.per_page||20)">
+            <button class="btn btn-ghost text-sm py-1.5" :disabled="people.page<=1" @click="loadPeople(people.page-1)">← Назад</button>
+            <div class="text-xs" style="color:var(--sj-muted-text)">
+              Стр. <b x-text="people.page||1"></b> / <b x-text="Math.ceil((people.total||0)/(people.per_page||20))"></b>
             </div>
+            <button class="btn btn-ghost text-sm py-1.5"
+                    :disabled="(people.page||1) >= Math.ceil((people.total||0)/(people.per_page||20))"
+                    @click="loadPeople(people.page+1)">Вперёд →</button>
+          </div>
+        </div>
+      </div>
 
-            <!-- Список прохождений -->
-            <div class="glass-card p-4">
-              <div class="flex items-center justify-between mb-2">
-                <div class="font-semibold">Прохождения</div>
-                <div class="flex items-center gap-2">
-                  <label class="text-xs text-slate-400 flex items-center gap-1">
-                    <input type="checkbox" class="rounded" x-model="onb.onlyActive" @change="loadFlowSessions(onb.activeFlow.id, 1)"> Только активные
-                  </label>
-                  <label class="text-xs text-slate-400 flex items-center gap-1">
-                    <input type="checkbox" class="rounded" x-model="onb.onlyCompleted" @change="loadFlowSessions(onb.activeFlow.id, 1)"> Только завершённые
-                  </label>
-                </div>
-              </div>
+      <!-- STORE -->
+      <div x-show="tab==='store'" x-transition.opacity class="space-y-4">
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold">Магазин компании</h3>
+            <div class="flex items-center gap-2">
+              <button class="btn btn-sky" @click="openStoreModal('create')">＋ Товар</button>
+              <button class="btn btn-outline" @click="loadStore()">Обновить</button>
+            </div>
+          </div>
 
-              <div class="space-y-2">
-                <template x-for="it in onb.sessions?.items || []" :key="it.session_id">
-                  <div class="rounded-xl border border-white/10 bg-black/25 p-3">
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="min-w-0">
-                        <div class="font-medium truncate" x-text="(it.user?.display_name || it.user?.email || ('Сессия #' + it.session_id))"></div>
-                        <div class="text-xs text-slate-400">
-                          <span>Старт: <span x-text="it.started_at ? new Date(it.started_at).toLocaleString() : '—'"></span></span>
-                          <span class="mx-2">•</span>
-                          <span>Статус: <b x-text="it.state"></b></span>
-                          <template x-if="it.finished_at">
-                            <span>
-                              <span class="mx-2">•</span> Финиш:
-                              <span x-text="new Date(it.finished_at).toLocaleString()"></span>
-                            </span>
-                          </template>
-                        </div>
-                      </div>
-                      <div class="shrink-0 text-right">
-                        <div class="text-sm">Прогресс: <b x-text="(it.progress?.percent ?? 0) + '%'"></b></div>
-                        <div class="w-40 h-2 rounded bg-white/10 mt-1 overflow-hidden">
-                          <div class="h-2 bg-emerald-400" :style="`width:${Math.max(0, Math.min(100, it.progress?.percent||0))}%`"></div>
-                        </div>
-                      </div>
+          <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <template x-for="i in store.items" :key="i.id">
+              <div class="card p-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="font-semibold truncate" x-text="i.title"></div>
+                    <div class="text-xs mt-0.5" style="color:var(--sj-muted-text)">
+                      тип: <b x-text="i.type"></b> • цена: <b x-text="i.cost_coins"></b> • мин. ур.: <b x-text="i.min_level"></b>
+                    </div>
+                    <div class="text-xs mt-0.5" style="color:var(--sj-muted-text)">
+                      stock: <b x-text="i.stock ?? '∞'"></b>
                     </div>
                   </div>
-                </template>
+                  <div class="shrink-0">
+                    <div class="toggle" :class="i.is_active ? 'is-on' : ''" @click="toggleStoreItem(i)"></div>
+                  </div>
+                </div>
 
-                <div x-show="!onb.sessions?.items?.length" class="text-slate-400 text-sm py-4 text-center">
-                  Нет данных за выбранный период.
+                <div class="mt-2 flex gap-2">
+                  <button class="btn btn-outline" @click="openStoreModal('edit', i)">Редакт.</button>
+                  <button class="btn btn-rose" @click="deleteStoreItem(i.id)">Удалить</button>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <div x-show="!store.items?.length" class="text-sm" style="color:var(--sj-muted-text)">Товаров пока нет.</div>
+        </div>
+      </div>
+
+      <!-- TASK MODAL -->
+      <div x-show="taskModal.open" x-transition.opacity x-cloak>
+        <div class="fixed inset-0" :style="{background: 'var(--sj-overlay)'}" @click="closeTaskModal()"></div>
+
+        <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 card p-5" @click.stop>
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold" x-text="taskModal.mode==='create' ? 'Новая задача' : 'Изменить задачу'"></h3>
+            <button class="btn btn-ghost px-3" @click="closeTaskModal()">✕</button>
+          </div>
+
+          <div class="px-1 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
+            <div class="mt-2 grid gap-3">
+              <input x-model="taskModal.form.title" class="input" placeholder="Заголовок">
+              <textarea x-model="taskModal.form.description" class="textarea h-28" placeholder="Описание"></textarea>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs" style="color:var(--sj-muted-text)">XP</label>
+                  <input x-model.number="taskModal.form.points_xp" type="number" class="input">
+                </div>
+                <div>
+                  <label class="text-xs" style="color:var(--sj-muted-text)">Коины</label>
+                  <input x-model.number="taskModal.form.coins" type="number" class="input">
                 </div>
               </div>
 
-              <!-- пагинация -->
-              <div class="flex items-center justify-between mt-3" x-show="(onb.sessions?.total||0) > (onb.sessions?.per_page||20)">
-                <button class="btn btn-ghost text-sm py-1.5" :disabled="onb.sessions?.page<=1" @click="loadFlowSessions(onb.activeFlow.id, onb.sessions.page-1)">← Назад</button>
-                <div class="text-xs text-slate-400">
-                  Стр. <b x-text="onb.sessions?.page||1"></b> / <b x-text="Math.ceil((onb.sessions?.total||0)/(onb.sessions?.per_page||20))"></b>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs" style="color:var(--sj-muted-text)">Приоритет</label>
+                  <select x-model="taskModal.form.priority" class="select">
+                    <option value="low">low</option>
+                    <option value="normal">normal</option>
+                    <option value="high">high</option>
+                    <option value="critical">critical</option>
+                  </select>
                 </div>
-                <button class="btn btn-ghost text-sm py-1.5"
-                        :disabled="(onb.sessions?.page||1) >= Math.ceil((onb.sessions?.total||0)/(onb.sessions?.per_page||20))"
-                        @click="loadFlowSessions(onb.activeFlow.id, onb.sessions.page+1)">Вперёд →</button>
+                <div class="flex items-end">
+                  <label class="inline-flex items-center gap-2 text-xs" style="color:var(--sj-muted-text)">
+                    <input type="checkbox" x-model="taskModal.form.require_proof" class="rounded"> Требуется отчёт с фото
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label class="text-xs" style="color:var(--sj-muted-text)">Дедлайн (дата, опционально)</label>
+                <input type="date" x-model="taskModal.form._due_date" class="input">
+              </div>
+
+              <div>
+                <label class="text-xs" style="color:var(--sj-muted-text)">ID ачивки (опционально)</label>
+                <input x-model.number="taskModal.form.reward_achievement_id" type="number" class="input" placeholder="Напр., 3">
+              </div>
+            </div>
+
+            <!-- Members select -->
+            <div class="mt-5">
+              <div class="text-sm font-semibold">Назначить сотрудникам</div>
+
+              <div class="mt-2 flex flex-wrap gap-2" x-show="taskModal.selectedIds.length">
+                <template x-for="uid in taskModal.selectedIds" :key="uid">
+                  <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border border-[var(--sj-border)] bg-[var(--sj-muted)]">
+                    <span x-text="nameById(uid)"></span>
+                    <button class="hover:text-rose-600 dark:hover:text-rose-300" @click="tmUnselect(uid)">✕</button>
+                  </span>
+                </template>
+              </div>
+
+              <div class="mt-2">
+                <input x-model="taskModal.query" @input="tmSearchMembers" placeholder="Поиск по имени или email" class="input">
+              </div>
+
+              <div class="mt-3 max-h-64 overflow-auto divide-y" style="border-color:var(--sj-border)">
+                <template x-for="m in taskModal.members" :key="m.id">
+                  <label class="flex items-center gap-3 py-2 px-1 cursor-pointer">
+                    <input type="checkbox"
+                           :value="String(m.id)"
+                           :checked="taskModal.selectedIds.includes(String(m.id))"
+                           @change="tmToggleSelect(m.id)">
+                    <div class="leading-tight">
+                      <div class="font-medium" x-text="m.display_name"></div>
+                      <div class="text-xs" style="color:var(--sj-muted-text)" x-text="m.email"></div>
+                    </div>
+                  </label>
+                </template>
+                <div class="text-sm py-6 text-center" style="color:var(--sj-muted-text)" x-show="!taskModal.members.length">Ничего не найдено</div>
               </div>
             </div>
           </div>
-        </template>
 
-        <!-- пустое состояние -->
-        <div x-show="!onb.statsOpen && !onb.optEditor" class="text-slate-400 text-sm">Ничего не выбрано.</div>
+          <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
+            <button class="btn btn-ghost" @click="closeTaskModal()">Отмена</button>
+            <button class="btn btn-indigo disabled:opacity-50"
+                    :disabled="!taskModal.form.title?.trim()"
+                    @click="saveTask()"
+                    x-text="taskModal.mode==='create' ? 'Создать' : 'Сохранить'">
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STORE MODAL -->
+      <div x-show="storeModal.open" x-transition.opacity x-cloak>
+        <div class="fixed inset-0" :style="{background: 'var(--sj-overlay)'}" @click="closeStoreModal()"></div>
+
+        <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 card p-5" @click.stop>
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold" x-text="storeModal.mode==='create' ? 'Новый товар' : 'Изменить товар'"></h3>
+            <button class="btn btn-ghost px-3" @click="closeStoreModal()">✕</button>
+          </div>
+
+          <div class="px-1 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
+            <div class="grid gap-3">
+              <select x-model="storeModal.form.type" class="select">
+                <option value="skin">skin</option>
+                <option value="coupon">coupon</option>
+                <option value="merch">merch</option>
+              </select>
+              <input x-model="storeModal.form.title" class="input" placeholder="Название">
+              <div class="grid grid-cols-3 gap-2">
+                <input x-model.number="storeModal.form.cost_coins" type="number" class="input" placeholder="Цена 🪙">
+                <input x-model.number="storeModal.form.min_level"  type="number" class="input" placeholder="Мин. уровень">
+                <input x-model="storeModal.form.stock" class="input" placeholder="stock (пусто = ∞)">
+              </div>
+              <textarea x-model="storeModal.form.payload" class="textarea" rows="4" placeholder='JSON payload, напр. {"slot":"frame","key":"frame_gold","auto_equip":true}'></textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
+            <button class="btn btn-ghost" @click="closeStoreModal()">Отмена</button>
+            <button class="btn btn-sky" @click="saveStoreItem()">Сохранить</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREATE ADMIN MODAL -->
+      <div x-show="adminModal.open" x-transition.opacity x-cloak>
+        <div class="fixed inset-0" :style="{background:'var(--sj-overlay)'}" @click="closeAdminModal()"></div>
+        <div class="fixed inset-x-0 top-[12%] mx-auto max-w-md z-50 card p-5" @click.stop>
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold">Создать админа компании</h3>
+            <button class="btn btn-ghost px-3" @click="closeAdminModal()">✕</button>
+          </div>
+          <div class="px-1 py-4 grid gap-3">
+            <input class="input" placeholder="email" x-model="adminModal.form.email">
+            <input class="input" type="password" placeholder="пароль" x-model="adminModal.form.password">
+            <input class="input" placeholder="имя (опционально)" x-model="adminModal.form.display_name">
+          </div>
+          <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
+            <button class="btn btn-ghost" @click="closeAdminModal()">Отмена</button>
+            <button class="btn btn-emerald" @click="createCompanyAdmin()">Создать</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVITE MODAL -->
+      <div x-show="inviteModal" x-transition.opacity x-cloak>
+        <div class="fixed inset-0" :style="{background:'var(--sj-overlay)'}" @click="inviteModal=false"></div>
+        <div class="fixed inset-x-0 top-[12%] mx-auto max-w-lg z-50 card p-5" @click.stop>
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold">Инвайт-ссылка</h3>
+            <button class="btn btn-ghost px-3" @click="inviteModal=false">✕</button>
+          </div>
+          <div class="px-1 py-4">
+            <template x-if="invite">
+              <div class="space-y-2">
+                <div class="text-sm" style="color:var(--sj-muted-text)">Передайте ссылку сотрудникам:</div>
+                <div class="muted p-2 rounded-lg">
+                  <code class="text-xs break-all" x-text="invite.url || invite.invite_url || ''"></code>
+                </div>
+                <div class="flex gap-2">
+                  <button class="btn btn-indigo" @click="copy(invite.url || invite.invite_url)">Скопировать</button>
+                  <button class="btn btn-amber" @click="regenerateInvite()">Перегенерировать</button>
+                  <button class="btn btn-rose" @click="deactivateInvite()">Деактивировать</button>
+                </div>
+              </div>
+            </template>
+            <div x-show="!invite" class="text-sm" style="color:var(--sj-muted-text)">Ссылка не активна.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ASIDE -->
+    <aside class="space-y-4 md:pt-1">
+      <div class="card p-5">
+        <div class="flex items-center gap-4">
+          <div class="h-16 w-16 rounded-2xl border border-[var(--sj-border)] bg-[rgba(79,70,229,.12)] flex items-center justify-center text-xl font-bold shadow-inner text-indigo-700 dark:text-indigo-300">
+            <span x-text="(company && company.name ? company.name.charAt(0).toUpperCase() : 'C')"></span>
+          </div>
+          <div>
+            <div class="text-lg font-bold" x-text="company?.name || 'Компания'"></div>
+            <div class="text-xs" style="color:var(--sj-muted-text)" x-text="company ? '@' + company.slug : ''"></div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div class="muted p-3 text-center">
+            <div class="text-[11px]" style="color:var(--sj-muted-text)">Участники</div>
+            <div class="text-lg font-bold" x-text="kpi.members ?? '—'"></div>
+          </div>
+          <div class="muted p-3 text-center">
+            <div class="text-[11px]" style="color:var(--sj-muted-text)">Уровень</div>
+            <div class="text-lg font-bold" x-text="kpi.avg_level ?? '—'"></div>
+          </div>
+          <div class="muted p-3 text-center">
+            <div class="text-[11px]" style="color:var(--sj-muted-text)">Событ.30д</div>
+            <div class="text-lg font-bold" x-text="kpi.events_30d ?? '—'"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-4 text-sm" style="color:var(--sj-muted-text)">
+        «Лента» — объявления, «Задачи» — микро-квесты, «Сотрудники» — роли и состав, «Магазин» — призы и мерч, «Лидерборд» — прогресс за 30 дней.
+      </div>
+
+      <div class="card p-4">
+        <div class="text-sm mb-2" style="color:var(--sj-muted-text)">Лидерборд · 30 дней</div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr>
+                <th class="text-left py-2">#</th>
+                <th class="text-left">Сотрудник</th>
+                <th class="text-right">XP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(row,idx) in leaderboard" :key="row.user_id || row.id">
+                <tr class="hover:bg-[color-mix(in_ol, var(--sj-muted)_70%, transparent)]">
+                  <td class="py-2" x-text="idx+1"></td>
+                  <td x-text="row.display_name"></td>
+                  <td class="text-right font-semibold" x-text="row.xp_30d"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <div x-show="leaderboard.length===0" class="text-sm" style="color:var(--sj-muted-text)">Пока нет данных.</div>
+        </div>
       </div>
     </aside>
   </div>
-  <!-- === /LEFT DRAWER === -->
 
-  <!-- === RIGHT DRAWER (Onboarding Editor) === -->
+  <!-- ===== RIGHT DRAWER (Onboarding Editor) ===== -->
   <div x-show="onbDrawer.open" x-cloak>
-    <div class="fixed inset-0 bg-black/60 backdrop-blur z-40"
-         x-transition.opacity
-         @click="closeOnbDrawer()"></div>
+    <div class="fixed inset-0" :style="{background:'var(--sj-overlay)'}" @click="closeOnbDrawer()"></div>
 
-    <aside class="fixed inset-y-0 right-0 w-[620px] max-w-[95vw] z-50
-                  bg-slate-900/85 backdrop-blur-xl border-l border-white/10
-                  shadow-2xl rounded-l-3xl"
-           x-transition:enter="transform transition ease-out duration-250"
+    <aside class="fixed inset-y-0 right-0 w-[620px] max-w-[95vw] z-50 card rounded-l-3xl border-l-[var(--sj-border)]
+                  transition-transform"
+           x-transition:enter="transform ease-out duration-250"
            x-transition:enter-start="translate-x-full"
            x-transition:enter-end="translate-x-0"
-           x-transition:leave="transform transition ease-in duration-200"
+           x-transition:leave="transform ease-in duration-200"
            x-transition:leave-start="translate-x-0"
            x-transition:leave-end="translate-x-full"
            @click.stop>
 
       <!-- Drawer header -->
-      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-        <div class="min-w-0">
-          <div class="text-lg font-semibold truncate" x-text="onb.activeFlow?.name || 'Онбординг — флоу'"></div>
-          <div class="text-xs text-slate-400" x-show="onb.activeFlow">
-            ID: <span x-text="onb.activeFlow?.id"></span>
+      <div class="px-5 py-4" style="border-bottom:1px solid var(--sj-border)">
+        <div class="flex items-center justify-between">
+          <div class="min-w-0">
+            <div class="text-lg font-semibold truncate" x-text="onb.activeFlow?.name || 'Онбординг — флоу'"></div>
+            <div class="text-xs" style="color:var(--sj-muted-text)" x-show="onb.activeFlow">
+              ID: <span x-text="onb.activeFlow?.id"></span>
+            </div>
           </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button x-show="onb.activeFlow" @click="deleteFlow(onb.activeFlow.id)" class="btn btn-danger">Удалить</button>
-          <button @click="createFlowQuick()" class="btn btn-success">Быстрый флоу</button>
-          <button @click="createFlow()" class="btn btn-outline">Пустой флоу</button>
-          <button @click="closeOnbDrawer()" class="btn btn-ghost px-3" aria-label="Закрыть">✕</button>
+          <div class="flex items-center gap-2">
+            <button x-show="onb.activeFlow" @click="deleteFlow(onb.activeFlow.id)" class="btn btn-rose">Удалить</button>
+            <button @click="createFlowQuick()" class="btn btn-emerald">Быстрый флоу</button>
+            <button @click="createFlow()" class="btn btn-outline">Пустой флоу</button>
+            <button @click="closeOnbDrawer()" class="btn btn-ghost px-3" aria-label="Закрыть">✕</button>
+          </div>
         </div>
       </div>
 
@@ -456,34 +671,25 @@
       <div class="h-[calc(100vh-64px)] overflow-y-auto overscroll-contain p-4 space-y-4">
 
         <!-- Flows list -->
-        <div class="glass-card animate-in">
-          <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <div class="card">
+          <div class="flex items-center justify-between px-4 py-3" style="border-bottom:1px solid var(--sj-border)">
             <div class="font-semibold">Флоу компании</div>
             <div class="flex items-center gap-2">
-              <span x-show="onbLoading" class="text-xs text-slate-400 flex items-center gap-2">
-                <span class="spinner"></span> Загрузка…
-              </span>
+              <span x-show="onbLoading" class="text-xs flex items-center gap-2" style="color:var(--sj-muted-text)">Загрузка…</span>
               <button class="btn btn-ghost text-sm py-1.5" :disabled="onbLoading" @click="loadFlows()">Обновить</button>
             </div>
           </div>
           <div class="p-3">
-            <template x-if="onbLoading">
-              <div class="space-y-2">
-                <div class="h-14 rounded-xl bg-white/5 animate-pulse"></div>
-                <div class="h-14 rounded-xl bg-white/5 animate-pulse"></div>
-              </div>
-            </template>
-
             <template x-if="!onbLoading && !onb.flows.length">
-              <div class="text-slate-400 text-sm py-3">Флоу пока нет.</div>
+              <div class="text-sm" style="color:var(--sj-muted-text)">Флоу пока нет.</div>
             </template>
 
             <div class="grid gap-2" x-show="!onbLoading && onb.flows.length">
               <template x-for="f in onb.flows" :key="f.id">
-                <div class="group flex items-center justify-between rounded-xl border border-white/10 bg-white/5/50 backdrop-blur px-3 py-2 hover:bg-white/10 transition">
+                <div class="flex items-center justify-between rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_60%, transparent)] px-3 py-2 hover:brightness-95 transition">
                   <div class="min-w-0">
-                    <div class="font-medium truncate group-hover:text-white/95 transition" x-text="f.name"></div>
-                    <div class="text-xs text-slate-400">
+                    <div class="font-medium truncate" x-text="f.name"></div>
+                    <div class="text-xs" style="color:var(--sj-muted-text)">
                       Бонус: <span x-text="f.final_bonus_coins || 0"></span> монет
                       <span class="mx-2">•</span>
                       <span x-text="f.is_active ? 'активен' : 'не активен'"></span>
@@ -501,11 +707,13 @@
 
         <!-- Flow meta -->
         <template x-if="onb.activeFlow">
-          <div class="glass-card animate-in">
-            <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-              <div class="font-semibold">Настройки флоу</div>
-              <div class="flex items-center gap-2">
-                <button class="btn btn-ghost text-sm py-1.5" @click="openFlowStats(onb.activeFlow.id)">Статистика</button>
+          <div class="card">
+            <div class="px-4 py-3" style="border-bottom:1px solid var(--sj-border)">
+              <div class="flex items-center justify-between">
+                <div class="font-semibold">Настройки флоу</div>
+                <div class="flex items-center gap-2">
+                  <button class="btn btn-ghost text-sm py-1.5" @click="openFlowStats(onb.activeFlow.id)">Статистика</button>
+                </div>
               </div>
             </div>
 
@@ -513,19 +721,22 @@
               <div class="flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2">
                   <div class="toggle" :class="onb.activeFlow.is_active ? 'is-on' : ''" @click="setFlowActive(onb.activeFlow, !onb.activeFlow.is_active)"></div>
-                  <span class="text-sm text-slate-300">Активен</span>
+                  <span class="text-sm" style="color:var(--sj-muted-text)">Активен</span>
                 </div>
                 <div class="flex items-center gap-2">
                   <input type="number" class="input w-28" x-model.number="onb.activeFlow.final_bonus_coins" placeholder="Бонус">
-                  <button @click="saveFlowMeta()" class="btn btn-success" :disabled="saving">
+                  <button @click="saveFlowMeta()" class="btn btn-emerald" :disabled="saving">
                     <span x-show="!saving">Сохранить</span>
-                    <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Сохранение…</span>
+                    <span x-show="saving">Сохранение…</span>
                   </button>
                 </div>
               </div>
               <div>
-                <label class="text-xs text-slate-400">Название</label>
+                <label class="text-xs" style="color:var(--sj-muted-text)">Название</label>
                 <input type="text" class="input mt-1" x-model="onb.activeFlow.name" placeholder="Название флоу">
+              </div>
+              <div class="text-xs" style="color:var(--sj-muted-text)">
+                «Регистрационная секция» всегда 2-й шаг, неизменяемая и не удаляемая.
               </div>
             </div>
           </div>
@@ -533,62 +744,60 @@
 
         <!-- Links -->
         <template x-if="onb.activeFlow">
-          <div class="glass-card animate-in">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <div class="card">
+            <div class="flex items-center justify-between px-4 py-3" style="border-bottom:1px solid var(--sj-border)">
               <div class="font-semibold">Ссылки</div>
               <button @click="generateLink()" class="btn btn-ghost text-sm py-1.5">Создать ссылку</button>
             </div>
             <div class="p-3 space-y-2" x-show="onb.links.length">
               <template x-for="l in onb.links" :key="l.id">
-                <div class="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 hover:bg-white/10 transition">
+                <div class="flex items-center justify-between rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_60%, transparent)] px-3 py-2 hover:brightness-95 transition">
                   <div class="text-sm">
                     <div class="font-medium"><b>/r/<span x-text="l.slug"></span></b></div>
-                    <div class="text-slate-400 text-xs">
+                    <div class="text-xs" style="color:var(--sj-muted-text)">
                       Исп.: <span x-text="l.uses_count || 0"></span>,
                       Макс: <span x-text="l.max_uses ?? '—'"></span>,
                       До: <span x-text="l.expires_at || '—'"></span>
                     </div>
                   </div>
                   <div class="flex gap-2">
-                    <a :href="`/r/${l.slug}`" target="_blank" class="btn btn-primary text-sm py-1.5">Открыть</a>
-                    <button @click="deleteLink(l.id)" class="btn btn-danger text-sm py-1.5">Удалить</button>
+                    <a :href="`/r/${l.slug}`" target="_blank" class="btn btn-indigo text-sm py-1.5">Открыть</a>
+                    <button @click="deleteLink(l.id)" class="btn btn-rose text-sm py-1.5">Удалить</button>
                   </div>
                 </div>
               </template>
             </div>
-            <div class="p-3 text-slate-400 text-sm" x-show="!onb.links.length">Ссылок пока нет.</div>
+            <div class="p-3 text-sm" style="color:var(--sj-muted-text)" x-show="!onb.links.length">Ссылок пока нет.</div>
           </div>
         </template>
 
         <!-- Steps -->
         <template x-if="onb.activeFlow">
-          <div class="glass-card animate-in">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <div class="card">
+            <div class="flex items-center justify-between px-4 py-3" style="border-bottom:1px solid var(--sj-border)">
               <div class="font-semibold">Шаги флоу</div>
               <div class="flex items-center gap-2">
                 <button @click="addStepDialog=true" class="btn btn-ghost text-sm py-1.5">Добавить шаг</button>
-                <button @click="saveOrder()" class="btn btn-success text-sm py-1.5" :disabled="saving">
+                <button @click="saveOrder()" class="btn btn-emerald text-sm py-1.5" :disabled="saving">
                   <span x-show="!saving">Сохранить порядок</span>
-                  <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Сохранение…</span>
+                  <span x-show="saving">Сохранение…</span>
                 </button>
               </div>
             </div>
 
             <div class="p-3">
               <template x-if="!onb.steps.length">
-                <div class="text-slate-400 text-sm">Шагов пока нет.</div>
+                <div class="text-sm" style="color:var(--sj-muted-text)">Шагов пока нет.</div>
               </template>
 
               <div class="space-y-3">
                 <template x-for="(s,idx) in onb.steps" :key="s.id">
-                  <div class="p-4 rounded-xl border border-white/10 bg-white/5 group transition hover:bg-white/10 animate-in"
-                       x-transition:enter="transition ease-out duration-200"
-                       x-transition:enter-start="opacity-0 translate-y-1"
-                       x-transition:enter-end="opacity-100 translate-y-0">
+                  <div class="p-4 rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_60%, transparent)] group transition hover:brightness-95">
                     <div class="flex items-center justify-between gap-3">
                       <div class="min-w-0">
-                        <div class="text-xs text-slate-400">
+                        <div class="text-xs" style="color:var(--sj-muted-text)">
                           #<span x-text="s.order_index"></span> • <span x-text="s.type"></span>
+                          <span class="badge" x-show="s.type==='registration_section'">фикс.</span>
                         </div>
                         <div class="font-semibold truncate" x-text="s.title || '(без названия)'"></div>
 
@@ -596,12 +805,12 @@
                         <template x-if="s.media_url">
                           <div class="mt-2">
                             <template x-if="/youtube\.com|youtu\.be/.test(s.media_url)">
-                              <div class="rounded-xl overflow-hidden border border-white/10">
+                              <div class="rounded-xl overflow-hidden border border-[var(--sj-border)]">
                                 <iframe class="w-full aspect-video" :src="youtubeEmbed(s.media_url)" frameborder="0" allowfullscreen></iframe>
                               </div>
                             </template>
                             <template x-if="!/youtube\.com|youtu\.be/.test(s.media_url)">
-                              <video class="w-full rounded-xl border border-white/10" controls :src="s.media_url"></video>
+                              <video class="w-full rounded-xl border border-[var(--sj-border)]" controls :src="s.media_url"></video>
                             </template>
                           </div>
                         </template>
@@ -610,28 +819,28 @@
                         <div class="toggle" :class="s.is_active ? 'is-on' : ''" @click="toggleStepActive(s, !s.is_active)"></div>
                         <button @click="moveStep(idx,-1)" :disabled="s.is_immutable" class="btn btn-ghost px-2 disabled:opacity-40">↑</button>
                         <button @click="moveStep(idx, 1)" :disabled="s.is_immutable" class="btn btn-ghost px-2 disabled:opacity-40">↓</button>
-                        <button x-show="!s.is_immutable" @click="editStep(s)" class="btn btn-primary text-sm py-1.5">Редакт.</button>
-                        <button x-show="!s.is_immutable" @click="deleteStep(s.id)" class="btn btn-danger text-sm py-1.5">Удалить</button>
-                        <span x-show="s.is_immutable" class="text-xs text-slate-400 px-2 py-1 border border-white/10 rounded-lg">неизменяемый</span>
+                        <button x-show="!s.is_immutable" @click="editStep(s)" class="btn btn-indigo text-sm py-1.5">Редакт.</button>
+                        <button x-show="!s.is_immutable" @click="deleteStep(s.id)" class="btn btn-rose text-sm py-1.5">Удалить</button>
+                        <span x-show="s.is_immutable" class="text-xs px-2 py-1 border border-[var(--sj-border)] rounded-lg" style="color:var(--sj-muted-text)">неизменяемый</span>
                       </div>
                     </div>
 
                     <!-- Options (interest_selector & choice_one) -->
                     <div x-show="s.type==='interest_selector' || s.type==='choice_one'" class="mt-3">
-                      <div class="text-sm font-semibold mb-2">Опции</div>
+                      <div class="text-sm font-semibold">Опции</div>
 
                       <div class="space-y-2" x-show="s.options && s.options.length">
                         <template x-for="o in s.options" :key="o.id || o.key">
-                          <div class="flex items-start justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2 gap-3 hover:bg-white/10 transition">
+                          <div class="flex items-start justify-between rounded-lg border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_75%, transparent)] px-3 py-2 gap-3 hover:brightness-95 transition">
                             <button class="min-w-0 text-left" @click="editOption(o, s.id)">
                               <div class="font-medium truncate" x-text="o.title"></div>
-                              <div class="text-slate-400 text-xs" x-text="o.key"></div>
-                              <div class="text-xs text-slate-300 mt-1 line-clamp-2" x-show="o.body_md" x-text="o.body_md"></div>
-                              <div class="text-[11px] text-slate-400 mt-1" x-show="o.media_url">медиа: <span class="underline" x-text="o.media_url"></span></div>
+                              <div class="text-xs" style="color:var(--sj-muted-text)" x-text="o.key"></div>
+                              <div class="text-xs mt-1 line-clamp-2" style="color:var(--sj-muted-text)" x-show="o.body_md" x-text="o.body_md"></div>
+                              <div class="text-[11px] mt-1" style="color:var(--sj-muted-text)" x-show="o.media_url">медиа: <span class="underline" x-text="o.media_url"></span></div>
                             </button>
                             <div class="shrink-0 flex items-center gap-2">
                               <button @click="editOption(o, s.id)" class="btn btn-ghost text-sm py-1.5">Редакт.</button>
-                              <button @click="deleteOption(o, s.id)" class="btn btn-danger text-sm py-1.5">Удалить</button>
+                              <button @click="deleteOption(o, s.id)" class="btn btn-rose text-sm py-1.5">Удалить</button>
                             </div>
                           </div>
                         </template>
@@ -643,7 +852,7 @@
                         <input type="text" class="input" placeholder="Название" x-model="onb.tmpOpt.title">
                         <textarea class="textarea md:col-span-2" rows="2" placeholder="Описание (опционально)" x-model="onb.tmpOpt.body_md"></textarea>
                         <div class="md:col-span-2 flex justify-end">
-                          <button @click="addOption(s.id)" class="btn btn-ghost text-sm py-1.5">Добавить</button>
+                          <button @click="addOption(s.id)" class="btn btn-outline text-sm py-1.5">Добавить</button>
                         </div>
                       </div>
                     </div>
@@ -652,13 +861,12 @@
               </div>
 
               <!-- Add step dialog -->
-              <div x-show="addStepDialog" x-cloak class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 animate-in">
+              <div x-show="addStepDialog" x-cloak class="mt-4 p-4 rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_70%, transparent)]">
                 <div class="grid md:grid-cols-2 gap-3">
                   <div>
-                    <label class="text-sm text-slate-400">Тип</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Тип</label>
                     <select class="select mt-1" x-model="formStep.type">
                       <option value="intro_page">intro_page</option>
-                      <option value="registration_section">registration_section</option>
                       <option value="interest_selector">interest_selector</option>
                       <option value="ask_input">ask_input</option>
                       <option value="choice_one">choice_one</option>
@@ -667,14 +875,17 @@
                       <option value="first_assignment">first_assignment</option>
                       <option value="reward_shop">reward_shop</option>
                     </select>
+                    <div class="text-xs mt-1" style="color:var(--sj-muted-text)">
+                      Регистрационная секция добавляется автоматически и всегда 2-й шаг.
+                    </div>
                   </div>
                   <div>
-                    <label class="text-sm text-slate-400">Заголовок</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Заголовок</label>
                     <input class="input mt-1" x-model="formStep.title" placeholder="Заголовок шага">
                   </div>
 
                   <div x-show="formStep.type==='ask_input'">
-                    <label class="text-sm text-slate-400">Поле</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Поле</label>
                     <select class="select mt-1" x-model="formStep.ask_field">
                       <option value="first_name">first_name</option>
                       <option value="last_name">last_name</option>
@@ -685,7 +896,7 @@
                   </div>
 
                   <div>
-                    <label class="text-sm text-slate-400">Награда (coins/xp)</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Награда (coins/xp)</label>
                     <div class="flex gap-2 mt-1">
                       <input type="number" class="input w-28" x-model.number="formStep.coins_award" placeholder="coins">
                       <input type="number" class="input w-28" x-model.number="formStep.xp_award" placeholder="xp">
@@ -693,17 +904,17 @@
                   </div>
 
                   <div class="md:col-span-2">
-                    <label class="text-sm text-slate-400">Текст (Markdown)</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Текст (Markdown)</label>
                     <textarea class="textarea mt-1" rows="4" x-model="formStep.body_md" placeholder="Описание шага"></textarea>
                   </div>
 
                   <div class="md:col-span-2">
-                    <label class="text-sm text-slate-400">Видео (YouTube URL или mp4)</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Видео (YouTube URL или mp4)</label>
                     <input type="text" class="input mt-1" placeholder="https://youtu.be/..." x-model="formStep.media_url">
                   </div>
 
                   <div class="md:col-span-2" x-show="formStep.type==='interview_invite'">
-                    <label class="text-sm text-slate-400">Интервью (config)</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Интервью (config)</label>
                     <div class="grid md:grid-cols-3 gap-2 mt-1">
                       <input type="datetime-local" class="input" x-model="formStep.cfg_date_time">
                       <input type="text" class="input" placeholder="Локация" x-model="formStep.cfg_location">
@@ -712,21 +923,20 @@
                   </div>
 
                   <div class="md:col-span-2" x-show="formStep.type==='first_assignment'">
-                    <label class="text-sm text-slate-400">Дата собеседования (опционально)</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Дата собеседования (опционально)</label>
                     <input type="datetime-local" class="input mt-1" x-model="formStep.cfg_date_time">
-                    <p class="text-xs text-slate-400 mt-1">Текст задачи — из поля «Текст (Markdown)».</p>
                   </div>
 
                   <div class="md:col-span-2" x-show="formStep.type==='interest_selector'">
-                    <label class="text-sm text-slate-400">Лимит выбора интересов</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Лимит выбора интересов</label>
                     <input type="number" min="1" class="input mt-1 w-28" x-model.number="formStep.cfg_select_limit" placeholder="1">
                   </div>
 
                   <div class="md:col-span-2 flex items-center justify-end gap-2">
                     <button @click="addStepDialog=false" class="btn btn-ghost">Отмена</button>
-                    <button @click="saveNewStep()" class="btn btn-success" :disabled="saving">
+                    <button @click="saveNewStep()" class="btn btn-emerald" :disabled="saving">
                       <span x-show="!saving">Сохранить шаг</span>
-                      <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Создание…</span>
+                      <span x-show="saving">Создание…</span>
                     </button>
                   </div>
                 </div>
@@ -735,13 +945,12 @@
               <!-- Edit step dialog -->
               <div x-show="editStepDialog" x-transition.opacity x-cloak
                    id="edit-step-panel"
-                   class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 animate-in">
+                   class="mt-4 p-4 rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_70%, transparent)]">
                 <div class="grid md:grid-cols-2 gap-3">
                   <div>
-                    <label class="text-sm text-slate-400">Тип</label>
-                    <select class="select mt-1" x-model="formStep.type" :disabled="formStep.is_immutable">
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Тип</label>
+                    <select class="select mt-1" x-model="formStep.type" :disabled="formStep.is_immutable || formStep.type==='registration_section'">
                       <option value="intro_page">intro_page</option>
-                      <option value="registration_section">registration_section</option>
                       <option value="interest_selector">interest_selector</option>
                       <option value="ask_input">ask_input</option>
                       <option value="choice_one">choice_one</option>
@@ -749,14 +958,15 @@
                       <option value="assignment">assignment</option>
                       <option value="reward_shop">reward_shop</option>
                     </select>
+                    <div class="text-xs mt-1" style="color:var(--sj-muted-text)" x-show="formStep.type==='registration_section'">Регистрационная секция зафиксирована.</div>
                   </div>
                   <div>
-                    <label class="text-sm text-slate-400">Заголовок</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Заголовок</label>
                     <input class="input mt-1" x-model="formStep.title" placeholder="Заголовок шага">
                   </div>
 
                   <div x-show="formStep.type==='ask_input'">
-                    <label class="text-sm text-slate-400">Поле</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Поле</label>
                     <select class="select mt-1" x-model="formStep.ask_field">
                       <option value="first_name">first_name</option>
                       <option value="last_name">last_name</option>
@@ -767,7 +977,7 @@
                   </div>
 
                   <div>
-                    <label class="text-sm text-slate-400">Награда</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Награда</label>
                     <div class="flex gap-2 mt-1">
                       <input type="number" class="input w-28" x-model.number="formStep.coins_award">
                       <input type="number" class="input w-28" x-model.number="formStep.xp_award">
@@ -775,17 +985,17 @@
                   </div>
 
                   <div class="md:col-span-2">
-                    <label class="text-sm text-slate-400">Текст (Markdown)</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Текст (Markdown)</label>
                     <textarea class="textarea mt-1" rows="4" x-model="formStep.body_md" placeholder="Описание шага"></textarea>
                   </div>
 
                   <div class="md:col-span-2">
-                    <label class="text-sm text-slate-400">Видео (YouTube URL или mp4)</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Видео (YouTube URL или mp4)</label>
                     <input type="text" class="input mt-1" placeholder="https://youtu.be/..." x-model="formStep.media_url">
                   </div>
 
                   <div class="md:col-span-2" x-show="formStep.type==='interview_invite'">
-                    <label class="text-sm text-slate-400">Интервью (config)</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Интервью (config)</label>
                     <div class="grid md:grid-cols-3 gap-2 mt-1">
                       <input type="datetime-local" class="input" x-model="formStep.cfg_date_time">
                       <input type="text" class="input" placeholder="Локация" x-model="formStep.cfg_location">
@@ -793,21 +1003,16 @@
                     </div>
                   </div>
 
-                  <div class="md:col-span-2" x-show="formStep.type==='first_assignment'">
-                    <label class="text-sm text-slate-400">Дата собеседования (опционально)</label>
-                    <input type="datetime-local" class="input mt-1" x-model="formStep.cfg_date_time">
-                  </div>
-
                   <div class="md:col-span-2" x-show="formStep.type==='interest_selector'">
-                    <label class="text-sm text-slate-400">Лимит выбора интересов</label>
+                    <label class="text-sm" style="color:var(--sj-muted-text)">Лимит выбора интересов</label>
                     <input type="number" min="1" class="input mt-1 w-28" x-model.number="formStep.cfg_select_limit" placeholder="1">
                   </div>
 
                   <div class="md:col-span-2 flex items-center justify-end gap-2">
                     <button @click="editStepDialog=false" class="btn btn-ghost">Отмена</button>
-                    <button @click="updateStep()" class="btn btn-primary" :disabled="saving">
+                    <button @click="updateStep()" class="btn btn-indigo" :disabled="saving">
                       <span x-show="!saving">Обновить</span>
-                      <span x-show="saving" class="inline-flex items-center gap-2"><span class="spinner"></span> Сохранение…</span>
+                      <span x-show="saving">Сохранение…</span>
                     </button>
                   </div>
                 </div>
@@ -816,298 +1021,237 @@
             </div>
           </div>
         </template>
+
+        <!-- LEFT drawer: stats & option editor are в отдельном левом дровере ниже -->
       </div>
     </aside>
   </div>
-  <!-- === /RIGHT DRAWER === -->
 
-  <template x-if="companyId">
-    <div class="animate-in">
-      <div class="mt-6 grid md:grid-cols-[1fr,380px] gap-4">
+  <!-- ===== LEFT DRAWER (Option editor + Flow stats) ===== -->
+  <div x-show="optDrawer.open" x-cloak>
+    <div class="fixed inset-0" :style="{background:'var(--sj-overlay)'}" @click="closeOptDrawer()"></div>
 
-        <!-- LEFT -->
-        <div class="space-y-4">
-          <div class="flex gap-2 text-sm">
-            <button :class="tabBtn('feed')"  @click="tab='feed'">Лента</button>
-            <button :class="tabBtn('tasks')" @click="tab='tasks'">Задачи</button>
-          </div>
+    <aside class="fixed inset-y-0 left-0 w-[620px] max-w-[95vw] z-50 card rounded-r-3xl border-r-[var(--sj-border)]
+                  transition-transform"
+           x-transition:enter="transform ease-out duration-250"
+           x-transition:enter-start="-translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           x-transition:leave="transform ease-in duration-200"
+           x-transition:leave-start="translate-x-0"
+           x-transition:leave-end="-translate-x-full"
+           @click.stop>
 
-          <!-- FEED -->
-          <div x-show="tab==='feed'" x-transition.opacity class="space-y-4">
-            <div class="glass-card p-4" x-show="canPost">
-              <div class="font-semibold mb-2">Новый пост</div>
-              <textarea x-model="newPost" class="textarea" placeholder="Текст объявления..."></textarea>
+      <!-- Drawer header -->
+      <div class="px-5 py-4" style="border-bottom:1px solid var(--sj-border)">
+        <div class="flex items-center justify-between">
+          <div class="min-w-0">
+            <div class="text-lg font-semibold truncate"
+                 x-text="onb.statsOpen ? 'Статистика флоу' : 'Редактор элемента'"></div>
 
-              <div class="mt-2">
-                <input type="file" accept="image/*" x-ref="newPostImageInput"
-                       class="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-white/10 file:bg-white/5 file:px-3 file:py-1.5 file:hover:bg-white/10"
-                       @change="onNewPostFile($event)">
-                <div x-show="newPostPreview" class="mt-2">
-                  <img :src="newPostPreview" alt="" class="max-h-56 rounded-xl border border-white/10 object-contain">
-                  <button type="button" class="mt-2 text-xs text-slate-300 underline hover:opacity-80" @click="clearNewPostFile()">Убрать изображение</button>
-                </div>
-              </div>
-
-              <label class="inline-flex items-center gap-2 text-sm mt-2">
-                <input type="checkbox" x-model="newPinned" class="rounded"> Закрепить
-              </label>
-
-              <button class="mt-3 w-full btn btn-primary" @click="createPost()">Опубликовать</button>
-            </div>
-
-            <div class="space-y-3">
-              <template x-for="p in feed" :key="p.id">
-                <div class="glass-card p-4 group">
-                  <div class="text-xs text-slate-400" x-text="new Date(p.created_at).toLocaleString()"></div>
-                  <div class="font-semibold mt-1 flex items-center gap-2">
-                    <span class="text-emerald-400" x-text="p.author"></span>
-                    <span class="text-slate-500 text-xs" x-text="p.type==='partner'?'(партнёр)':'(менеджер)'"></span>
-                    <span x-show="p.pinned" class="ml-2 text-amber-300">📌</span>
-                  </div>
-                  <div class="mt-1 text-slate-200 whitespace-pre-line" x-text="p.text"></div>
-                  <template x-if="(p.image_url || p.photo_url || p.image)">
-                    <img :src="p.image_url || p.photo_url || p.image"
-                         class="mt-2 rounded-xl border border-white/10 max-h-80 object-contain"
-                         loading="lazy" alt="">
-                  </template>
-                </div>
-              </template>
-              <div x-show="feed.length===0" class="text-slate-400 text-sm">Пока пусто.</div>
-            </div>
-          </div>
-
-          <!-- TASKS -->
-          <div x-show="tab==='tasks'" x-transition.opacity class="space-y-3">
-            <template x-for="t in tasks" :key="t.id">
-              <div class="glass-card p-4 flex items-start justify-between gap-4">
-                <div>
-                  <div class="font-semibold" x-text="t.title"></div>
-                  <div class="flex items-center gap-2 mt-1">
-                    <span class="text-[11px] px-2 py-0.5 rounded-full border border-white/10"
-                          :class="{
-                            'text-emerald-300': t.priority==='low',
-                            'text-sky-300':     t.priority==='normal',
-                            'text-amber-300':   t.priority==='high',
-                            'text-rose-300':    t.priority==='critical',
-                          }"
-                          x-text="'приоритет: ' + (t.priority || 'normal')"></span>
-                    <span class="text-[11px] text-slate-400" x-text="t.require_proof ? 'требуется отчёт' : 'без отчёта'"></span>
-                  </div>
-
-                  <div class="text-sm text-slate-300 mt-1" x-text="t.description"></div>
-
-                  <div class="text-xs text-slate-400 mt-1">
-                    Награда:
-                    <span class="text-emerald-300" x-text="t.points_xp + ' XP'"></span>,
-                    <span class="text-amber-300"   x-text="t.coins + ' 🪙'"></span>
-                    <span x-show="t.due_at"> · дедлайн:
-                      <span x-text="new Date(t.due_at).toLocaleDateString()"></span>
-                    </span>
-                    <span x-show="t.due_at" class="ml-2"
-                          :class="t.is_due_passed ? 'text-rose-300' : 'text-emerald-300'"
-                          x-text="t.is_due_passed ? 'срок истёк' : 'срок не истёк'"></span>
-                  </div>
-
-                  <div class="text-xs mt-1"
-                       :class="{'text-sky-300': t.assign_status==='assigned', 'text-emerald-300': t.assign_status==='approved', 'text-rose-300': t.assign_status==='rejected'}"
-                       x-show="t.assign_status"
-                       x-text="t.assign_status==='assigned' ? 'Назначена' : (t.assign_status==='approved' ? 'Зачтена' : 'Отклонена')">
-                  </div>
-                </div>
-
-                <div class="shrink-0 flex items-center gap-2">
-                  <template x-if="canCreateTasks">
-                    <button class="btn btn-ghost" @click="openTaskModal('edit', t)">Изменить</button>
-                  </template>
-
-                  <template x-if="t.submittable">
-                    <div class="flex items-center gap-2">
-                      <input type="file" class="hidden" :id="'proof_'+t.id" @change="submitProof(t.id, $event)">
-                      <button class="btn btn-outline" @click="document.getElementById('proof_'+t.id).click()">Отправить отчёт</button>
-                    </div>
-                  </template>
-                </div>
+            <template x-if="!onb.statsOpen && onb.optEditor">
+              <div class="text-xs mt-0.5" style="color:var(--sj-muted-text)">
+                Опция: <span class="font-mono" x-text="onb.optEditor?.key || '—'"></span>
+                <span class="mx-1">•</span>
+                Шаг ID: <span class="font-mono" x-text="onb.optEditor?.step_id"></span>
               </div>
             </template>
-            <div x-show="tasks.length===0" class="text-slate-400 text-sm">Активных задач нет.</div>
 
-            <div class="flex justify-end" x-show="canCreateTasks">
-              <button class="btn btn-primary" @click="openTaskModal('create')">+ Создать задачу</button>
-            </div>
-          </div>
-
-          <!-- TASK MODAL -->
-          <div x-show="taskModal.open" x-transition.opacity x-cloak>
-            <div class="fixed inset-0 bg-black/60 backdrop-blur z-40" @click="closeTaskModal()"></div>
-
-            <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 glass-gradient pop"
-                 @click.stop>
-              <div class="glass-inner rounded-2xl p-5">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-semibold" x-text="taskModal.mode==='create' ? 'Новая задача' : 'Изменить задачу'"></h3>
-                  <button class="btn btn-ghost px-3" @click="closeTaskModal()">✕</button>
-                </div>
-
-                <div class="px-1 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
-                  <div class="mt-2 grid gap-3">
-                    <input x-model="taskModal.form.title" class="input" placeholder="Заголовок">
-                    <textarea x-model="taskModal.form.description" class="textarea h-28" placeholder="Описание"></textarea>
-
-                    <div class="grid grid-cols-2 gap-2">
-                      <div>
-                        <label class="text-xs text-slate-400">XP</label>
-                        <input x-model.number="taskModal.form.points_xp" type="number" class="input">
-                      </div>
-                      <div>
-                        <label class="text-xs text-slate-400">Коины</label>
-                        <input x-model.number="taskModal.form.coins" type="number" class="input">
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                      <div>
-                        <label class="text-xs text-slate-400">Приоритет</label>
-                        <select x-model="taskModal.form.priority" class="select">
-                          <option value="low">low</option>
-                          <option value="normal">normal</option>
-                          <option value="high">high</option>
-                          <option value="critical">critical</option>
-                        </select>
-                      </div>
-                      <div class="flex items-end">
-                        <label class="inline-flex items-center gap-2 text-xs text-slate-400">
-                          <input type="checkbox" x-model="taskModal.form.require_proof" class="rounded"> Требуется отчёт с фото
-                        </label>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label class="text-xs text-slate-400">Дедлайн (дата, опционально)</label>
-                      <input type="date" x-model="taskModal.form._due_date" class="input">
-                    </div>
-
-                    <div>
-                      <label class="text-xs text-slate-400">ID ачивки (опционально)</label>
-                      <input x-model.number="taskModal.form.reward_achievement_id" type="number" class="input" placeholder="Напр., 3">
-                    </div>
-                  </div>
-
-                  <!-- Members select -->
-                  <div class="mt-5">
-                    <div class="text-sm font-semibold">Назначить сотрудникам</div>
-
-                    <div class="mt-2 flex flex-wrap gap-2" x-show="taskModal.selectedIds.length">
-                      <template x-for="uid in taskModal.selectedIds" :key="uid">
-                        <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border border-white/10 bg-black/30">
-                          <span x-text="nameById(uid)"></span>
-                          <button class="hover:text-rose-400" @click="tmUnselect(uid)">✕</button>
-                        </span>
-                      </template>
-                    </div>
-
-                    <div class="mt-2">
-                      <input x-model="taskModal.query" @input="tmSearchMembers" placeholder="Поиск по имени или email" class="input">
-                    </div>
-
-                    <div class="mt-3 max-h-64 overflow-auto divide-y divide-white/5">
-                      <template x-for="m in taskModal.members" :key="m.id">
-                        <label class="flex items-center gap-3 py-2 px-1 cursor-pointer">
-                          <input type="checkbox"
-                                 :value="String(m.id)"
-                                 :checked="taskModal.selectedIds.includes(String(m.id))"
-                                 @change="tmToggleSelect(m.id)">
-                          <div class="leading-tight">
-                            <div class="font-medium" x-text="m.display_name"></div>
-                            <div class="text-xs text-slate-400" x-text="m.email"></div>
-                          </div>
-                        </label>
-                      </template>
-                      <div class="text-sm text-slate-400 py-6 text-center" x-show="!taskModal.members.length">Ничего не найдено</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="flex justify-end gap-2 pt-3 border-t border-white/10">
-                  <button class="btn btn-ghost" @click="closeTaskModal()">Отмена</button>
-                  <button class="btn btn-primary disabled:opacity-50"
-                          :disabled="!taskModal.form.title?.trim()"
-                          @click="saveTask()"
-                          x-text="taskModal.mode==='create' ? 'Создать' : 'Сохранить'">
-                  </button>
-                </div>
+            <template x-if="onb.statsOpen && onb.activeFlow">
+              <div class="text-xs mt-0.5" style="color:var(--sj-muted-text)">
+                Флоу: <span class="font-mono" x-text="onb.activeFlow?.name"></span>
+                <span class="mx-1">•</span>
+                ID: <span class="font-mono" x-text="onb.activeFlow?.id"></span>
               </div>
-            </div>
+            </template>
+          </div>
+          <div class="flex items-center gap-2">
+            <button x-show="!onb.statsOpen && onb.optEditor?.id" @click="deleteOption({id:onb.optEditor.id})" class="btn btn-rose">Удалить</button>
+            <button @click="closeOptDrawer()" class="btn btn-ghost px-3" aria-label="Закрыть">✕</button>
           </div>
         </div>
+      </div>
 
-        <!-- RIGHT -->
-        <aside class="space-y-4 md:pt-1">
-          <div class="glass-card p-5">
-            <div class="flex items-center gap-4">
-              <div class="h-16 w-16 rounded-2xl border border-white/10 bg-indigo-600/20 flex items-center justify-center text-xl font-bold shadow-inner">
-                <span x-text="(company && company.name ? company.name.charAt(0).toUpperCase() : 'C')"></span>
-              </div>
-              <div>
-                <div class="text-lg font-bold" x-text="company?.name || 'Компания'"></div>
-                <div class="text-xs text-slate-400" x-text="company ? '@' + company.slug : ''"></div>
+      <!-- Drawer body -->
+      <div class="h-[calc(100vh-64px)] overflow-y-auto overscroll-contain p-4 space-y-4">
+        <!-- редактирование опции -->
+        <template x-if="!onb.statsOpen && onb.optEditor">
+          <div class="card p-4 space-y-3">
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Ключ</label>
+              <input class="input mt-1" x-model="onb.optEditor.key" disabled>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Заголовок</label>
+              <input class="input mt-1" x-model="onb.optEditor.title" placeholder="Название опции">
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Текст (Markdown)</label>
+              <textarea class="textarea mt-1" rows="6" x-model="onb.optEditor.body_md" placeholder="Описание / контент опции"></textarea>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Медиа (YouTube URL или mp4)</label>
+              <input class="input mt-1" x-model="onb.optEditor.media_url" placeholder="https://youtu.be/... или https://.../video.mp4">
+            </div>
+
+            <!-- Preview -->
+            <div class="rounded-xl border border-[var(--sj-border)] p-3 bg-[color-mix(in_ol, var(--sj-muted)_70%, transparent)]" x-show="onb.optEditor.media_url">
+              <div class="text-xs mb-2" style="color:var(--sj-muted-text)">Предпросмотр медиа</div>
+              <template x-if="/youtube\.com|youtu\.be/.test(onb.optEditor.media_url||'')">
+                <div class="rounded-xl overflow-hidden border border-[var(--sj-border)]">
+                  <iframe class="w-full aspect-video" :src="youtubeEmbed(onb.optEditor.media_url)" frameborder="0" allowfullscreen></iframe>
+                </div>
+              </template>
+              <template x-if="!/youtube\.com|youtu\.be/.test(onb.optEditor.media_url||'')">
+                <video class="w-full rounded-xl border border-[var(--sj-border)]" controls :src="onb.optEditor.media_url"></video>
+              </template>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button class="btn btn-ghost" @click="closeOptDrawer()">Отмена</button>
+              <button class="btn btn-indigo" :disabled="saving" @click="saveOption()">
+                <span x-show="!saving">Сохранить</span>
+                <span x-show="saving">Сохранение…</span>
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <!-- статистика флоу -->
+        <template x-if="onb.statsOpen">
+          <div class="space-y-4">
+            <!-- фильтры -->
+            <div class="card p-4">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs" style="color:var(--sj-muted-text)">Окно (дней)</label>
+                  <select class="select mt-1" x-model.number="onb.statsDays" @change="loadFlowStats(onb.activeFlow.id); loadFlowSessions(onb.activeFlow.id, 1)">
+                    <option :value="7">7</option>
+                    <option :value="14">14</option>
+                    <option :value="30">30</option>
+                    <option :value="90">90</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs" style="color:var(--sj-muted-text)">Поиск по пользователю</label>
+                  <input class="input mt-1" placeholder="имя или email"
+                         x-model.debounce.400ms="onb.sessionsQuery"
+                         @input="debouncedLoadSessions()">
+                </div>
               </div>
             </div>
 
-            <div class="mt-4 grid grid-cols-3 gap-2">
-              <div class="rounded-xl border border-white/10 bg-black/30 p-3 text-center">
-                <div class="text-[11px] text-slate-400">Участники</div>
-                <div class="text-lg font-bold" x-text="kpi.members ?? '—'"></div>
+            <!-- KPI -->
+            <div class="grid grid-cols-3 gap-3">
+              <div class="card p-4">
+                <div class="text-sm" style="color:var(--sj-muted-text)">Начали</div>
+                <div class="text-2xl font-bold" x-text="onb.stats?.started ?? 0"></div>
               </div>
-              <div class="rounded-xl border border-white/10 bg-black/30 p-3 text-center">
-                <div class="text-[11px] text-slate-400">Уровень</div>
-                <div class="text-lg font-bold" x-text="kpi.avg_level ?? '—'"></div>
+              <div class="card p-4">
+                <div class="text-sm" style="color:var(--sj-muted-text)">Завершили</div>
+                <div class="text-2xl font-bold" x-text="onb.stats?.completed ?? 0"></div>
               </div>
-              <div class="rounded-xl border border-white/10 bg-black/30 p-3 text-center">
-                <div class="text-[11px] text-slate-400">Событ.30д</div>
-                <div class="text-lg font-bold" x-text="kpi.events_30d ?? '—'"></div>
+              <div class="card p-4">
+                <div class="text-sm" style="color:var(--sj-muted-text)">Завершение</div>
+                <div class="text-2xl font-bold" x-text="(onb.stats?.completion_rate ?? 0) + '%'"></div>
               </div>
             </div>
-          </div>
 
-          <div class="glass-card p-4 text-sm text-slate-300">
-            Добро пожаловать в панель компании. «Лента» — для объявлений, «Задачи» — для микро-квестов, «Лидерборд» — прогресс за 30 дней.
-          </div>
-
-          <div class="glass-card p-4">
-            <div class="text-sm text-slate-400 mb-2">Лидерборд · 30 дней</div>
-            <div class="overflow-x-auto">
+            <div class="card p-4">
+              <div class="text-sm mb-2" style="color:var(--sj-muted-text)">Отток по шагам (последний достигнутый шаг у незавершённых; -1 = до первого шага)</div>
               <table class="w-full text-sm">
-                <thead class="text-slate-400">
+                <thead>
                   <tr>
-                    <th class="text-left py-2">#</th>
-                    <th class="text-left">Сотрудник</th>
-                    <th class="text-right">XP</th>
+                    <th class="text-left py-2">Шаг</th>
+                    <th class="text-left py-2">Название</th>
+                    <th class="text-right py-2">Отток</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <template x-for="(row,idx) in leaderboard" :key="row.user_id || row.id">
-                    <tr class="border-t border-white/5 hover:bg-white/5">
-                      <td class="py-2" x-text="idx+1"></td>
-                      <td x-text="row.display_name"></td>
-                      <td class="text-right font-semibold" x-text="row.xp_30d"></td>
+                  <template x-for="row in (onb.stats?.funnel || [])" :key="row.order_index">
+                    <tr>
+                      <td class="py-2">#<span x-text="row.order_index"></span></td>
+                      <td class="py-2" x-text="row.title || row.type || '—'"></td>
+                      <td class="py-2 text-right" x-text="row.drop_count"></td>
                     </tr>
                   </template>
                 </tbody>
               </table>
-              <div x-show="leaderboard.length===0" class="text-slate-400 text-sm py-2">Пока нет данных.</div>
+              <div class="text-xs mt-2" style="color:var(--sj-muted-text)">
+                Среднее время до завершения:
+                <b x-text="Math.round((onb.stats?.avg_time_to_complete_sec||0)/60) + ' мин'"></b>
+              </div>
+            </div>
+
+            <!-- Список прохождений -->
+            <div class="card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold">Прохождения</div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs flex items-center gap-1" style="color:var(--sj-muted-text)">
+                    <input type="checkbox" class="rounded" x-model="onb.onlyActive" @change="loadFlowSessions(onb.activeFlow.id, 1)"> Только активные
+                  </label>
+                  <label class="text-xs flex items-center gap-1" style="color:var(--sj-muted-text)">
+                    <input type="checkbox" class="rounded" x-model="onb.onlyCompleted" @change="loadFlowSessions(onb.activeFlow.id, 1)"> Только завершённые
+                  </label>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <template x-for="it in onb.sessions?.items || []" :key="it.session_id">
+                  <div class="rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_60%, transparent)] p-3">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="font-medium truncate" x-text="(it.user?.display_name || it.user?.email || ('Сессия #' + it.session_id))"></div>
+                        <div class="text-xs" style="color:var(--sj-muted-text)">
+                          <span>Старт: <span x-text="it.started_at ? new Date(it.started_at).toLocaleString() : '—'"></span></span>
+                          <span class="mx-2">•</span>
+                          <span>Статус: <b x-text="it.state"></b></span>
+                          <template x-if="it.finished_at">
+                            <span>
+                              <span class="mx-2">•</span> Финиш:
+                              <span x-text="new Date(it.finished_at).toLocaleString()"></span>
+                            </span>
+                          </template>
+                        </div>
+                      </div>
+                      <div class="shrink-0 text-right">
+                        <div class="text-sm">Прогресс: <b x-text="(it.progress?.percent ?? 0) + '%'"></b></div>
+                        <div class="w-40 h-2 rounded bg-[color-mix(in_ol, var(--sj-muted)_80%, transparent)] mt-1 overflow-hidden">
+                          <div class="h-2 bg-emerald-400" :style="`width:${Math.max(0, Math.min(100, it.progress?.percent||0))}%`"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <div x-show="!onb.sessions?.items?.length" class="text-sm" style="color:var(--sj-muted-text)">Нет данных за выбранный период.</div>
+              </div>
+
+              <!-- пагинация -->
+              <div class="flex items-center justify-between mt-3" x-show="(onb.sessions?.total||0) > (onb.sessions?.per_page||20)">
+                <button class="btn btn-ghost text-sm py-1.5" :disabled="onb.sessions?.page<=1" @click="loadFlowSessions(onb.activeFlow.id, onb.sessions.page-1)">← Назад</button>
+                <div class="text-xs" style="color:var(--sj-muted-text)">
+                  Стр. <b x-text="onb.sessions?.page||1"></b> / <b x-text="Math.ceil((onb.sessions?.total||0)/(onb.sessions?.per_page||20))"></b>
+                </div>
+                <button class="btn btn-ghost text-sm py-1.5"
+                        :disabled="(onb.sessions?.page||1) >= Math.ceil((onb.sessions?.total||0)/(onb.sessions?.per_page||20))"
+                        @click="loadFlowSessions(onb.activeFlow.id, onb.sessions.page+1)">Вперёд →</button>
+              </div>
             </div>
           </div>
-        </aside>
+        </template>
 
+        <div x-show="!onb.statsOpen && !onb.optEditor" class="text-sm" style="color:var(--sj-muted-text)">Ничего не выбрано.</div>
       </div>
-    </div>
-  </template>
+    </aside>
+  </div>
+
 </section>
 {% endblock %}
 
 {% block scripts %}
 <script>
-/* ==== API client ==== */
+/* ========= API client with safe fallbacks ========= */
 function createApi(){
   const withCreds = { credentials:'same-origin' };
   async function parse(r){
@@ -1127,155 +1271,83 @@ function createApi(){
     const opts={...withCreds, method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{})};
     return parse(await fetch(u, opts));
   }
-  async function createFlowLink(flowId, payload){
-    try{ return await post(`/api/partners/onboarding/flows/${flowId}/links`, payload); }
-    catch(_e){ return await post(`/api/partners/onboarding/flows/${flowId}/link`, payload); }
-  }
-  return {get, post, put, del, createFlowLink};
+  return {get, post, put, del};
 }
 const API = createApi();
 
-/* ==== normalizers ==== */
+/* ========= helpers ========= */
 function normFlowList(raw){
   const arr = raw?.flows || raw?.data || raw || [];
-  return Array.isArray(arr) ? arr.map(normFlow) : [];
-}
-function normFlow(f){
-  if(!f || typeof f!=='object') return {id:null, name:'', is_active:false, final_bonus_coins:0};
-  return { id:f.id, name:f.name ?? '', is_active:!!(f.is_active ?? f.active), final_bonus_coins:Number(f.final_bonus_coins ?? f.bonus ?? 0) };
+  return Array.isArray(arr) ? arr.map(f => ({ id:f.id, name:f.name??'', is_active:!!(f.is_active??f.active), final_bonus_coins:Number(f.final_bonus_coins??f.bonus??0) })) : [];
 }
 function normStepsPayload(j){
-  const flow = normFlow(j?.flow || j?.data?.flow || j);
+  const flow = (j?.flow || j?.data?.flow || j);
+  const stepsRaw = (j?.steps || j?.data?.steps || []);
+  const links = (j?.links||j?.data?.links||[]).map(l=>({id:l.id, slug:l.slug, uses_count:l.uses_count||0, max_uses:l.max_uses??null, expires_at:l.expires_at||null}));
 
-
-  const steps = (j?.steps || j?.data?.steps || []).map(s => {
+  const steps = stepsRaw.map(s => {
     const options = (s.options || []).map(o => {
-
-  // внутри normStepsPayload, в map(o => ({ ... }))
-const id  = o.id ?? o.option_id ?? o.pk ?? o.uuid ?? o.option?.id ?? o.option?.option_id ?? o.option?.pk ?? o.option?.uuid ?? null;
-const key = o.key ?? o.option?.key ?? o.slug ?? '';
-return {
-  id, key,
-  title:    o.title    ?? o.option?.title    ?? '',
-  body_md:  o.body_md  ?? o.option?.body_md  ?? '',
-  media_url:o.media_url?? o.option?.media_url?? null,
-  step_id: s.id
-};
-
-});
-
-
+      const id = o.id ?? o.option_id ?? o.pk ?? o.uuid ?? o.option?.id ?? o.option?.option_id ?? null;
+      const key = o.key ?? o.option?.key ?? o.slug ?? '';
+      return { id, key, title: o.title ?? o.option?.title ?? '', body_md: o.body_md ?? o.option?.body_md ?? '', media_url: o.media_url ?? o.option?.media_url ?? null, step_id: s.id };
+    });
     return {
-      id: s.id,
-      type: s.type,
-      title: s.title || '',
-      ask_field: s.ask_field || null,
-      body_md: s.body_md || null,
-      media_url: s.media_url || null,
-      coins_award: Number(s.coins_award || 0),
-      xp_award: Number(s.xp_award || 0),
-      order_index: Number(s.order_index || 0),
-      is_active: !!(s.is_active ?? true),
-      is_immutable: !!s.is_immutable,
-      config: s.config || {},
-      options
+      id: s.id, type: s.type, title: s.title || '', ask_field: s.ask_field || null,
+      body_md: s.body_md || null, media_url: s.media_url || null,
+      coins_award: Number(s.coins_award || 0), xp_award: Number(s.xp_award || 0),
+      order_index: Number(s.order_index || 0), is_active: !!(s.is_active ?? true),
+      is_immutable: !!s.is_immutable, config: s.config || {}, options
     };
   }).sort((a,b)=>a.order_index-b.order_index);
 
-  const links = (j?.links||j?.data?.links||[]).map(l=>({
-    id:l.id, slug:l.slug, uses_count:l.uses_count||0, max_uses:l.max_uses??null, expires_at:l.expires_at||null
-  }));
-
-  return {flow, steps, links};
+  return {flow: flow ? { id:flow.id, name:flow.name??'', is_active:!!(flow.is_active??flow.active), final_bonus_coins:Number(flow.final_bonus_coins??flow.bonus??0)} : null, steps, links};
 }
 
-
-
-
-/* ==== app ==== */
+/* ========= App ========= */
 window.partnerCompanyPage = function(initialCompanyId){
   return {
-    toLocalInputDate(iso){ if(!iso) return ''; const d=new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; },
-    isoFromLocalDateEnd(s){ if(!s) return null; const dt=new Date(`${s}T23:59:59`); return dt.toISOString(); },
-    tabBtn(kind){ return `px-3 py-1 rounded-full border ${this.tab===kind?'bg-white/10 border-white/20 shadow':'border-white/10 hover:bg-white/5'}`; },
-    toast(msg, emoji='ℹ️'){ const s=Alpine.store?.('toasts'); if(s?.push) s.push({title:String(msg), emoji}); else alert(msg); },
-    err(j){ this.toast(j?.description || j?.detail || 'Ошибка', '⛔'); },
-    youtubeEmbed(u){ try{ if(!u) return ''; const m1=u.match(/youtu\.be\/([\w-]+)/); const m2=u.match(/[?&]v=([\w-]+)/); const id=(m1&&m1[1])||(m2&&m2[1])||''; return id?`https://www.youtube.com/embed/${id}`:u; }catch(e){ return u; } },
-
+    /* ===== base ===== */
     companyId: initialCompanyId, company:null, kpi:{}, feed:[], tasks:[], leaderboard:[], tab:'feed',
     canPost:false, canCreateTasks:false, saving:false,
 
     newPost:'', newPinned:false, newPostFile:null, newPostPreview:'',
     inviteModal:false, invite:null,
 
+    adminModal:{ open:false, form:{ email:'', password:'', display_name:'' } },
+    storeModal:{ open:false, mode:'create', id:null, form:{ type:'skin', title:'', cost_coins:0, min_level:0, stock:'', payload:'' } },
+
     taskModal:{ open:false, mode:'create', taskId:null,
       form:{ title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null, _due_date:'' },
       query:'', members:[], selectedIds:[], _byId:Object.create(null)
     },
 
-// ЗАМЕНИТЕ ВАШ resolveOptionId на этот
-async resolveOptionId(stepId, key) {
-  const norm = v => String(v ?? '').trim().toLowerCase();
-  const eqId = (a, b) => String(a) === String(b);
-  const flowId = this.onb?.activeFlow?.id;
-  const companyId = this.companyId;
-  const k = norm(key);
-
-  // локально по уже загруженным шагам
-  const localStep = this.onb.steps.find(s => eqId(s.id, stepId));
-  const localOpt = localStep?.options?.find(o => norm(o.key ?? o.option?.key ?? o.slug) === k);
-  const localId = localOpt?.id ?? localOpt?.option_id ?? localOpt?.pk ?? localOpt?.option?.id ?? localOpt?.option?.option_id;
-  if (localId) return localId;
-
-  // кандидаты URL для получения опций/шага
-  const urls = [
-    `/api/partners/onboarding/steps/${stepId}`,
-    `/api/partners/onboarding/steps/${stepId}/options`,
-    flowId ? `/api/partners/onboarding/flows/${flowId}/steps` : null,
-    companyId ? `/api/partners/company/${companyId}/onboarding/steps/${stepId}` : null,
-    companyId ? `/api/partners/company/${companyId}/onboarding/steps/${stepId}/options` : null,
-    (flowId && companyId) ? `/api/partners/company/${companyId}/onboarding/flows/${flowId}/steps` : null,
-  ].filter(Boolean);
-
-  for (const u of urls) {
-    try {
-      const j = await API.get(u);
-      const stepsArr = Array.isArray(j?.steps) ? j.steps : Array.isArray(j) ? j : [j];
-      const step = stepsArr.find(ss => eqId(ss?.id, stepId)) || (eqId(j?.id, stepId) ? j : null);
-      const opts = step?.options || j?.options || [];
-      const found = (Array.isArray(opts) ? opts : []).find(o => norm(o.key ?? o.option?.key ?? o.slug) === k);
-      const oid = found?.id ?? found?.option_id ?? found?.pk ?? found?.option?.id ?? found?.option?.option_id ?? null;
-      if (oid) return oid;
-    } catch (_) {}
-  }
-  return null;
-},
-
+    people:{ items:[], page:1, per_page:20, total:0, query:'' },
 
     onbDrawer:{ open:false },
-    optDrawer:{ open:false }, // левый дровер для опций/статистики
+    optDrawer:{ open:false },
 
     onb:{ flows:[], activeFlow:null, steps:[], links:[],
       tmpOpt:{key:'', title:'', body_md:''},
       optEditor:null,
-      /* === статистика флоу === */
-      statsOpen:false,
-      stats:null,
-      statsDays:30,
-      sessions:null,       // {page, per_page, total, items:[]}
-      sessionsQuery:'',
-      onlyActive:false,
-      onlyCompleted:false
+      statsOpen:false, stats:null, statsDays:30, sessions:null, sessionsQuery:'', onlyActive:false, onlyCompleted:false
     },
-
     onbLoading:false,
 
     addStepDialog:false, editStepDialog:false,
     formStep:{ id:null, type:'intro_page', title:'', ask_field:'', coins_award:0, xp_award:0, body_md:'', media_url:'', cfg_date_time:'', cfg_location:'', cfg_message:'', cfg_select_limit:1, is_immutable:false },
 
+    store:{ items:[] },
+
     get headerSubtitle(){ return this.company ? `${this.company.name} (${this.company.slug})` : 'Нет компаний' },
 
-    /* ===== tasks, feed ===== */
+    /* ===== utilities ===== */
+    toLocalInputDate(iso){ if(!iso) return ''; const d=new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; },
+    isoFromLocalDateEnd(s){ if(!s) return null; const dt=new Date(`${s}T23:59:59`); return dt.toISOString(); },
+    youtubeEmbed(u){ try{ if(!u) return ''; const m1=u.match(/youtu\.be\/([\w-]+)/); const m2=u.match(/[?&]v=([\w-]+)/); const id=(m1&&m1[1])||(m2&&m2[1])||''; return id?`https://www.youtube.com/embed/${id}`:u; }catch(e){ return u; } },
+    toast(msg, emoji='ℹ️'){ const s=Alpine.store?.('toasts'); if(s?.push) s.push({title:String(msg), emoji}); else alert(msg); },
+    copy(v){ navigator.clipboard?.writeText(v).then(()=> Alpine.store('toasts')?.push?.({title:'Скопировано', emoji:'📋'})); },
+
+    /* ===== feed/tasks ===== */
     async submitProof(taskId, ev){
       const input=ev.target; const file=input.files?.[0]; if(!file) return;
       const fd=new FormData(); fd.append('photo', file);
@@ -1326,8 +1398,9 @@ async resolveOptionId(stepId, key) {
     },
     async tmFetchMembers(){
       try{
-        const d=await API.get(`/api/partners/company/${this.companyId}/members`+(this.taskModal.query?`?query=${encodeURIComponent(this.taskModal.query)}`:''));
-        this.taskModal.members=d.members||[]; this.taskModal._byId=Object.create(null);
+        const q=this.taskModal.query?`?query=${encodeURIComponent(this.taskModal.query)}`:'';
+        const d=await API.get(`/api/partners/company/${this.companyId}/members${q}`);
+        this.taskModal.members=d.members||d.items||[]; this.taskModal._byId=Object.create(null);
         for(const m of this.taskModal.members){ this.taskModal._byId[String(m.id)]=m; }
       }catch(e){ this.toast(e.message,'⛔'); }
     },
@@ -1358,7 +1431,154 @@ async resolveOptionId(stepId, key) {
       this.closeTaskModal(); await this.loadDashboard();
     },
 
-    /* ===== onboarding flows ===== */
+    /* ===== people ===== */
+    async loadPeople(page=1){
+      try{
+        const params = new URLSearchParams();
+        params.set('page', String(page)); params.set('per_page', String(this.people.per_page));
+        if(this.people.query?.trim()) params.set('query', this.people.query.trim());
+        const r = await API.get(`/api/partners/company/${this.companyId}/members?`+params.toString());
+        this.people.items = r.members || r.items || r.data || [];
+        this.people.page = r.page || page;
+        this.people.per_page = r.per_page || r.limit || 20;
+        this.people.total = r.total || r.count || this.people.items.length;
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async setCompanyAdmin(userId, makeAdmin){
+      const cid=this.companyId;
+      const tries = makeAdmin
+        ? [
+            [`/api/partners/company/${cid}/admins`, 'POST', { user_id:userId }],
+            [`/api/partners/company/${cid}/members/${userId}/admin`, 'PUT', { is_admin:true }],
+            [`/api/partners/company/${cid}/admin/${userId}`, 'POST', {}],
+          ]
+        : [
+            [`/api/partners/company/${cid}/admins/${userId}`, 'DELETE', {}],
+            [`/api/partners/company/${cid}/members/${userId}/admin`, 'PUT', { is_admin:false }],
+            [`/api/partners/company/${cid}/admin/${userId}`, 'DELETE', {}],
+          ];
+      let ok=false, err=null;
+      for(const [u,m,b] of tries){
+        try{
+          if(m==='POST') await API.post(u,b);
+          else if(m==='PUT') await API.put(u,b);
+          else await API.del(u);
+          ok=true; break;
+        }catch(e){ err=e; }
+      }
+      if(ok){ this.toast(makeAdmin?'Назначен админом':'Снят с админов','✅'); this.loadPeople(this.people.page); }
+      else { this.toast(err?.message||'Не удалось изменить роль','⛔'); }
+    },
+    async removeFromCompany(userId){
+      if(!confirm('Удалить сотрудника из компании?')) return;
+      const cid=this.companyId;
+      const tries = [
+        `/api/partners/company/${cid}/members/${userId}`,
+        `/api/partners/company/${cid}/member/${userId}`,
+        `/api/partners/company/${cid}/users/${userId}`,
+      ];
+      let ok=false, err=null;
+      for(const u of tries){
+        try{ await API.del(u); ok=true; break; }catch(e){ err=e; }
+      }
+      if(ok){ this.toast('Удалён','🗑️'); this.loadPeople(this.people.page); }
+      else { this.toast(err?.message||'Не удалось удалить','⛔'); }
+    },
+    openCreateAdmin(){ this.adminModal.open=true; },
+    closeAdminModal(){ this.adminModal.open=false; this.adminModal.form={ email:'', password:'', display_name:'' }; },
+    async createCompanyAdmin(){
+      const cid=this.companyId; const b={...this.adminModal.form};
+      const tries = [
+        () => API.post(`/api/partners/company/${cid}/admins`, b),
+        () => API.post(`/api/partners/company/${cid}/admin`, b),
+      ];
+      let ok=false, err=null;
+      for(const fn of tries){ try{ await fn(); ok=true; break; }catch(e){ err=e; } }
+      if(ok){ this.toast('Админ создан','✨'); this.closeAdminModal(); this.loadPeople(); }
+      else { this.toast(err?.message||'Не удалось создать админа','⛔'); }
+    },
+
+    /* ===== store ===== */
+    async loadStore(){
+      try{
+        const r = await API.get(`/api/partners/company/${this.companyId}/store`);
+        this.store.items = r.items || r.store || r.data || r || [];
+      }catch(e){
+        // fallback
+        try{
+          const r2 = await API.get(`/api/partners/company/${this.companyId}/shop`);
+          this.store.items = r2.items || r2.store || r2.data || r2 || [];
+        }catch(err){ this.toast(err.message,'⛔'); }
+      }
+    },
+    openStoreModal(mode, item=null){
+      this.storeModal.open=true; this.storeModal.mode=mode; this.storeModal.id=null;
+      this.storeModal.form={ type:'skin', title:'', cost_coins:0, min_level:0, stock:'', payload:'' };
+      if(mode==='edit' && item){
+        this.storeModal.id=item.id;
+        this.storeModal.form={ type:item.type||'skin', title:item.title||'', cost_coins:Number(item.cost_coins||0), min_level:Number(item.min_level||0), stock:item.stock??'', payload:(typeof item.payload==='string'?item.payload: JSON.stringify(item.payload||{})) };
+      }
+    },
+    closeStoreModal(){ this.storeModal.open=false; this.storeModal.id=null; },
+    async saveStoreItem(){
+      const cid=this.companyId; const b={...this.storeModal.form};
+      if(b.payload && typeof b.payload==='string'){ try{ b.payload_json = JSON.parse(b.payload); }catch(_){ b.payload_json=null; } }
+      const payload = { type:b.type, title:b.title, cost_coins:Number(b.cost_coins||0), min_level:Number(b.min_level||0), stock: b.stock===''? null : b.stock, payload: b.payload_json ?? b.payload ?? null };
+      try{
+        if(this.storeModal.mode==='create'){
+          await API.post(`/api/partners/company/${cid}/store`, payload);
+          this.toast('Товар создан','✅');
+        }else{
+          const id = this.storeModal.id;
+          await API.put(`/api/partners/company/${cid}/store/${id}`, payload);
+          this.toast('Товар обновлён','💾');
+        }
+        this.closeStoreModal(); this.loadStore();
+      }catch(e){
+        // fallback endpoints
+        try{
+          if(this.storeModal.mode==='create'){
+            await API.post(`/api/partners/company/${cid}/shop/items`, payload);
+          }else{
+            await API.put(`/api/partners/company/${cid}/shop/items/${this.storeModal.id}`, payload);
+          }
+          this.toast(this.storeModal.mode==='create'?'Товар создан':'Товар обновлён','✅');
+          this.closeStoreModal(); this.loadStore();
+        }catch(err){ this.toast(err.message,'⛔'); }
+      }
+    },
+    async toggleStoreItem(item){
+      const cid=this.companyId; const id=item.id; const next=!item.is_active;
+      const bodies=[{is_active:next},{active:next}];
+      let ok=false, err=null;
+      for(const b of bodies){
+        try{ await API.put(`/api/partners/company/${cid}/store/${id}`, b); ok=true; break; }catch(e){ err=e; }
+      }
+      if(!ok){
+        try{ await API.put(`/api/partners/company/${cid}/shop/items/${id}`, {is_active:next}); ok=true; }catch(e){ err=e; }
+      }
+      if(ok){ item.is_active=next; this.toast(next?'Включено':'Выключено','🔁'); }
+      else { this.toast(err?.message||'Не удалось переключить','⛔'); }
+    },
+    async deleteStoreItem(id){
+      if(!confirm('Удалить товар?')) return;
+      const cid=this.companyId;
+      const tries = [
+        `/api/partners/company/${cid}/store/${id}`,
+        `/api/partners/company/${cid}/shop/items/${id}`
+      ];
+      let ok=false, err=null;
+      for(const u of tries){ try{ await API.del(u); ok=true; break; }catch(e){ err=e; } }
+      if(ok){ this.toast('Удалено','🗑️'); this.loadStore(); }
+      else { this.toast(err?.message||'Не удалось удалить','⛔'); }
+    },
+
+    /* ===== invites ===== */
+    async openInviteModal(){ this.inviteModal=true; try{ this.invite = await API.get(`/api/partners/company/${this.companyId}/invite`);}catch(e){ this.toast(e.message,'⛔'); } },
+    async regenerateInvite(){ try{ this.invite = await API.post(`/api/partners/company/${this.companyId}/invite/regenerate`,{});}catch(e){ this.toast(e.message,'⛔'); } },
+    async deactivateInvite(){ try{ this.invite = await API.post(`/api/partners/company/${this.companyId}/invite/deactivate`,{});}catch(e){ this.toast(e.message,'⛔'); } },
+
+    /* ===== onboarding core ===== */
     openOnbDrawer(){ this.onbDrawer.open=true; document.body.style.overflow='hidden'; if(!this.onb.flows.length) this.loadFlows(); },
     closeOnbDrawer(){ this.onbDrawer.open=false; document.body.style.overflow=''; },
 
@@ -1375,27 +1595,24 @@ async resolveOptionId(stepId, key) {
     async createFlow(){
       const name=prompt('Название флоу', 'Онбординг кандидата'); if(!name) return;
       try{
-        const j=await API.post(`/api/partners/company/${this.companyId}/onboarding/flows`, { name, final_bonus_coins:50 });
-        await this.loadFlows(); await this.openFlow(j.id);
+        const flow=await API.post(`/api/partners/company/${this.companyId}/onboarding/flows`, { name, final_bonus_coins:50, is_active:true });
+        await this.ensureRegistrationStep(flow.id, true);
+        this.toast('Флоу создан','✨'); await this.loadFlows(); await this.openFlow(flow.id);
       }catch(e){ this.toast(e.message,'⛔'); }
     },
     async createFlowQuick(){
-      const name=prompt('Название флоу','Онбординг (3 шага)'); if(!name) return;
+      const name=prompt('Название флоу','Онбординг (быстрый)'); if(!name) return;
       try{
         const flow=await API.post(`/api/partners/company/${this.companyId}/onboarding/flows`, { name, final_bonus_coins:50, is_active:true });
         const flowId=flow.id;
         const steps=[
-          {type:'intro_page', title:'Добро пожаловать!', body_md:'Здесь вы быстро пройдёте регистрацию и выберете, хотите ли познакомиться с компанией прямо сейчас.', is_required:false, coins_award:5, xp_award:5, order_index:0, config:{}, media_url:null},
-          {type:'registration_section', title:'Регистрация', body_md:'Заполните контактные данные одним экраном: имя, email, телефон.', is_required:true, coins_award:5, xp_award:5, order_index:1, config:{}, media_url:null},
-          {type:'choice_one', title:'Познакомимся с компанией?', body_md:'Выберите действие: посмотреть о компании сейчас или продолжить.', is_required:false, coins_award:5, xp_award:5, order_index:2, config:{}, media_url:null},
+          {type:'intro_page', title:'Добро пожаловать!', body_md:'Коротко расскажем, что дальше.', is_required:false, coins_award:5, xp_award:5, order_index:0, config:{}, media_url:null},
+          /* регистрация будет добавлена принудительно на позицию 1 */
+          {type:'choice_one', title:'Познакомимся с компанией?', body_md:'Посмотреть о компании сейчас или позже.', is_required:false, coins_award:5, xp_award:5, order_index:2, config:{}, media_url:null},
           {type:'reward_shop', title:'Финальный бонус', body_md:'После завершения можно выбрать приз.', is_required:false, coins_award:0, xp_award:0, order_index:3, config:{}, media_url:null}
         ];
-        const created=[]; for(const s of steps){ created.push(await API.post(`/api/partners/onboarding/flows/${flowId}/steps`, s)); }
-        const choice=created[2];
-        if(choice?.id){
-          await API.post(`/api/partners/onboarding/steps/${choice.id}/options`, {key:'intro_now', title:'Да, показать сейчас', body_md:'Показать информацию о компании.'});
-          await API.post(`/api/partners/onboarding/steps/${choice.id}/options`, {key:'later', title:'Позже', body_md:'Перейти к завершению.'});
-        }
+        for(const s of steps){ await API.post(`/api/partners/onboarding/flows/${flowId}/steps`, s); }
+        await this.ensureRegistrationStep(flowId, true);
         this.toast('Флоу создан','✨'); await this.loadFlows(); await this.openFlow(flowId);
       }catch(e){ this.toast(e.message,'⛔'); }
     },
@@ -1405,25 +1622,70 @@ async resolveOptionId(stepId, key) {
         const j=await API.get(`/api/partners/onboarding/flows/${flowId}/steps`);
         const {flow, steps, links}=normStepsPayload(j);
         this.onb.activeFlow=flow; this.onb.steps=steps; this.onb.links=links;
+        await this.ensureRegistrationStep(flowId, false); // гидратация/починка порядка
         if(this.onb.statsOpen){ this.loadFlowStats(flowId); this.loadFlowSessions(flowId, 1); }
       }catch(e){ this.toast(e.message,'⛔'); }
     },
 
-    async saveFlowMeta(){
-      if(!this.onb.activeFlow) return; this.saving=true;
+    /* === регистрационная секция: всегда 2-я и неизменяемая === */
+    async ensureRegistrationStep(flowId, createIfMissing){
+      // 1) есть ли уже?
+      let reg = this.onb.steps.find(s => s.type === 'registration_section');
+      if(!reg && createIfMissing){
+        // создаём шаг
+        try{
+          reg = await API.post(`/api/partners/onboarding/flows/${flowId}/steps`, {
+            type:'registration_section', title:'Регистрация', body_md:'Заполните контактные данные.', is_required:true,
+            coins_award:5, xp_award:5, order_index:1, config:{}
+          });
+        }catch(e){ this.toast('Не удалось создать регистрационную секцию','⛔'); }
+      }
+      // рефреш
       try{
-        const f=this.onb.activeFlow;
-        await API.put(`/api/partners/onboarding/flows/${f.id}`, { name:f.name, final_bonus_coins:Number(f.final_bonus_coins||0), is_active:!!f.is_active });
-        this.toast('Сохранено','💾');
-      }catch(e){ this.toast(e.message,'⛔'); }
-      finally{ this.saving=false; }
+        const j=await API.get(`/api/partners/onboarding/flows/${flowId}/steps?ts=${Date.now()}`);
+        const {steps}=normStepsPayload(j); this.onb.steps=steps;
+      }catch(_){}
+
+      // 2) принудительный порядок: регистрация должна быть index=1
+      const idxReg = this.onb.steps.findIndex(s => s.type==='registration_section');
+      if(idxReg === -1) return; // нет прав/эндпоинтов — пропустим
+      // помечаем неизменяемым
+      this.onb.steps[idxReg].is_immutable = true;
+
+      // если не на позиции 1 — переставим локально и отправим reorder
+      if(this.onb.steps[idxReg].order_index !== 1 || idxReg !== 1){
+        const reordered = [...this.onb.steps];
+        const regStep = reordered.splice(idxReg,1)[0];
+        reordered.splice(1,0,regStep);
+        reordered.forEach((s,i)=> s.order_index=i);
+        this.onb.steps = reordered;
+
+        // отправка порядка
+        try{
+          await API.post(`/api/partners/onboarding/flows/${flowId}/reorder`, { order: this.onb.steps.map(s=>s.id) });
+        }catch(_){}
+      }
     },
-    async setFlowActive(flow, value){
-      const prev=!!flow.is_active; flow.is_active=!!value;
-      try{
-        await API.put(`/api/partners/onboarding/flows/${flow.id}`, { is_active:!!value });
-        if(this.onb.activeFlow && this.onb.activeFlow.id===flow.id) this.onb.activeFlow.is_active=!!value;
-      }catch(e){ flow.is_active=prev; this.toast(e.message,'⛔'); }
+
+    moveStep(idx, delta){
+      const a=this.onb.steps[idx], b=this.onb.steps[idx+delta];
+      if(!a || !b) return;
+      if(a.is_immutable || b.is_immutable) return; // регистрация защищена
+      [this.onb.steps[idx], this.onb.steps[idx+delta]]=[b,a];
+      this.onb.steps.forEach((s,i)=> s.order_index=i);
+    },
+    async saveOrder(){
+      if(!this.onb.activeFlow) return; this.saving=true;
+      // перед отправкой: гарантируем регистрацию на позиции 1
+      const idxReg = this.onb.steps.findIndex(s => s.type==='registration_section');
+      if(idxReg>-1 && idxReg!==1){
+        const reg = this.onb.steps.splice(idxReg,1)[0];
+        this.onb.steps.splice(1,0,reg);
+      }
+      this.onb.steps.forEach((s,i)=> s.order_index=i);
+      try{ await API.post(`/api/partners/onboarding/flows/${this.onb.activeFlow.id}/reorder`, { order:this.onb.steps.map(s=>s.id) }); this.toast('Порядок сохранён','✅'); }
+      catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
     },
     async deleteFlow(id){
       if(!confirm('Удалить флоу целиком? Это действие нельзя отменить.')) return;
@@ -1432,43 +1694,6 @@ async resolveOptionId(stepId, key) {
         this.toast('Флоу удалён','🗑️'); await this.loadFlows();
         if(this.onb.activeFlow?.id===id){ this.onb.activeFlow=null; this.onb.steps=[]; this.onb.links=[]; }
       }catch(e){ this.toast(e.message,'⛔'); }
-    },
-
-    moveStep(idx, delta){
-      const arr=this.onb.steps; const j=idx+delta; if(j<0||j>=arr.length) return;
-      if(arr[idx].is_immutable || arr[j].is_immutable) return;
-      [arr[idx], arr[j]]=[arr[j], arr[idx]]; arr.forEach((s,i)=> s.order_index=i);
-    },
-    async saveOrder(){
-      if(!this.onb.activeFlow) return; this.saving=true;
-      try{ await API.post(`/api/partners/onboarding/flows/${this.onb.activeFlow.id}/reorder`, { order:this.onb.steps.map(s=>s.id) }); this.toast('Порядок сохранён','✅'); }
-      catch(e){ this.toast(e.message,'⛔'); }
-      finally{ this.saving=false; }
-    },
-
-    resetFormStep(){ this.formStep={ id:null, type:'intro_page', title:'', ask_field:'', coins_award:0, xp_award:0, body_md:'', media_url:'', cfg_date_time:'', cfg_location:'', cfg_message:'', cfg_select_limit:1, is_immutable:false }; },
-    async saveNewStep(){
-      if(!this.onb.activeFlow) return; this.saving=true;
-      try{
-        let cfg = {};
-        if (this.formStep.type === 'interview_invite') {
-          cfg = { date_time: this.formStep.cfg_date_time || null, location: this.formStep.cfg_location || null, message: this.formStep.cfg_message || null };
-        } else if (this.formStep.type === 'interest_selector') {
-          cfg = { select_limit: Number(this.formStep.cfg_select_limit || 1) };
-        } else if (this.formStep.type === 'first_assignment') {
-          cfg = { date_time: this.formStep.cfg_date_time || null };
-        }
-        const body = {
-          type:this.formStep.type, title:this.formStep.title, ask_field:this.formStep.ask_field||null,
-          body_md:this.formStep.body_md||null, media_url:this.formStep.media_url||null,
-          is_required:(this.formStep.type==='ask_input'||this.formStep.type==='registration_section'),
-          coins_award:Number(this.formStep.coins_award||0), xp_award:Number(this.formStep.xp_award||0),
-          order_index:this.onb.steps.length, config:cfg
-        };
-        await API.post(`/api/partners/onboarding/flows/${this.onb.activeFlow.id}/steps`, body);
-        this.addStepDialog=false; this.resetFormStep(); await this.openFlow(this.onb.activeFlow.id);
-      }catch(e){ this.toast(e.message,'⛔'); }
-      finally{ this.saving=false; }
     },
     editStep(s){
       this.addStepDialog = false;
@@ -1480,7 +1705,7 @@ async resolveOptionId(stepId, key) {
         cfg_location: (s.config && s.config.location) ? s.config.location : '',
         cfg_message: (s.config && s.config.message) ? s.config.message : '',
         cfg_select_limit: (s.config && s.config.select_limit) ? s.config.select_limit : 1,
-        is_immutable: !!s.is_immutable
+        is_immutable: (s.is_immutable || s.type==='registration_section')
       };
       this.editStepDialog = true;
       this.$nextTick(() => {
@@ -1494,6 +1719,7 @@ async resolveOptionId(stepId, key) {
         const cfg=this.formStep.type==='interview_invite' ? { date_time:this.formStep.cfg_date_time||null, location:this.formStep.cfg_location||null, message:this.formStep.cfg_message||null }
                    : this.formStep.type==='interest_selector' ? { select_limit:Number(this.formStep.cfg_select_limit||1) } : {};
         const body={ type:this.formStep.type, title:this.formStep.title, ask_field:this.formStep.ask_field||null, body_md:this.formStep.body_md||null, media_url:this.formStep.media_url||null, coins_award:Number(this.formStep.coins_award||0), xp_award:Number(this.formStep.xp_award||0), config:cfg };
+        if(this.formStep.type==='registration_section'){ delete body.type; } // тип нельзя
         await API.put(`/api/partners/onboarding/steps/${id}`, body);
         this.editStepDialog=false; await this.openFlow(this.onb.activeFlow.id);
       }catch(e){ this.toast(e.message,'⛔'); }
@@ -1501,71 +1727,42 @@ async resolveOptionId(stepId, key) {
     },
     async toggleStepActive(s, checked){
       const prev=!!s.is_active; s.is_active=!!checked;
-      try{ await API.put(`/api/partners/onboarding/steps/${s.id}`, { is_active:!!checked }); }
-      catch(e){ s.is_active=prev; this.toast(e.message,'⛔'); }
+      try{
+        await API.put(`/api/partners/onboarding/steps/${s.id}`, { is_active:!!checked });
+        // регистрационную секцию не даём выключать:
+        if(s.type==='registration_section' && !checked){ s.is_active=true; await API.put(`/api/partners/onboarding/steps/${s.id}`, { is_active:true }); this.toast('Регистрационная секция не может быть выключена','⚠️'); }
+      }catch(e){ s.is_active=prev; this.toast(e.message,'⛔'); }
     },
     async deleteStep(stepId){
+      const s=this.onb.steps.find(x=>x.id===stepId);
+      if(s?.type==='registration_section'){ this.toast('Регистрационную секцию удалять нельзя','⛔'); return; }
       if(!confirm('Удалить шаг?')) return;
       try{ await API.del(`/api/partners/onboarding/steps/${stepId}`); await this.openFlow(this.onb.activeFlow.id); }
       catch(e){ this.toast(e.message,'⛔'); }
     },
 
-    /* === Links helpers === */
-    async generateLink(){
-      if(!this.onb.activeFlow?.id) return;
-      const maxUsesStr = prompt('Максимум использований (пусто = без лимита):','');
-      const max_uses = maxUsesStr && !isNaN(+maxUsesStr) ? Number(maxUsesStr) : null;
-      const expStr = prompt('Дата истечения в формате ГГГГ-ММ-ДД (пусто = без даты):','');
-      const expires_at = (expStr && /^\d{4}-\d{2}-\d{2}$/.test(expStr)) ? (new Date(`${expStr}T23:59:59`)).toISOString() : null;
-      try{
-        await API.createFlowLink(this.onb.activeFlow.id, { max_uses, expires_at });
-        this.toast('Ссылка создана','🔗');
-        await this.openFlow(this.onb.activeFlow.id);
-      }catch(e){ this.toast(e.message,'⛔'); }
-    },
-    async deleteLink(linkId){
-      if(!linkId) return;
-      if(!confirm('Удалить ссылку?')) return;
-      const flowId = this.onb.activeFlow?.id;
-      const tries = [
-        `/api/partners/onboarding/links/${linkId}`,
-        flowId ? `/api/partners/onboarding/flows/${flowId}/links/${linkId}` : null,
-        `/api/partners/onboarding/flow-links/${linkId}`,
-        `/api/partners/onboarding/links/${linkId}/delete`,
-      ].filter(Boolean);
-      let ok=false, lastErr=null;
-      for(const u of tries){
-        try{ await API.del(u); ok=true; break; }catch(e){ lastErr=e; }
+    /* === LEFT option editor & stats === */
+    async editOption(o, stepId){
+      this.onb.statsOpen = false;
+      this.optDrawer.open = true;
+
+      const optId = (o.id ?? o.option_id ?? o.pk ?? o.option?.id ?? o.option?.option_id ?? null);
+
+      this.onb.optEditor = {
+        step_id: stepId,
+        id: optId,
+        key: o.key ?? o.option?.key ?? o.slug ?? '',
+        title: o.title ?? o.option?.title ?? '',
+        body_md: o.body_md ?? o.option?.body_md ?? '',
+        media_url: o.media_url ?? o.option?.media_url ?? ''
+      };
+
+      if (!this.onb.optEditor.id && this.onb.optEditor.key) {
+        const rid = await this.ensureOptionId(stepId, this.onb.optEditor.key);
+        if (rid) this.onb.optEditor.id = rid;
       }
-      if(ok){ this.toast('Ссылка удалена','🗑️'); await this.openFlow(flowId); }
-      else { this.toast(lastErr?.message || 'Не удалось удалить ссылку','⛔'); }
     },
-
-    /* === LEFT option editor & stats API === */
-   /* === LEFT option editor & stats API === */
-async editOption(o, stepId){
-  this.onb.statsOpen = false;
-  this.optDrawer.open = true;
-
-  const optId = (o.id ?? o.option_id ?? o.pk ?? o.option?.id ?? o.option?.option_id ?? null);
-
-  this.onb.optEditor = {
-    step_id: stepId,
-    id: optId,
-    key: o.key ?? o.option?.key ?? o.slug ?? '',
-    title: o.title ?? o.option?.title ?? '',
-    body_md: o.body_md ?? o.option?.body_md ?? '',
-    media_url: o.media_url ?? o.option?.media_url ?? ''
-  };
-
-  if (!this.onb.optEditor.id && this.onb.optEditor.key) {
-    const rid = await this.resolveOptionId(stepId, this.onb.optEditor.key);
-    if (rid) this.onb.optEditor.id = rid;
-  }
-},
-
-openFlowStats(flowId){
-
+    openFlowStats(flowId){
       if(!flowId) return;
       this.onb.statsOpen = true;
       this.onb.optEditor = null;
@@ -1596,122 +1793,86 @@ openFlowStats(flowId){
         this.onb.sessions = await API.get(`/api/partners/onboarding/flows/${flowId}/sessions?`+params.toString());
       }catch(e){ this.toast(e.message,'⛔'); }
     },
-    debouncedLoadSessions(){
-      clearTimeout(this._debSess);
-      this._debSess = setTimeout(()=>{ if(this.onb.activeFlow?.id) this.loadFlowSessions(this.onb.activeFlow.id, 1); }, 350);
-    },
+    debouncedLoadSessions(){ clearTimeout(this._debSess); this._debSess = setTimeout(()=>{ if(this.onb.activeFlow?.id) this.loadFlowSessions(this.onb.activeFlow.id, 1); }, 350); },
 
-async ensureOptionId(stepId, key){
-  const norm = v => String(v ?? '').trim().toLowerCase();
-  const isEq  = (a,b) => String(a) === String(b);
+    async ensureOptionId(stepId, key){
+      const norm = v => String(v ?? '').trim().toLowerCase();
+      const isEq  = (a,b) => String(a) === String(b);
 
-  const fromLocal = () => {
-    const step = this.onb.steps.find(s => isEq(s.id, stepId));
-    const hit  = step?.options?.find(o => norm(o.key ?? o.slug) === norm(key));
-    return hit?.id ?? hit?.option_id ?? hit?.pk ?? hit?.uuid ?? null;
-  };
+      const fromLocal = () => {
+        const step = this.onb.steps.find(s => isEq(s.id, stepId));
+        const hit  = step?.options?.find(o => norm(o.key ?? o.slug) === norm(key));
+        return hit?.id ?? hit?.option_id ?? hit?.pk ?? hit?.uuid ?? null;
+      };
 
-  // 1) локально
-  let id = fromLocal();
-  if(id) return id;
+      // 1) локально
+      let id = fromLocal();
+      if(id) return id;
 
-  // 2) быстрый рефреш всего флоу (без закрытия редактора)
-  try{
-    const j = await API.get(`/api/partners/onboarding/flows/${this.onb.activeFlow.id}/steps?ts=${Date.now()}`);
-    const {steps} = normStepsPayload(j);
-    this.onb.steps = steps; // гидратация локали актуальными id
-    id = fromLocal();
-    if(id) return id;
-  }catch(_){}
+      // 2) быстрый рефреш
+      try{
+        const j = await API.get(`/api/partners/onboarding/flows/${this.onb.activeFlow.id}/steps?ts=${Date.now()}`);
+        const {steps} = normStepsPayload(j); this.onb.steps = steps;
+        id = fromLocal(); if(id) return id;
+      }catch(_){}
 
-  // 3) точечные эндпоинты шага (если доступны)
-  const tryGet = async (u) => { try{ return await API.get(u); }catch(_){ return null; } };
+      // 3) точечно
+      const tryGet = async (u) => { try{ return await API.get(u); }catch(_){ return null; } };
+      const cand = [
+        `/api/partners/onboarding/steps/${stepId}?ts=${Date.now()}`,
+        `/api/partners/onboarding/steps/${stepId}/options?ts=${Date.now()}`
+      ];
 
-  const cand = [
-    `/api/partners/onboarding/steps/${stepId}?ts=${Date.now()}`,
-    `/api/partners/onboarding/steps/${stepId}/options?ts=${Date.now()}`
-  ];
-
-  for(const u of cand){
-    const j = await tryGet(u);
-    const rawOpts = j?.options || j?.choices || j?.variants || Array.isArray(j) ? j : [];
-    const hit = (rawOpts || []).find(o => norm(o.key ?? o.option?.key ?? o.slug) === norm(key));
-    const got = hit?.id ?? hit?.option_id ?? hit?.pk ?? hit?.uuid ?? hit?.option?.id ?? hit?.option?.option_id ?? hit?.option?.pk ?? hit?.option?.uuid ?? null;
-    if(got){
-      // синхронизируем локально
-      const step = this.onb.steps.find(s => isEq(s.id, stepId));
-      if(step){
-        const loc = step.options?.find(o => norm(o.key ?? o.slug) === norm(key));
-        if(loc) loc.id = got;
+      for(const u of cand){
+        const j = await tryGet(u);
+        const rawOpts = j?.options || j?.choices || j?.variants || (Array.isArray(j)?j:[]);
+        const hit = (rawOpts || []).find(o => norm(o.key ?? o.option?.key ?? o.slug) === norm(key));
+        const got = hit?.id ?? hit?.option_id ?? hit?.pk ?? hit?.uuid ?? hit?.option?.id ?? hit?.option?.option_id ?? hit?.option?.pk ?? hit?.option?.uuid ?? null;
+        if(got){
+          const step = this.onb.steps.find(s => isEq(s.id, stepId));
+          if(step){
+            const loc = step.options?.find(o => norm(o.key ?? o.slug) === norm(key));
+            if(loc) loc.id = got;
+          }
+          return got;
+        }
       }
-      return got;
-    }
-  }
+      return null;
+    },
+    async saveOption(){
+      const e = this.onb.optEditor;
+      if(!e){ this.toast('Редактор опции не инициализирован','⛔'); return; }
+      if(!e.id && e.step_id && e.key){ e.id = await this.ensureOptionId(e.step_id, e.key); }
+      if(!e.id){ this.toast('Не смогли получить ID опции. Остановлено, чтобы не создать дубль.','⛔'); return; }
 
-  return null;
-},
+      const payload = { title: e.title, body_md: e.body_md || null, media_url: e.media_url || null };
+      const flowId = this.onb?.activeFlow?.id;
+      const companyId = this.companyId;
+      const updUrls = [
+        `/api/partners/onboarding/options/${e.id}`,
+        `/api/partners/onboarding/steps/${e.step_id}/options/${e.id}`,
+        flowId    ? `/api/partners/onboarding/flows/${flowId}/steps/${e.step_id}/options/${e.id}` : null,
+        companyId ? `/api/partners/company/${companyId}/onboarding/options/${e.id}` : null,
+        companyId ? `/api/partners/company/${companyId}/onboarding/steps/${e.step_id}/options/${e.id}` : null,
+      ].filter(Boolean);
 
-async saveOption(){
-  const e = this.onb.optEditor;
-  if(!e){ this.toast('Редактор опции не инициализирован','⛔'); return; }
+      this.saving = true;
+      try{
+        let ok=false;
+        for(const u of updUrls){ try{ await API.put(u, payload); ok=true; break; }catch{} }
+        if(!ok){ for(const u of updUrls){ try{ await API.post(u, payload); ok=true; break; }catch{} } }
+        if(!ok) throw new Error('Не найден endpoint для обновления опции по id');
 
-  // Перед сохранением гарантированно получаем id
-  if(!e.id && e.step_id && e.key){
-    e.id = await this.ensureOptionId(e.step_id, e.key);
-  }
-
-  if(!e.id){
-    this.toast('Не смогли получить ID опции даже после автообновления шагов. Обновление остановлено, чтобы не создать дубль.','⛔');
-    return;
-  }
-
-  const payload = { title: e.title, body_md: e.body_md || null, media_url: e.media_url || null };
-  const flowId = this.onb?.activeFlow?.id;
-  const companyId = this.companyId;
-  const updUrls = [
-    `/api/partners/onboarding/options/${e.id}`,
-    `/api/partners/onboarding/steps/${e.step_id}/options/${e.id}`,
-    flowId    ? `/api/partners/onboarding/flows/${flowId}/steps/${e.step_id}/options/${e.id}` : null,
-    companyId ? `/api/partners/company/${companyId}/onboarding/options/${e.id}` : null,
-    companyId ? `/api/partners/company/${companyId}/onboarding/steps/${e.step_id}/options/${e.id}` : null,
-  ].filter(Boolean);
-
-  const tryReq = async (method, url, body) => {
-    const r = await fetch(url, {
-      method, credentials:'same-origin',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body||{})
-    });
-    let j=null; try{ j=await r.json(); }catch(_){}
-    if(!r.ok){ throw new Error(j?.description || j?.detail || j?.message || `HTTP ${r.status}`); }
-    return j ?? {};
-  };
-
-  this.saving = true;
-  try{
-    // 1) пробуем обновить по id (PUT → PATCH → POST на тот же {id})
-    for(const u of updUrls){ try{ await API.put(u, payload);  this.toast('Опция обновлена','💾'); await this.openFlow(flowId); this.closeOptDrawer(); return; }catch{} }
-    for(const u of updUrls){ try{ await tryReq('PATCH', u, payload); this.toast('Опция обновлена','💾'); await this.openFlow(flowId); this.closeOptDrawer(); return; }catch{} }
-    for(const u of updUrls){ try{ await tryReq('POST',  u, payload); this.toast('Опция обновлена','💾'); await this.openFlow(flowId); this.closeOptDrawer(); return; }catch{} }
-
-    // 2) если ни один апдейт-роут не существует — останавливаемся (НЕ создаём дубль)
-    throw new Error('Не найден endpoint для обновления опции по id');
-  }catch(err){
-    this.toast(err?.message || 'Не удалось обновить опцию','⛔');
-  }finally{
-    this.saving = false;
-  }
-},
-
+        this.toast('Опция обновлена','💾'); await this.openFlow(flowId); this.closeOptDrawer();
+      }catch(err){ this.toast(err?.message || 'Не удалось обновить опцию','⛔'); }
+      finally{ this.saving = false; }
+    },
     async addOption(stepId){
       const o=this.onb.tmpOpt; if(!o.key || !o.title){ this.toast('Укажите key и название','⚠️'); return; }
       try{
-        const res = await API.post(`/api/partners/onboarding/steps/${stepId}/options`, {
-          key:o.key, title:o.title, body_md:o.body_md||null
-        });
+        const res = await API.post(`/api/partners/onboarding/steps/${stepId}/options`, { key:o.key, title:o.title, body_md:o.body_md||null });
         this.onb.tmpOpt={key:'', title:'', body_md:''};
         await this.openFlow(this.onb.activeFlow.id);
-        // авто-открыть левый редактор только что созданной опции
         const createdId = res?.id || res?.option_id;
         const step = this.onb.steps.find(x=>x.id===stepId);
         const opt = step?.options?.find(x=>x.id===createdId) || step?.options?.find(x=>x.key===o.key);
@@ -1728,28 +1889,8 @@ async saveOption(){
       }catch(e){ this.toast(e.message,'⛔'); }
     },
 
-    /* ===== init & dashboard ===== */
-    async openInviteModal(){ this.inviteModal=true; try{ this.invite = await API.get(`/api/partners/company/${this.companyId}/invite`);}catch(e){ this.toast(e.message,'⛔'); } },
-    async regenerateInvite(){ try{ this.invite = await API.post(`/api/partners/company/${this.companyId}/invite/regenerate`,{});}catch(e){ this.toast(e.message,'⛔'); } },
-    async deactivateInvite(){ try{ this.invite = await API.post(`/api/partners/company/${this.companyId}/invite/deactivate`,{});}catch(e){ this.toast(e.message,'⛔'); } },
-    copy(v){ navigator.clipboard?.writeText(v).then(()=> Alpine.store('toasts')?.push?.({title:'Скопировано', emoji:'📋'})); },
-
-    async createPost(){
-      if(!this.newPost.trim() && !this.newPostFile) return;
-      try{
-        if(this.newPostFile){
-          const fd=new FormData(); fd.append('text', this.newPost||''); fd.append('pinned', this.newPinned ? '1':'0'); fd.append('photo', this.newPostFile);
-          await API.post(`/api/partners/company/${this.companyId}/feed`, fd);
-        }else{
-          await API.post(`/api/partners/company/${this.companyId}/feed`, {text:this.newPost, pinned:this.newPinned});
-        }
-        this.newPost=''; this.newPinned=false; this.clearNewPostFile(); await this.loadDashboard();
-      }catch(e){ this.toast(e.message,'⛔'); }
-    },
-    onNewPostFile(ev){ const f=ev.target.files?.[0]; if(!f){ this.clearNewPostFile(); return; } if(this.newPostPreview) URL.revokeObjectURL(this.newPostPreview); this.newPostFile=f; this.newPostPreview=URL.createObjectURL(f); },
-    clearNewPostFile(){ this.newPostFile=null; if(this.newPostPreview){ URL.revokeObjectURL(this.newPostPreview); this.newPostPreview=''; } this.$refs?.newPostImageInput && (this.$refs.newPostImageInput.value=''); },
-
-    async init(){ if(!this.companyId) return; await this.loadDashboard(); this.loadFlows().catch(()=>{}); },
+    /* ===== dashboard ===== */
+    async init(){ if(!this.companyId) return; await this.loadDashboard(); this.loadFlows().catch(()=>{}); this.loadPeople().catch(()=>{}); this.loadStore().catch(()=>{}); },
     async loadDashboard(){
       try{
         const d=await API.get(`/api/partners/company/${this.companyId}/dashboard`);
@@ -1763,67 +1904,26 @@ async saveOption(){
         this.canPost=!!(perms.can_create_feed ?? perms.can_manage ?? false);
         this.canCreateTasks=!!(perms.can_create_tasks ?? perms.can_manage ?? false);
       }catch(e){ this.toast(e.message,'⛔'); }
-    }
+    },
+
+    /* ===== new post helpers ===== */
+    async createPost(){
+      if(!this.newPost.trim() && !this.newPostFile) return;
+      try{
+        if(this.newPostFile){
+          const fd=new FormData(); fd.append('text', this.newPost||''); fd.append('pinned', this.newPinned ? '1':'0'); fd.append('photo', this.newPostFile);
+          await API.post(`/api/partners/company/${this.companyId}/feed`, fd);
+        }else{
+          await API.post(`/api/partners/company/${this.companyId}/feed`, {text:this.newPost, pinned:this.newPinned});
+        }
+        this.newPost=''; this.newPinned=false; this.clearNewPostFile(); await this.loadDashboard();
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    onNewPostFile(ev){ const f=ev.target.files?.[0]; if(!f){ this.clearNewPostFile(); return; } if(this.newPostPreview) URL.revokeObjectURL(this.newPostPreview); this.newPostFile=f; this.newPostPreview=URL.createObjectURL(f); },
+    clearNewPostFile(){ this.newPostFile=null; if(this.newPostPreview){ URL.revokeObjectURL(this.newPostPreview); this.newPostPreview=''; } this.$refs?.newPostImageInput && (this.$refs.newPostImageInput.value=''); }
   }
 }
 </script>
-
-<!-- Панель эффективности онбординга -->
-<div class="rounded-2xl border border-white/10 p-6 mt-6"
-     x-data="{ stats:null, days:30 }"
-     x-init="fetch(`/api/partners/company/{{ company_id if company_id is not none else 'null' }}/onboarding/stats?days=${days}`)
-               .then(r=>r.json()).then(j=>{ stats=j }).catch(()=>{})">
-
-  <h2 class="text-xl font-bold mb-4">Онбординг — эффективность</h2>
-
-  <template x-if="stats">
-    <div class="space-y-4">
-      <div class="grid grid-cols-3 gap-3">
-        <div class="p-4 rounded-xl bg-white/5">
-          <div class="text-slate-400 text-sm">Начали</div>
-          <div class="text-2xl font-bold" x-text="stats.started"></div>
-        </div>
-        <div class="p-4 rounded-xl bg-white/5">
-          <div class="text-slate-400 text-sm">Завершили</div>
-          <div class="text-2xl font-bold" x-text="stats.completed"></div>
-        </div>
-        <div class="p-4 rounded-xl bg-white/5">
-          <div class="text-slate-400 text-sm">Завершение</div>
-          <div class="text-2xl font-bold" x-text="stats.completion_rate + '%'"></div>
-        </div>
-      </div>
-
-      <div>
-        <div class="text-sm text-slate-400 mb-2">
-          Отток по шагам (последний достигнутый шаг у незавершённых; -1 = до первого шага)
-        </div>
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-slate-400">
-              <th class="text-left py-2">Шаг</th>
-              <th class="text-left py-2">Название</th>
-              <th class="text-right py-2">Отток</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="row in (stats.funnel || [])" :key="row.order_index">
-              <tr class="border-t border-white/5">
-                <td class="py-2">#<span x-text="row.order_index"></span></td>
-                <td class="py-2" x-text="row.title || row.type || '—'"></td>
-                <td class="py-2 text-right" x-text="row.drop_count"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="text-sm text-slate-400">
-        Среднее время до завершения:
-        <span x-text="Math.round((stats.avg_time_to_complete_sec||0)/60)"></span> мин
-      </div>
-    </div>
-  </template>
-</div>
 
 <script>
   window.SJ_COMPANY_ID = {{ company_id|default('null') }};

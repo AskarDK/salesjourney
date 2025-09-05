@@ -3,70 +3,289 @@
 
 {% block content %}
 <section class="max-w-[1400px] mx-auto px-4 py-6" x-data="adminApp()" x-init="init()">
+
+  <!-- === THEME & UI TOKENS (light/dark via .dark на <html>) === -->
+  <style>
+    [x-cloak]{display:none!important}
+
+    :root{
+      /* surfaces & text */
+      --bg:            #f7fafc;            /* slate-50 */
+      --panel:         #ffffff;
+      --panel-muted:   #f8fafc;            /* slate-50 */
+      --panel-elev:    #ffffff;
+      --border:        rgba(15,23,42,.10);
+      --border-strong: rgba(15,23,42,.16);
+      --text:          #0f172a;            /* slate-900 */
+      --muted:         #475569;            /* slate-600 */
+      --overlay:       rgba(2,6,23,.40);
+
+      /* rings */
+      --ring:          79 70 229;          /* indigo-600 */
+
+      /* brand palette (Tailwind RGB) */
+      --indigo: 79 70 229;
+      --emerald: 16 185 129;
+      --sky: 14 165 233;
+      --amber: 217 119 6;
+      --rose: 225 29 72;
+      --slate: 100 116 139;
+
+      /* inputs */
+      --input-bg:      #ffffff;
+      --input-placeholder:#94a3b8;
+    }
+    .dark{
+      --bg:            #0b1220;            /* глубокий dark */
+      --panel:         rgba(15,23,42,.80);
+      --panel-muted:   rgba(15,23,42,.65);
+      --panel-elev:    rgba(15,23,42,.92);
+      --border:        rgba(255,255,255,.10);
+      --border-strong: rgba(255,255,255,.16);
+      --text:          #e5e7eb;            /* slate-200 */
+      --muted:         #94a3b8;            /* slate-400 */
+      --overlay:       rgba(0,0,0,.55);
+
+      --input-bg:      rgba(2,6,23,.6);
+      --input-placeholder:#94a3b8;
+    }
+
+    /* base */
+    section{ color:var(--text); }
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+    .muted{
+      background: var(--panel-muted);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .elev{
+      background: var(--panel-elev);
+      border: 1px solid var(--border-strong);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(2,6,23,.10);
+    }
+
+    .header-sticky{
+      position: sticky; top: 0; z-index: 30;
+      backdrop-filter: blur(8px);
+      background: color-mix(in oklab, var(--panel) 86%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .kbd{ font-variant-numeric: tabular-nums; }
+
+    /* inputs */
+    .input{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--input-bg);
+      color:var(--text);
+      padding:.55rem .75rem;
+      outline: none;
+      transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .input::placeholder{ color:var(--input-placeholder); }
+    .input:focus{
+      border-color: rgb(var(--ring));
+      box-shadow: 0 0 0 3px rgba(var(--ring), .25);
+    }
+
+    /* buttons */
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+      border:1px solid var(--border); border-radius:10px;
+      padding:.55rem .8rem; font-weight:600;
+      transition: transform .06s ease, filter .15s ease, background .15s ease, border-color .15s ease;
+      color:var(--text);
+      background: color-mix(in oklab, var(--panel) 98%, transparent);
+    }
+    .btn:hover{ filter:brightness(0.98); }
+    .btn:active{ transform: translateY(1px); }
+    .btn:focus-visible{ outline:none; box-shadow: 0 0 0 3px rgba(var(--ring), .28); }
+
+    .btn-ghost{
+      background: transparent;
+      border-color: transparent;
+    }
+    .btn-outline{
+      background: transparent;
+      border-color: var(--border-strong);
+    }
+
+    /* color variants */
+    .btn-indigo{  background: rgb(var(--indigo));  border-color: rgb(var(--indigo));  color:white; }
+    .btn-emerald{ background: rgb(var(--emerald)); border-color: rgb(var(--emerald)); color:white; }
+    .btn-sky{     background: rgb(var(--sky));     border-color: rgb(var(--sky));     color:white; }
+    .btn-amber{   background: rgb(var(--amber));   border-color: rgb(var(--amber));   color:black; }
+    .btn-rose{    background: rgb(var(--rose));    border-color: rgb(var(--rose));    color:white; }
+    .btn-slate{   background: rgb(var(--slate));   border-color: rgb(var(--slate));   color:white; }
+
+    .btn-indigo:hover{ filter:brightness(.95); }
+    .btn-emerald:hover{ filter:brightness(.95); }
+    .btn-sky:hover{ filter:brightness(.95); }
+    .btn-amber:hover{ filter:brightness(.98); }
+    .btn-rose:hover{ filter:brightness(.95); }
+    .btn-slate:hover{ filter:brightness(.95); }
+
+    /* chips / tags */
+    .chip{
+      display:inline-flex; align-items:center; gap:.4rem;
+      padding:.25rem .55rem; border-radius:999px; border:1px solid var(--border);
+      font-size:.75rem; color:var(--muted); background:var(--panel-muted);
+    }
+
+    /* tables */
+    .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:14px; }
+    table{ width:100%; border-collapse:separate; border-spacing:0; }
+    thead th{
+      text-align:left; font-weight:700; font-size:.85rem;
+      color:var(--muted); background:var(--panel-muted);
+      border-bottom:1px solid var(--border);
+      padding:.6rem .75rem; white-space:nowrap;
+      position: sticky; top:0; z-index:1;
+    }
+    tbody td{ padding:.55rem .75rem; white-space:nowrap; border-top:1px solid var(--border); }
+    tbody tr:hover{ background: color-mix(in oklab, var(--panel-muted) 60%, transparent); }
+
+    /* modal overlay */
+    .overlay{ background: var(--overlay); }
+
+    /* nav button */
+    .navbtn{
+      width:100%; text-align:left; border-radius:12px; border:1px solid transparent;
+      padding:.55rem .7rem;
+    }
+    .navbtn:hover{ background: color-mix(in oklab, var(--panel-muted) 60%, transparent); }
+    .navbtn.active{
+      background: color-mix(in oklab, rgb(var(--indigo)) 12%, var(--panel));
+      border-color: rgba(var(--indigo), .45);
+    }
+  </style>
+
+  <!-- Top bar -->
+  <div class="header-sticky rounded-xl px-4 py-3 mb-6 flex flex-wrap items-center gap-3">
+    <div class="text-2xl font-bold">Админ-панель</div>
+    <div class="ml-auto flex items-center gap-2">
+      <button class="btn btn-slate" @click="sync()" aria-label="Обновить секцию">⟳ Обновить</button>
+      <div class="hidden md:flex items-center gap-2">
+        <button class="btn btn-emerald" @click="openModal('createUser')">＋ Пользователь</button>
+        <button class="btn btn-indigo"  @click="openModal('createCompany')">＋ Компания</button>
+        <button class="btn btn-sky"     @click="openModal('createCourse')">＋ Курс</button>
+      </div>
+    </div>
+  </div>
+
   <div class="grid grid-cols-12 gap-6">
     <!-- Sidebar -->
-    <aside class="col-span-12 lg:col-span-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-      <div class="text-xl font-bold mb-3">Админ-навигация</div>
-      <nav class="space-y-1">
-        <template x-for="it in nav">
+    <aside class="col-span-12 lg:col-span-3 card p-4" x-data="{open:true}">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-base font-semibold">Навигация</div>
+        <button class="btn btn-outline md:hidden" @click="open=!open" aria-label="Toggle menu">Меню</button>
+      </div>
+
+      <nav class="space-y-1" x-show="open" x-collapse>
+        <template x-for="it in nav" :key="it.key">
           <button @click="section = it.key; loadSection()"
-                  class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 border border-white/10"
-                  :class="section===it.key ? 'bg-white/10 border-white/20' : ''">
-            <span x-text="it.label"></span>
+                  class="navbtn"
+                  :class="section===it.key ? 'active' : ''">
+            <div class="font-medium flex items-center gap-2">
+              <span x-text="it.icon || '•'"></span>
+              <span x-text="it.label"></span>
+            </div>
+            <template x-if="it.desc">
+              <div class="text-xs text-slate-500" x-text="it.desc"></div>
+            </template>
           </button>
         </template>
       </nav>
 
-      <div class="mt-6 text-xs text-slate-400">
-        Быстрые действия
-      </div>
-      <div class="mt-2 space-y-2">
-        <button class="w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500"
-                @click="sync()">⟳ Обновить секцию</button>
-        <button class="w-full px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500"
-                @click="openModal('createUser')">＋ Создать пользователя</button>
-        <button class="w-full px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500"
-                @click="openModal('createCompany')">＋ Создать компанию</button>
-        <button class="w-full px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500"
-                @click="openModal('createCourse')">＋ Глобальный курс</button>
+      <div class="mt-6 text-xs text-slate-500">Быстрые действия</div>
+      <div class="mt-2 grid grid-cols-1 gap-2">
+        <button class="btn btn-slate"   @click="sync()">⟳ Обновить секцию</button>
+        <button class="btn btn-emerald" @click="openModal('createUser')">＋ Создать пользователя</button>
+        <button class="btn btn-indigo"  @click="openModal('createCompany')">＋ Создать компанию</button>
+        <button class="btn btn-sky"     @click="openModal('createCourse')">＋ Глобальный курс</button>
       </div>
     </aside>
 
     <!-- Content -->
     <main class="col-span-12 lg:col-span-9 space-y-6">
+
       <!-- USERS -->
-      <section x-show="section==='users'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xl font-bold">Пользователи</h2>
-          <div class="flex gap-2">
-            <input x-model="filters.userEmail" placeholder="email…" class="px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-            <input x-model="filters.userName" placeholder="имя…" class="px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-            <button class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="loadUsers()">Найти</button>
+      <section x-show="section==='users'" x-cloak class="card p-4">
+        <div class="flex flex-wrap items-center gap-3 mb-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-bold">Пользователи</h2>
+            <span class="chip" x-text="users?.length ? `всего: ${users.length}` : '—'"></span>
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn btn-emerald" @click="openModal('createUser')">＋ Создать</button>
           </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead class="text-slate-400">
+
+        <!-- Filters -->
+        <div class="muted p-3 mb-3 grid md:grid-cols-5 gap-2">
+          <input x-model="filters.userEmail"    placeholder="email…"                       class="input md:col-span-2">
+          <input x-model="filters.userName"     placeholder="имя…"                         class="input">
+          <input x-model="filters.userCompany"  placeholder="компания (slug|name)…"        class="input">
+          <div class="flex gap-2">
+            <button class="btn btn-indigo w-full" @click="loadUsers()">Найти</button>
+            <button class="btn btn-outline w-full" @click="clearUserFilters()">Сброс</button>
+          </div>
+        </div>
+
+        <!-- Bulk actions -->
+        <div class="muted p-3 mb-3 flex flex-wrap items-center gap-2">
+          <button class="btn btn-amber"  @click="bulkGrantXP()">＋XP (mass)</button>
+          <button class="btn btn-sky"    @click="bulkGrantCoins()">＋Coins (mass)</button>
+          <div class="flex items-center gap-2">
+            <input x-model.number="bulk.companyId" type="number" placeholder="company_id" class="input w-40">
+            <button class="btn btn-indigo" @click="bulkAssignCompany()">Привязать к компании</button>
+          </div>
+          <button class="btn btn-rose"   @click="bulkDeleteUsers()">Удалить выбранных</button>
+
+          <div class="ml-auto flex items-center gap-2">
+            <input type="file" accept=".csv" @change="importUsersCSV($event)" class="text-sm">
+            <button class="btn btn-outline" @click="exportUsersCSV()">Экспорт CSV</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+          <table class="text-sm">
+            <thead>
               <tr>
-                <th class="p-2 text-left">ID</th>
-                <th class="p-2 text-left">Имя</th>
-                <th class="p-2 text-left">Email</th>
-                <th class="p-2 text-left">LVL / XP / Coins</th>
-                <th class="p-2 text-left">Компания</th>
-                <th class="p-2 text-left">Действия</th>
+                <th><input type="checkbox" @change="toggleSelectAll($event)"></th>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Email</th>
+                <th>LVL / XP / Coins</th>
+                <th>Компания</th>
+                <th>Действия</th>
               </tr>
             </thead>
             <tbody>
               <template x-for="u in users" :key="u.id">
-                <tr class="border-t border-white/5">
-                  <td class="p-2" x-text="u.id"></td>
-                  <td class="p-2" x-text="u.display_name"></td>
-                  <td class="p-2" x-text="u.email"></td>
-                  <td class="p-2" x-text="`${u.level} / ${u.xp} / ${u.coins}`"></td>
-                  <td class="p-2" x-text="u.company || '—'"></td>
-                  <td class="p-2 space-x-2">
-                    <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="openUser(u.id)">Открыть</button>
-                    <button class="px-2 py-1 rounded border border-rose-500/40 hover:bg-rose-500/20" @click="removeUser(u.id)">Удалить</button>
+                <tr>
+                  <td><input type="checkbox" :checked="selectedUsers.has(u.id)" @change="toggleSelectUser(u.id, $event)"></td>
+                  <td x-text="u.id"></td>
+                  <td>
+                    <div class="font-medium" x-text="u.display_name || '—'"></div>
+                    <div class="text-xs text-slate-500" x-text="u.role || ''"></div>
+                  </td>
+                  <td x-text="u.email"></td>
+                  <td x-text="`${u.level} / ${u.xp} / ${u.coins}`"></td>
+                  <td x-text="u.company || '—'"></td>
+                  <td class="flex flex-wrap gap-2">
+                    <button class="btn btn-outline" @click="openUser(u.id)">Открыть</button>
+                    <button class="btn btn-amber"   @click="grantXP(u.id)">＋XP</button>
+                    <button class="btn btn-sky"     @click="grantCoins(u.id)">＋Coins</button>
+                    <button class="btn btn-rose"    @click="removeUser(u.id)">Удалить</button>
                   </td>
                 </tr>
               </template>
@@ -76,21 +295,24 @@
       </section>
 
       <!-- COMPANIES -->
-      <section x-show="section==='companies'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+      <section x-show="section==='companies'" x-cloak class="card p-4">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-bold">Компании</h2>
-          <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500" @click="openModal('createCompany')">＋ Создать</button>
+          <button class="btn btn-indigo" @click="openModal('createCompany')">＋ Создать</button>
         </div>
         <div class="grid md:grid-cols-2 gap-3">
           <template x-for="c in companies" :key="c.id">
-            <div class="rounded-xl border border-white/10 p-3">
-              <div class="font-semibold" x-text="c.name"></div>
-              <div class="text-slate-400 text-sm">slug: <span x-text="c.slug"></span> • план: <span x-text="c.plan"></span></div>
-              <div class="text-slate-400 text-sm">join: <span x-text="c.join_code || '—'"></span></div>
-              <div class="mt-2 flex gap-2">
-                <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="regenJoin(c.id)">Реген код</button>
-                <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="assignCoursePrompt(c.id)">Назначить курс</button>
-                <button class="px-2 py-1 rounded border border-rose-500/40 hover:bg-rose-500/20" @click="removeCompany(c.id)">Удалить</button>
+            <div class="muted p-3">
+              <div class="font-semibold flex items-center gap-2">
+                <span x-text="c.name"></span>
+                <span class="chip" x-text="c.plan"></span>
+              </div>
+              <div class="text-slate-500 text-sm">slug: <span x-text="c.slug"></span></div>
+              <div class="text-slate-500 text-sm">join: <span x-text="c.join_code || '—'"></span></div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button class="btn btn-slate"  @click="regenJoin(c.id)">Реген код</button>
+                <button class="btn btn-emerald" @click="assignCoursePrompt(c.id)">Назначить курс</button>
+                <button class="btn btn-rose"   @click="removeCompany(c.id)">Удалить</button>
               </div>
             </div>
           </template>
@@ -98,41 +320,107 @@
       </section>
 
       <!-- COURSES -->
-      <section x-show="section==='courses'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+      <section x-show="section==='courses'" x-cloak class="card p-4">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-bold">Курсы</h2>
-          <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500" @click="openModal('createCourse')">＋ Глобальный курс</button>
+          <button class="btn btn-sky" @click="openModal('createCourse')">＋ Глобальный курс</button>
         </div>
         <div class="grid md:grid-cols-2 gap-3">
           <template x-for="c in courses" :key="c.id">
-            <div class="rounded-xl border border-white/10 p-3">
+            <div class="muted p-3">
               <div class="font-semibold" x-text="c.title"></div>
-              <div class="text-slate-400 text-sm">порог: <span x-text="c.pass_score"></span>% • XP: <span x-text="c.xp_reward"></span></div>
-              <div class="text-slate-400 text-sm">scope: <span x-text="c.scope"></span> <template x-if="c.company_id">(<span x-text="c.company_id"></span>)</template></div>
-              <div class="mt-2 flex gap-2">
-                <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="editCourse(c.id)">Редакт.</button>
-                <button class="px-2 py-1 rounded border border-rose-500/40 hover:bg-rose-500/20" @click="deleteCourse(c.id)">Удалить</button>
+              <div class="text-slate-500 text-sm">
+                порог: <span x-text="c.pass_score"></span>% • XP: <span x-text="c.xp_reward"></span>
+              </div>
+              <div class="text-slate-500 text-sm">
+                scope: <span x-text="c.scope"></span>
+                <template x-if="c.company_id">(<span x-text="c.company_id"></span>)</template>
+              </div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button class="btn btn-outline" @click="editCourse(c.id)">Редакт.</button>
+                <button class="btn btn-rose"    @click="deleteCourse(c.id)">Удалить</button>
               </div>
             </div>
           </template>
         </div>
       </section>
 
+      <!-- PARTNERS -->
+      <section x-show="section==='partners'" x-cloak class="card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xl font-bold">Партнёры</h2>
+          <div class="flex flex-wrap gap-2">
+            <input x-model="forms.partner.email"        placeholder="email"   class="input">
+            <input x-model="forms.partner.password"     placeholder="пароль"  class="input">
+            <input x-model="forms.partner.display_name" placeholder="имя"     class="input">
+            <button class="btn btn-emerald" @click="createPartner()">Создать</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="text-sm">
+            <thead>
+              <tr><th>ID</th><th>Имя</th><th>Email</th><th>Действия</th></tr>
+            </thead>
+            <tbody>
+              <template x-for="p in partners" :key="p.id">
+                <tr>
+                  <td x-text="p.id"></td>
+                  <td x-text="p.display_name"></td>
+                  <td x-text="p.email"></td>
+                  <td><button class="btn btn-rose" @click="deletePartner(p.id)">Удалить</button></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ADMINS -->
+      <section x-show="section==='admins'" x-cloak class="card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xl font-bold">Админы</h2>
+          <div class="flex flex-wrap gap-2">
+            <input x-model="forms.admin.email"    placeholder="email"     class="input">
+            <input x-model="forms.admin.password" placeholder="пароль" type="password" class="input">
+            <button class="btn btn-indigo" @click="createAdmin()">Добавить</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="text-sm">
+            <thead>
+              <tr><th>ID</th><th>Email</th><th>Создан</th><th>Действия</th></tr>
+            </thead>
+            <tbody>
+              <template x-for="a in admins" :key="a.id">
+                <tr>
+                  <td x-text="a.id"></td>
+                  <td x-text="a.email"></td>
+                  <td x-text="a.created_at"></td>
+                  <td><button class="btn btn-rose" @click="deleteAdmin(a.id)">Удалить</button></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- STORE -->
-      <section x-show="section==='store'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+      <section x-show="section==='store'" x-cloak class="card p-4">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-bold">Магазин</h2>
-          <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500" @click="openModal('createStoreItem')">＋ Товар</button>
+          <button class="btn btn-sky" @click="openModal('createStoreItem')">＋ Товар</button>
         </div>
         <div class="grid md:grid-cols-2 gap-3">
           <template x-for="i in store" :key="i.id">
-            <div class="rounded-xl border border-white/10 p-3">
+            <div class="muted p-3">
               <div class="font-semibold" x-text="i.title"></div>
-              <div class="text-slate-400 text-sm">тип: <span x-text="i.type"></span> • цена: <span x-text="i.cost_coins"></span> • мин.уров: <span x-text="i.min_level"></span></div>
-              <div class="text-slate-400 text-sm">stock: <span x-text="i.stock ?? '∞'"></span></div>
-              <div class="mt-2 flex gap-2">
-                <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="editStoreItem(i)">Редакт.</button>
-                <button class="px-2 py-1 rounded border border-rose-500/40 hover:bg-rose-500/20" @click="deleteStoreItem(i.id)">Удалить</button>
+              <div class="text-slate-500 text-sm">
+                тип: <span x-text="i.type"></span> • цена: <span x-text="i.cost_coins"></span> • мин.уров: <span x-text="i.min_level"></span>
+              </div>
+              <div class="text-slate-500 text-sm">stock: <span x-text="i.stock ?? '∞'"></span></div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button class="btn btn-outline" @click="editStoreItem(i)">Редакт.</button>
+                <button class="btn btn-rose"    @click="deleteStoreItem(i.id)">Удалить</button>
               </div>
             </div>
           </template>
@@ -140,18 +428,18 @@
       </section>
 
       <!-- AVATARS -->
-      <section x-show="section==='avatars'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+      <section x-show="section==='avatars'" x-cloak class="card p-4">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-bold">Аватар-ассеты</h2>
-          <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500" @click="openModal('createAvatarItem')">＋ Ассет</button>
+          <button class="btn btn-indigo" @click="openModal('createAvatarItem')">＋ Ассет</button>
         </div>
         <div class="grid md:grid-cols-2 gap-3">
           <template x-for="a in avatarItems" :key="a.id">
-            <div class="rounded-xl border border-white/10 p-3">
+            <div class="muted p-3">
               <div class="font-semibold" x-text="`${a.slot} / ${a.key}`"></div>
-              <div class="text-slate-400 text-sm">gender: <span x-text="a.gender"></span> • min_lvl: <span x-text="a.min_level"></span></div>
+              <div class="text-slate-500 text-sm">gender: <span x-text="a.gender"></span> • min_lvl: <span x-text="a.min_level"></span></div>
               <div class="mt-2">
-                <button class="px-2 py-1 rounded border border-rose-500/40 hover:bg-rose-500/20" @click="deleteAvatarItem(a.id)">Удалить</button>
+                <button class="btn btn-rose" @click="deleteAvatarItem(a.id)">Удалить</button>
               </div>
             </div>
           </template>
@@ -159,18 +447,18 @@
       </section>
 
       <!-- ACHIEVEMENTS -->
-      <section x-show="section==='achievements'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+      <section x-show="section==='achievements'" x-cloak class="card p-4">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-bold">Ачивки</h2>
-          <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500" @click="openModal('createAchievement')">＋ Ачивка</button>
+          <button class="btn btn-emerald" @click="openModal('createAchievement')">＋ Ачивка</button>
         </div>
         <div class="grid md:grid-cols-2 gap-3">
           <template x-for="a in achievements" :key="a.id">
-            <div class="rounded-xl border border-white/10 p-3">
+            <div class="muted p-3">
               <div class="font-semibold" x-text="`${a.code} — ${a.title}`"></div>
-              <div class="text-slate-400 text-sm">XP: <span x-text="a.points"></span> • редкость: <span x-text="a.rarity"></span></div>
+              <div class="text-slate-500 text-sm">XP: <span x-text="a.points"></span> • редкость: <span x-text="a.rarity"></span></div>
               <div class="mt-2">
-                <button class="px-2 py-1 rounded border border-rose-500/40 hover:bg-rose-500/20" @click="deleteAchievement(a.id)">Удалить</button>
+                <button class="btn btn-rose" @click="deleteAchievement(a.id)">Удалить</button>
               </div>
             </div>
           </template>
@@ -178,71 +466,125 @@
       </section>
 
       <!-- CONTESTS -->
-      <section x-show="section==='contests'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xl font-bold">Конкурсы</h2>
-          <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500" @click="openModal('createContest')">＋ Конкурс</button>
-        </div>
-        <div class="grid md:grid-cols-2 gap-3">
-          <template x-for="c in contests" :key="c.id">
-            <div class="rounded-xl border border-white/10 p-3">
-              <div class="font-semibold" x-text="c.title"></div>
-              <div class="text-slate-400 text-sm">
-                <span x-text="c.start_at.slice(0,10)"></span> — <span x-text="c.end_at.slice(0,10)"></span>
-              </div>
-              <div class="mt-2">
-                <button class="px-2 py-1 rounded border border-rose-500/40 hover:bg-rose-500/20" @click="deleteContest(c.id)">Удалить</button>
-              </div>
-            </div>
-          </template>
-        </div>
-      </section>
+    <section class="max-w-7xl mx-auto px-4 py-8" x-data="adminApp()" x-cloak>
 
-      <!-- Onboarding (system) -->
-<section x-show="section==='onboarding'" class="col-span-12 lg:col-span-9 rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-  <div class="flex items-center justify-between mb-3">
-    <div class="text-xl font-bold">Онбординг — системный флоу (Sales Journey)</div>
-    <div class="space-x-2">
-      <button class="px-3 py-1 rounded border border-white/10 hover:bg-white/5" @click="loadOnboardingSystem()">Обновить</button>
-      <button class="px-3 py-1 rounded border border-white/10 hover:bg-white/5" @click="createDefaultStep()">Добавить шаг</button>
-      <button class="px-3 py-1 rounded border border-white/10 hover:bg-white/5" @click="reorderDefaultSteps()">Сохранить порядок</button>
-    </div>
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold">Конкурсы</h2>
+    <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold"
+            @click="modal='createContest'">Новый конкурс</button>
   </div>
-  <div class="space-y-2">
-    <template x-for="s in onbSysSteps" :key="s.id">
-      <div class="flex items-center justify-between rounded-lg border border-white/10 p-2">
-        <div><span class="text-slate-400" x-text="s.order_index"></span>. <span class="font-medium" x-text="s.title || 'Шаг'"></span> <span class="text-slate-400" x-text="`[${s.type}]`"></span></div>
-        <div class="space-x-1">
-          <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="moveUp(s.id)">↑</button>
-          <button class="px-2 py-1 rounded border border-white/10 hover:bg-white/5" @click="moveDown(s.id)">↓</button>
-          <button class="px-2 py-1 rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10" @click="deleteDefaultStep(s.id)">Удалить</button>
+
+  <div class="grid md:grid-cols-2 gap-4" x-show="contests?.length">
+    <template x-for="c in contests" :key="c.id">
+      <div class="muted p-3 flex gap-3 rounded-2xl border border-white/10 bg-slate-900/60">
+        <img x-show="c.prize_image_url" :src="c.prize_image_url"
+             class="w-16 h-16 rounded-lg object-cover border border-white/10" alt="" />
+        <div class="flex-1">
+          <div class="font-semibold" x-text="c.title"></div>
+          <div class="text-slate-500 text-sm">
+            <span x-text="c.start_at?.slice(0,10)"></span> —
+            <span x-text="c.end_at?.slice(0,10)"></span>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">
+            Мин. уровень: <span x-text="c.min_rating || '—'"></span>
+            · Участники: <span x-text="(c.participants_count ?? 0) + ' / ' + (c.max_participants ?? '∞')"></span>
+            · Приз: <span x-text="c.prize || '—'"></span>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <a class="btn btn-outline" :href="`/contest/${c.id}`">Открыть</a>
+            <button class="btn btn-rose" @click="deleteContest && deleteContest(c.id)">Удалить</button>
+          </div>
         </div>
       </div>
     </template>
-    <template x-if="!onbSysSteps || !onbSysSteps.length">
-      <div class="text-slate-400">Пока нет шагов. Нажмите «Добавить шаг».</div>
-    </template>
+  </div>
+
+  <div class="text-slate-400" x-show="!(contests?.length)">
+    Конкурсов пока нет.
+  </div>
+
+  <!-- Модалка: Новый конкурс -->
+  <div x-show="modal==='createContest'" x-transition
+       class="fixed inset-0 overlay backdrop-blur-sm grid place-items-center p-4 z-50">
+    <form @submit.prevent="createContest" class="w-full max-w-md elev p-4 space-y-3 rounded-2xl border border-white/10 bg-slate-900/80">
+      <div class="text-xl font-bold">Новый конкурс</div>
+
+      <input x-model="forms.contest.title"          placeholder="Заголовок"             class="input">
+      <textarea x-model="forms.contest.description" placeholder="Описание (опц.)"      class="input"></textarea>
+      <input x-model="forms.contest.start_at"       type="datetime-local"              class="input">
+      <input x-model="forms.contest.end_at"         type="datetime-local"              class="input">
+
+      <input x-model="forms.contest.prize"          placeholder="Приз (текст, опц.)"   class="input">
+      <input x-model.number="forms.contest.min_rating"       type="number" placeholder="Мин. уровень (опц.)"     class="input">
+      <input x-model.number="forms.contest.max_participants" type="number" placeholder="Лимит участников (опц.)" class="input">
+
+      <div class="text-sm">
+        Изображение награды (опц.):
+        <input type="file" x-ref="contestPrizeImage" accept="image/*" class="input">
+      </div>
+
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" x-model="forms.contest.is_company_only">
+        только для компании (company_id укажешь в API)
+      </label>
+
+      <div class="flex gap-2 justify-end pt-2">
+        <button type="button" class="btn btn-outline" @click="modal=null">Отмена</button>
+        <button class="btn btn-sky">Создать</button>
+      </div>
+    </form>
   </div>
 </section>
 
 
+      <!-- Onboarding (system) -->
+      <section x-show="section==='onboarding'" x-cloak class="card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-xl font-bold">Онбординг — системный флоу (Sales Journey)</div>
+          <div class="flex gap-2">
+            <button class="btn btn-slate"  @click="loadOnboardingSystem()">Обновить</button>
+            <button class="btn btn-emerald" @click="createDefaultStep()">Добавить шаг</button>
+            <button class="btn btn-indigo" @click="reorderDefaultSteps()">Сохранить порядок</button>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <template x-for="s in onbSysSteps" :key="s.id">
+            <div class="muted p-2 flex items-center justify-between">
+              <div>
+                <span class="text-slate-500" x-text="s.order_index"></span>.
+                <span class="font-medium" x-text="s.title || 'Шаг'"></span>
+                <span class="text-slate-500" x-text="`[${s.type}]`"></span>
+              </div>
+              <div class="flex gap-1">
+                <button class="btn btn-outline" @click="moveUp(s.id)">↑</button>
+                <button class="btn btn-outline" @click="moveDown(s.id)">↓</button>
+                <button class="btn btn-rose"    @click="deleteDefaultStep(s.id)">Удалить</button>
+              </div>
+            </div>
+          </template>
+          <template x-if="!onbSysSteps || !onbSysSteps.length">
+            <div class="text-slate-500">Пока нет шагов. Нажмите «Добавить шаг».</div>
+          </template>
+        </div>
+      </section>
+
       <!-- AUDIT -->
-      <section x-show="section==='audit'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+      <section x-show="section==='audit'" x-cloak class="card p-4">
         <h2 class="text-xl font-bold mb-3">Аудит/античит</h2>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead class="text-slate-400">
-              <tr><th class="p-2 text-left">ID</th><th class="p-2 text-left">user</th><th class="p-2 text-left">type</th><th class="p-2 text-left">signal</th><th class="p-2 text-left">score</th><th class="p-2 text-left">at</th></tr>
+        <div class="table-wrap">
+          <table class="text-sm">
+            <thead>
+              <tr><th>ID</th><th>user</th><th>type</th><th>signal</th><th>score</th><th>at</th></tr>
             </thead>
             <tbody>
               <template x-for="a in audit" :key="a.id">
-                <tr class="border-t border-white/5">
-                  <td class="p-2" x-text="a.id"></td>
-                  <td class="p-2" x-text="a.user_id"></td>
-                  <td class="p-2" x-text="a.type"></td>
-                  <td class="p-2" x-text="a.signal || '—'"></td>
-                  <td class="p-2" x-text="a.score"></td>
-                  <td class="p-2" x-text="a.created_at"></td>
+                <tr>
+                  <td x-text="a.id"></td>
+                  <td x-text="a.user_id"></td>
+                  <td x-text="a.type"></td>
+                  <td x-text="a.signal || '—'"></td>
+                  <td x-text="a.score"></td>
+                  <td x-text="a.created_at"></td>
                 </tr>
               </template>
             </tbody>
@@ -251,196 +593,204 @@
       </section>
 
       <!-- SCORE EVENTS -->
-      <section x-show="section==='events'" x-cloak class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+      <section x-show="section==='events'" x-cloak class="card p-4">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-bold">События (XP/coins)</h2>
           <div class="flex gap-2">
-            <input x-model.number="filters.eventsUserId" placeholder="user_id…" class="px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-            <button class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="loadEvents()">Загрузить</button>
+            <input x-model.number="filters.eventsUserId" placeholder="user_id…" class="input w-40">
+            <button class="btn btn-indigo" @click="loadEvents()">Загрузить</button>
           </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead class="text-slate-400">
-              <tr><th class="p-2 text-left">ID</th><th class="p-2 text-left">user</th><th class="p-2 text-left">source</th><th class="p-2 text-left">points</th><th class="p-2 text-left">coins</th><th class="p-2 text-left">meta</th><th class="p-2 text-left">at</th></tr>
+        <div class="table-wrap">
+          <table class="text-sm">
+            <thead>
+              <tr><th>ID</th><th>user</th><th>source</th><th>points</th><th>coins</th><th>meta</th><th>at</th></tr>
             </thead>
             <tbody>
               <template x-for="e in events" :key="e.id">
-                <tr class="border-t border-white/5">
-                  <td class="p-2" x-text="e.id"></td>
-                  <td class="p-2" x-text="e.user_id"></td>
-                  <td class="p-2" x-text="e.source"></td>
-                  <td class="p-2" x-text="e.points"></td>
-                  <td class="p-2" x-text="e.coins"></td>
-                  <td class="p-2" x-text="JSON.stringify(e.meta)"></td>
-                  <td class="p-2" x-text="e.created_at"></td>
+                <tr>
+                  <td x-text="e.id"></td>
+                  <td x-text="e.user_id"></td>
+                  <td x-text="e.source"></td>
+                  <td x-text="e.points"></td>
+                  <td x-text="e.coins"></td>
+                  <td class="max-w-[360px] truncate" :title="JSON.stringify(e.meta)" x-text="JSON.stringify(e.meta)"></td>
+                  <td x-text="e.created_at"></td>
                 </tr>
               </template>
             </tbody>
           </table>
         </div>
       </section>
+
     </main>
   </div>
 
-  <!-- МОДАЛКИ -->
-  <div x-show="modal==='createUser'" x-transition class="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center p-4 z-50">
-    <form @submit.prevent="createUser" class="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-4 space-y-3">
+  <!-- ============== MODALS ============== -->
+
+  <!-- Create User -->
+  <div x-show="modal==='createUser'" x-transition class="fixed inset-0 overlay backdrop-blur-sm grid place-items-center p-4 z-50">
+    <form @submit.prevent="createUser" class="w-full max-w-md elev p-4 space-y-3">
       <div class="text-xl font-bold">Создать пользователя</div>
-      <input x-model="forms.user.email" placeholder="email" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.user.password" placeholder="пароль" type="password" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.user.display_name" placeholder="имя" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <select x-model="forms.user.gender" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
+      <input x-model="forms.user.email"        placeholder="email"  class="input">
+      <input x-model="forms.user.password"     placeholder="пароль" type="password" class="input">
+      <input x-model="forms.user.display_name" placeholder="имя"    class="input">
+      <select x-model="forms.user.gender" class="input">
         <option value="">gender (опц.)</option>
         <option>male</option><option>female</option><option>other</option>
       </select>
       <div class="flex gap-2 justify-end">
-        <button type="button" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="closeModal()">Отмена</button>
-        <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Создать</button>
+        <button type="button" class="btn btn-outline" @click="closeModal()">Отмена</button>
+        <button class="btn btn-emerald">Создать</button>
       </div>
     </form>
   </div>
 
-  <div x-show="modal==='createCompany'" x-transition class="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center p-4 z-50">
-    <form @submit.prevent="createCompany" class="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-4 space-y-3">
+  <!-- Create Company -->
+  <div x-show="modal==='createCompany'" x-transition class="fixed inset-0 overlay backdrop-blur-sm grid place-items-center p-4 z-50">
+    <form @submit.prevent="createCompany" class="w-full max-w-md elev p-4 space-y-3">
       <div class="text-xl font-bold">Создать компанию</div>
-      <input x-model="forms.company.name" placeholder="Название" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.company.slug" placeholder="slug" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <select x-model="forms.company.plan" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
+      <input x-model="forms.company.name" placeholder="Название" class="input">
+      <input x-model="forms.company.slug" placeholder="slug"      class="input">
+      <select x-model="forms.company.plan" class="input">
         <option value="starter">starter</option><option value="pro">pro</option><option value="enterprise">enterprise</option>
       </select>
       <div class="flex gap-2 justify-end">
-        <button type="button" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="closeModal()">Отмена</button>
-        <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Создать</button>
+        <button type="button" class="btn btn-outline" @click="closeModal()">Отмена</button>
+        <button class="btn btn-indigo">Создать</button>
       </div>
     </form>
   </div>
 
-<div x-show="modal==='createCourse'" x-transition
-     class="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center p-4 z-50">
-  <form @submit.prevent="createCourse"
-        class="w-full max-w-3xl rounded-2xl border border-white/10 bg-slate-900/95 p-0 overflow-hidden">
-    <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-      <div class="text-xl font-bold">Глобальный курс</div>
-      <button type="button" class="text-slate-300 hover:text-white" @click="closeModal()">✕</button>
-    </div>
-
-    <div id="createCourseScroll" class="max-h-[80vh] overflow-auto p-5 space-y-4">
-      <input x-model="forms.course.title" placeholder="Заголовок"
-             class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <textarea x-model="forms.course.content_md" rows="6" placeholder="Markdown-контент"
-             class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10"></textarea>
-      <input x-model="forms.course.youtube_url" placeholder="YouTube URL (опц.)"
-             class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <div class="grid grid-cols-3 gap-2">
-        <input x-model.number="forms.course.pass_score" type="number" min="0" max="100" class="px-3 py-2 rounded-lg bg-black/30 border border-white/10" placeholder="Порог %">
-        <input x-model.number="forms.course.max_attempts" type="number" min="1" class="px-3 py-2 rounded-lg bg-black/30 border border-white/10" placeholder="Попыток">
-        <input x-model.number="forms.course.xp_reward" type="number" min="0" class="px-3 py-2 rounded-lg bg-black/30 border border-white/10" placeholder="XP">
+  <!-- Create Course -->
+  <div x-show="modal==='createCourse'" x-transition class="fixed inset-0 overlay backdrop-blur-sm grid place-items-center p-4 z-50">
+    <form @submit.prevent="createCourse" class="w-full max-w-3xl elev p-0 overflow-hidden">
+      <div class="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <div class="text-xl font-bold">Глобальный курс</div>
+        <button type="button" class="btn btn-ghost" @click="closeModal()">✕</button>
       </div>
 
-      <!-- ВОПРОСЫ -->
-      <div class="space-y-3">
-        <template x-for="(q, qi) in forms.course.questions" :key="qi">
-          <div class="rounded-xl border border-white/10 bg-black/30 p-3 space-y-2">
-            <div class="flex items-center gap-2">
-              <input x-model="q.text" class="flex-1 px-3 py-2 rounded-lg bg-black/30 border border-white/10" placeholder="Текст вопроса">
-              <button type="button" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="removeQuestion(qi)">Удалить</button>
-            </div>
-            <div class="pl-3 space-y-2">
-              <template x-for="(o, oi) in (q.options || [])" :key="oi">
-                <div class="flex items-center gap-2">
-                  <input type="radio" :name="'q_'+qi" x-model="o.is_correct" :value="true" @change="q.options.forEach((x,idx)=>x.is_correct=(idx===oi))">
-                  <input x-model="o.text" class="flex-1 px-3 py-1.5 rounded-lg bg-black/30 border border-white/10" placeholder="Вариант">
-                  <button type="button" class="px-2 py-1 rounded-lg border border-white/10 hover:bg-white/5" @click="removeOption(qi, oi)">✕</button>
-                </div>
-              </template>
-              <button type="button" class="px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5" @click="addOption(qi)">+ Вариант</button>
-            </div>
-          </div>
-        </template>
+      <div id="createCourseScroll" class="max-h-[80vh] overflow-auto p-5 space-y-4">
+        <input   x-model="forms.course.title"        placeholder="Заголовок"      class="input">
+        <textarea x-model="forms.course.content_md"  rows="6" placeholder="Markdown-контент" class="input"></textarea>
+        <input   x-model="forms.course.youtube_url"  placeholder="YouTube URL (опц.)" class="input">
 
-        <button type="button" @click="addQuestion()" class="mt-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg">
-          + Добавить вопрос
-        </button>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <input x-model.number="forms.course.pass_score"  type="number" min="0" max="100" class="input" placeholder="Порог %">
+          <input x-model.number="forms.course.max_attempts" type="number" min="1" class="input" placeholder="Попыток">
+          <input x-model.number="forms.course.xp_reward"    type="number" min="0" class="input" placeholder="XP">
+        </div>
+
+        <!-- Questions -->
+        <div class="space-y-3">
+          <template x-for="(q, qi) in forms.course.questions" :key="qi">
+            <div class="muted p-3 space-y-2">
+              <div class="flex items-center gap-2">
+                <input x-model="q.text" class="input flex-1" placeholder="Текст вопроса">
+                <button type="button" class="btn btn-outline" @click="removeQuestion(qi)">Удалить</button>
+              </div>
+              <div class="pl-1 space-y-2">
+                <template x-for="(o, oi) in (q.options || [])" :key="oi">
+                  <div class="flex items-center gap-2">
+                    <input type="radio" :name="'q_'+qi" x-model="o.is_correct" :value="true" @change="q.options.forEach((x,idx)=>x.is_correct=(idx===oi))">
+                    <input x-model="o.text" class="input flex-1" placeholder="Вариант">
+                    <button type="button" class="btn btn-outline" @click="removeOption(qi, oi)">✕</button>
+                  </div>
+                </template>
+                <button type="button" class="btn btn-slate" @click="addOption(qi)">+ Вариант</button>
+              </div>
+            </div>
+          </template>
+
+          <button type="button" @click="addQuestion()" class="btn btn-emerald">+ Добавить вопрос</button>
+        </div>
       </div>
-    </div>
 
-    <div class="px-5 py-4 border-t border-white/10 flex justify-end gap-2">
-      <button type="button" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="closeModal()">Отмена</button>
-      <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Создать</button>
+      <div class="px-5 py-4 border-t border-[var(--border)] flex justify-end gap-2">
+        <button type="button" class="btn btn-outline" @click="closeModal()">Отмена</button>
+        <button class="btn btn-sky">Создать</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Create Store Item -->
+  <div x-show="modal==='createStoreItem'" x-transition class="fixed inset-0 overlay backdrop-blur-sm grid place-items-center p-4 z-50">
+    <form @submit.prevent="createStoreItem" class="w-full max-w-md elev p-4 space-y-3">
+      <div class="text-xl font-bold">Товар магазина</div>
+      <select x-model="forms.store.type" class="input">
+        <option value="skin">skin</option><option value="coupon">coupon</option><option value="merch">merch</option>
+      </select>
+      <input x-model="forms.store.title"              placeholder="Название"           class="input">
+      <input x-model.number="forms.store.cost_coins"  type="number" placeholder="Цена в коинс" class="input">
+      <input x-model.number="forms.store.min_level"   type="number" placeholder="Мин. уровень" class="input">
+      <input x-model="forms.store.stock"              placeholder="stock (пусто = ∞)" class="input">
+      <textarea x-model="forms.store.payload" rows="4" placeholder='JSON payload, напр. {"slot":"frame","key":"frame_gold","auto_equip":true}' class="input"></textarea>
+      <div class="flex gap-2 justify-end">
+        <button type="button" class="btn btn-outline" @click="closeModal()">Отмена</button>
+        <button class="btn btn-sky">Создать</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Create Avatar Item -->
+  <div x-show="modal==='createAvatarItem'" x-transition class="fixed inset-0 overlay backdrop-blur-sm grid place-items-center p-4 z-50">
+    <form @submit.prevent="createAvatarItem" class="w-full max-w-md elev p-4 space-y-3">
+      <div class="text-xl font-bold">Ассет аватара</div>
+      <input x-model="forms.avatar.slot"       placeholder="slot (hair/outfit/frame/...)" class="input">
+      <input x-model="forms.avatar.key"        placeholder="key"                            class="input">
+      <select x-model="forms.avatar.gender"    class="input">
+        <option value="any">any</option><option>male</option><option>female</option>
+      </select>
+      <input x-model.number="forms.avatar.min_level" type="number" placeholder="min_level"  class="input">
+      <input x-model="forms.avatar.asset_url"  placeholder="asset_url (опц.)"               class="input">
+      <div class="flex gap-2 justify-end">
+        <button type="button" class="btn btn-outline" @click="closeModal()">Отмена</button>
+        <button class="btn btn-indigo">Создать</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Create Achievement -->
+  <div x-show="modal==='createAchievement'" x-transition class="fixed inset-0 overlay backdrop-blur-sm grid place-items-center p-4 z-50">
+    <form @submit.prevent="createAchievement" class="w-full max-w-md elev p-4 space-y-3">
+      <div class="text-xl font-bold">Новая ачивка</div>
+      <input x-model="forms.ach.code"        placeholder="CODE"                                 class="input">
+      <input x-model="forms.ach.title"       placeholder="Заголовок"                            class="input">
+      <input x-model.number="forms.ach.points" type="number" placeholder="XP"                   class="input">
+      <input x-model="forms.ach.rarity"      placeholder="rarity (common/uncommon/rare)"        class="input">
+      <textarea x-model="forms.ach.description" rows="3" placeholder="Описание"                 class="input"></textarea>
+      <div class="flex gap-2 justify-end">
+        <button type="button" class="btn btn-outline" @click="closeModal()">Отмена</button>
+        <button class="btn btn-emerald">Создать</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Create Contest -->
+  <div x-show="modal==='createContest'" x-transition class="fixed inset-0 overlay backdrop-blur-sm grid place-items-center p-4 z-50">
+  <form @submit.prevent="createContest" class="w-full max-w-md elev p-4 space-y-3">
+    <div class="text-xl font-bold">Новый конкурс</div>
+    <input x-model="forms.contest.title"     placeholder="Заголовок"       class="input">
+    <input x-model="forms.contest.start_at"  type="datetime-local"         class="input">
+    <input x-model="forms.contest.end_at"    type="datetime-local"         class="input">
+    <input x-model="forms.contest.prize"     placeholder="Приз (текст, опц.)" class="input">
+    <input x-model="forms.contest.min_rating" type="number" placeholder="Мин. уровень (опц.)" class="input">
+    <input x-model="forms.contest.max_participants" type="number" placeholder="Лимит участников (опц.)" class="input">
+    <div class="text-sm">
+      Изображение награды (опц.):
+      <input type="file" x-ref="contestPrizeImage" accept="image/*" class="input">
+    </div>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" x-model="forms.contest.is_company_only">
+      только для компании (company_id укажешь в API)
+    </label>
+    <div class="flex gap-2 justify-end">
+      <button type="button" class="btn btn-outline" @click="closeModal()">Отмена</button>
+      <button class="btn btn-sky">Создать</button>
     </div>
   </form>
 </div>
 
-
-
-  <div x-show="modal==='createStoreItem'" x-transition class="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center p-4 z-50">
-    <form @submit.prevent="createStoreItem" class="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-4 space-y-3">
-      <div class="text-xl font-bold">Товар магазина</div>
-      <select x-model="forms.store.type" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-        <option value="skin">skin</option><option value="coupon">coupon</option><option value="merch">merch</option>
-      </select>
-      <input x-model="forms.store.title" placeholder="Название" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model.number="forms.store.cost_coins" type="number" placeholder="Цена в коинс" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model.number="forms.store.min_level" type="number" placeholder="Мин. уровень" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.store.stock" placeholder="stock (пусто = ∞)" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <textarea x-model="forms.store.payload" rows="4" placeholder='JSON payload, напр. {"slot":"frame","key":"frame_gold","auto_equip":true}' class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10"></textarea>
-      <div class="flex gap-2 justify-end">
-        <button type="button" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="closeModal()">Отмена</button>
-        <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Создать</button>
-      </div>
-    </form>
-  </div>
-
-  <div x-show="modal==='createAvatarItem'" x-transition class="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center p-4 z-50">
-    <form @submit.prevent="createAvatarItem" class="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-4 space-y-3">
-      <div class="text-xl font-bold">Ассет аватара</div>
-      <input x-model="forms.avatar.slot" placeholder="slot (hair/outfit/frame/...)" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.avatar.key" placeholder="key" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <select x-model="forms.avatar.gender" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-        <option value="any">any</option><option>male</option><option>female</option>
-      </select>
-      <input x-model.number="forms.avatar.min_level" type="number" placeholder="min_level" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.avatar.asset_url" placeholder="asset_url (опц.)" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <div class="flex gap-2 justify-end">
-        <button type="button" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="closeModal()">Отмена</button>
-        <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Создать</button>
-      </div>
-    </form>
-  </div>
-
-  <div x-show="modal==='createAchievement'" x-transition class="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center p-4 z-50">
-    <form @submit.prevent="createAchievement" class="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-4 space-y-3">
-      <div class="text-xl font-bold">Новая ачивка</div>
-      <input x-model="forms.ach.code" placeholder="CODE" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.ach.title" placeholder="Заголовок" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model.number="forms.ach.points" type="number" placeholder="XP" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.ach.rarity" placeholder="rarity (common/uncommon/rare)" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <textarea x-model="forms.ach.description" rows="3" placeholder="Описание" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10"></textarea>
-      <div class="flex gap-2 justify-end">
-        <button type="button" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="closeModal()">Отмена</button>
-        <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Создать</button>
-      </div>
-    </form>
-  </div>
-
-  <div x-show="modal==='createContest'" x-transition class="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center p-4 z-50">
-    <form @submit.prevent="createContest" class="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-4 space-y-3">
-      <div class="text-xl font-bold">Новый конкурс</div>
-      <input x-model="forms.contest.title" placeholder="Заголовок" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.contest.start_at" type="datetime-local" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.contest.end_at" type="datetime-local" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.contest.prize" placeholder="Приз (опц.)" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <input x-model="forms.contest.min_rating" type="number" placeholder="Мин.уровень (опц.)" class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10">
-      <label class="flex items-center gap-2 text-sm">
-        <input type="checkbox" x-model="forms.contest.is_company_only"> только для компании (укажешь company_id в API при необходимости)
-      </label>
-      <div class="flex gap-2 justify-end">
-        <button type="button" class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5" @click="closeModal()">Отмена</button>
-        <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Создать</button>
-      </div>
-    </form>
-  </div>
 
 </section>
 {% endblock %}

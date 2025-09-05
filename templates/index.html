@@ -1,81 +1,402 @@
 {% extends "base.html" %}
-{% set title = "Sales Journey — Геймификация продаж" %}
+{% set title = "Sales Journey — геймификация продаж" %}
 {% block content %}
 
+<!-- ====== локальные стили: сетка, волны, подсветка, плавность ====== -->
+<style>
+  :root{
+    --sj-glass: rgba(15,23,42,.55);
+    --sj-border: rgba(255,255,255,.10);
+  }
+  .bg-grid{
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(148,163,184,.15) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+  .wave{
+    position:absolute; inset:auto 0 0 0; height:220px; pointer-events:none;
+    background:
+      radial-gradient(1200px 200px at 10% 0%, rgba(79,70,229,.25), transparent 60%),
+      radial-gradient(1200px 200px at 90% 0%, rgba(6,182,212,.23), transparent 60%);
+    filter: blur(20px);
+  }
+  .tilt{
+    transform: perspective(900px) rotateX(0) rotateY(0);
+    transition: transform .35s ease, box-shadow .35s ease;
+  }
+  .tilt:hover{
+    transform: perspective(900px) rotateX(4deg) rotateY(-6deg) translateY(-2px);
+    box-shadow: 0 20px 60px rgba(2,6,23,.25);
+  }
+  .glass{
+    background: var(--sj-glass);
+    backdrop-filter: blur(10px);
+    border:1px solid var(--sj-border);
+  }
+  .shine{ position:relative; overflow:hidden; }
+  .shine::after{
+    content:""; position:absolute; inset:-150% -30%;
+    background: linear-gradient(120deg, transparent 45%, rgba(255,255,255,.14) 50%, transparent 55%);
+    animation: shine 2.8s ease-in-out infinite;
+  }
+  @keyframes shine{ 0%{ transform:translateX(-40%) } 100%{ transform:translateX(40%) } }
+
+  .reveal{ opacity:0; transform: translateY(16px); transition: all .6s ease; }
+  .reveal.in{ opacity:1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce){
+    .shine::after{ animation:none }
+    .reveal{ opacity:1; transform:none }
+    .tilt,.tilt:hover{ transform:none; box-shadow:none }
+  }
+</style>
+
 <section class="relative overflow-hidden bg-white dark:bg-slate-950">
-  <div class="absolute -top-32 -left-32 w-[42rem] h-[42rem] rounded-full grad-anim opacity-20 blur-3xl"></div>
-  <div class="max-w-7xl mx-auto px-4 py-16 md:py-24 relative z-10">
-    <div class="grid md:grid-cols-2 gap-12 items-center">
-      <div>
-        <h1 class="text-4xl md:text-6xl font-extrabold leading-tight text-slate-800 dark:text-white">
-          Прокачай <span class="text-indigo-500 dark:text-indigo-400">каждую сделку</span>.
-          Сделай продажи <span class="text-cyan-500 dark:text-cyan-300">игрой</span>.
+  <!-- фон-сетка + мягкие «волны» -->
+  <div class="absolute inset-0 bg-grid opacity-[.35] dark:opacity-20"></div>
+  <div class="wave"></div>
+
+  <div class="max-w-7xl mx-auto px-4 pt-14 md:pt-24 pb-16 relative z-10">
+    <!-- =================== HERO: заголовок + интерактивная демка =================== -->
+    <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <div class="reveal" data-reveal>
+        <p class="text-xs tracking-widest font-semibold uppercase text-indigo-600 dark:text-indigo-400">Gamify • Engage • Sell</p>
+        <h1 class="mt-2 text-4xl md:text-6xl font-extrabold leading-tight text-slate-900 dark:text-white">
+          Продажи как <span class="text-indigo-600 dark:text-indigo-400">сезон</span>:
+          квесты, лиги и <span class="text-cyan-600 dark:text-cyan-300">призы</span>.
         </h1>
         <p class="mt-5 text-lg text-slate-600 dark:text-slate-300 max-w-xl">
-          Уровни, ачивки, рейтинги, магазин призов. Вовлекаем продавцов и двигаем KPI: конверсии, средний чек, активность.
+          Превращаем KPI в игру: XP, коины и лидерборды. Прозрачно, весело, измеримо.
         </p>
-        <div class="mt-7 flex flex-wrap items-center gap-3">
-          <a href="/register" class="sparkle glow inline-flex items-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 px-5 py-3 font-semibold text-white transition">🚀 Начать</a>
-          <a href="/login" class="inline-flex items-center gap-2 rounded-2xl border border-slate-300 hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5 px-5 py-3 transition">Демо вход</a>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href="/register"
+             class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 px-5 py-3 font-semibold text-white transition"
+             @click="tryConfetti()">🚀 Начать бесплатно</a>
+          <a href="/login"
+             class="inline-flex items-center gap-2 rounded-2xl border border-slate-300 hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5 px-5 py-3 transition">Демо вход</a>
         </div>
-        <div class="mt-8 grid grid-cols-3 gap-4 text-center">
-          <div class="rounded-xl border border-slate-200 dark:border-white/10 p-4">
-            <div class="text-2xl font-extrabold" x-data x-init="$el.innerText='↑ 23%'" >↑ 23%</div>
-            <div class="text-sm text-slate-500 dark:text-slate-400">рост активности</div>
-          </div>
-          <div class="rounded-xl border border-slate-200 dark:border-white/10 p-4">
-            <div class="text-2xl font-extrabold">+17%</div>
-            <div class="text-sm text-slate-500 dark:text-slate-400">конверсия в сделки</div>
-          </div>
-          <div class="rounded-xl border border-slate-200 dark:border-white/10 p-4">
-            <div class="text-2xl font-extrabold">+12%</div>
-            <div class="text-sm text-slate-500 dark:text-slate-400">средний чек</div>
-          </div>
+
+        <!-- доверие -->
+        <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-slate-500 dark:text-slate-400">
+          <span class="text-xs">Используйте в отделах: Retail • B2B • Call-центр • Сервис</span>
+          <span class="h-4 w-px bg-slate-300/70 dark:bg-white/10"></span>
+          <span class="text-xs">Интеграция: Telegram, курсы/квизы, магазин призов</span>
         </div>
       </div>
-      <div class="relative">
-        <div class="rounded-3xl glow bg-slate-50 border border-slate-200 dark:bg-slate-900/60 dark:border-white/10 p-6 float">
-          <div class="text-sm text-slate-500 dark:text-slate-300 mb-3">Онбординг</div>
-          <div class="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 w-3/4"></div>
+
+      <!-- KPI→XP интерактив -->
+      <div class="reveal" data-reveal>
+        <div x-data="kpiDemo()" class="tilt glass rounded-3xl p-6 md:p-7">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">Демка: KPI → XP/Coins</div>
+            <span class="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 border border-emerald-300/40">в реальном времени</span>
           </div>
-          <div class="mt-6 grid grid-cols-3 gap-3 text-center">
-            <div class="rounded-xl bg-slate-100 dark:bg-white/5 p-4">
-              <div class="text-2xl">🏆</div><div class="text-xs text-slate-500 dark:text-slate-300 mt-1">Ачивки</div>
+
+          <div class="mt-5 grid grid-cols-3 gap-3 text-center">
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 p-4">
+              <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Звонки</div>
+              <div class="text-2xl font-extrabold text-slate-800 dark:text-white" x-text="calls"></div>
+              <input type="range" min="0" max="120" step="5" x-model.number="calls" class="mt-3 w-full accent-indigo-600">
             </div>
-            <div class="rounded-xl bg-slate-100 dark:bg-white/5 p-4">
-              <div class="text-2xl">💰</div><div class="text-xs text-slate-500 dark:text-slate-300 mt-1">Коины</div>
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 p-4">
+              <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Встречи</div>
+              <div class="text-2xl font-extrabold text-slate-800 dark:text-white" x-text="meets"></div>
+              <input type="range" min="0" max="50" step="1" x-model.number="meets" class="mt-3 w-full accent-indigo-600">
             </div>
-            <div class="rounded-xl bg-slate-100 dark:bg-white/5 p-4">
-              <div class="text-2xl">📈</div><div class="text-xs text-slate-500 dark:text-slate-300 mt-1">Лидборд</div>
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 p-4">
+              <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Сделки</div>
+              <div class="text-2xl font-extrabold text-slate-800 dark:text-white" x-text="deals"></div>
+              <input type="range" min="0" max="30" step="1" x-model.number="deals" class="mt-3 w-full accent-indigo-600">
             </div>
           </div>
-          <div class="mt-6 rounded-xl bg-slate-100 border border-slate-200 dark:bg-black/30 dark:border-white/10 p-4">
-            <div class="text-slate-600 dark:text-slate-300 text-sm">«Ребята, это как Battle Pass для продавцов. У команды горят глаза»</div>
-            <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">— Директор по продажам, Retail</div>
+
+          <div class="mt-6 grid grid-cols-3 gap-3">
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/50 p-4 text-center shine">
+              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">XP</div>
+              <div class="mt-1 text-2xl font-extrabold text-indigo-600 dark:text-indigo-300" x-text="xp"></div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">за активность</div>
+            </div>
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/50 p-4 text-center">
+              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Коины</div>
+              <div class="mt-1 text-2xl font-extrabold text-cyan-600 dark:text-cyan-300" x-text="coins"></div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">для магазина</div>
+            </div>
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/50 p-4 text-center">
+              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Уровень</div>
+              <div class="mt-1 text-2xl font-extrabold text-emerald-600 dark:text-emerald-300" x-text="level"></div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">прогресс <span x-text="progress+'%'"></span></div>
+            </div>
+          </div>
+
+          <div class="mt-6 rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/50 p-4">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-600 dark:text-slate-300">Конверсия ↑</span>
+              <span class="font-semibold text-slate-800 dark:text-white" x-text="'~'+conversion+'%'"></span>
+            </div>
+            <div class="mt-2 h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400" :style="'width:'+conversion+'%'"></div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span class="text-[11px] px-2 py-1 rounded-full border border-indigo-300/50 text-indigo-700 dark:text-indigo-200 dark:border-indigo-300/20 bg-indigo-50/60 dark:bg-indigo-900/20">KPI → квест</span>
+            <span class="text-[11px] px-2 py-1 rounded-full border border-cyan-300/50 text-cyan-700 dark:text-cyan-200 dark:border-cyan-300/20 bg-cyan-50/60 dark:bg-cyan-900/20">XP/coins авто</span>
+            <span class="text-[11px] px-2 py-1 rounded-full border border-emerald-300/50 text-emerald-700 dark:text-emerald-200 dark:border-emerald-300/20 bg-emerald-50/60 dark:bg-emerald-900/20">Лиги/лидерборд</span>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="mt-20 grid md:grid-cols-3 gap-6">
-      <div class="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/50 p-6">
-        <div class="text-2xl">🎯</div>
-        <div class="font-semibold mt-2">KPI → квесты</div>
-        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Конверсии, звонки, встречи — превращаем в задачи с очками, уровнями и лигами.</p>
+    <!-- =================== Вкладки возможностей =================== -->
+    <div class="mt-20 reveal" data-reveal x-data="{tab:'gamify'}">
+      <div class="flex flex-wrap items-center gap-2">
+        <button @click="tab='gamify'" :class="tab==='gamify'?'bg-slate-900 text-white dark:bg-white dark:text-slate-900':''"
+                class="px-3 py-1.5 rounded-full border border-slate-300 dark:border-white/10">Геймификация</button>
+        <button @click="tab='training'" :class="tab==='training'?'bg-slate-900 text-white dark:bg-white dark:text-slate-900':''"
+                class="px-3 py-1.5 rounded-full border border-slate-300 dark:border-white/10">Обучение</button>
+        <button @click="tab='contests'" :class="tab==='contests'?'bg-slate-900 text-white dark:bg-white dark:text-slate-900':''"
+                class="px-3 py-1.5 rounded-full border border-slate-300 dark:border-white/10">Конкурсы</button>
+        <button @click="tab='store'" :class="tab==='store'?'bg-slate-900 text-white dark:bg-white dark:text-slate-900':''"
+                class="px-3 py-1.5 rounded-full border border-slate-300 dark:border-white/10">Магазин</button>
+        <button @click="tab='telegram'" :class="tab==='telegram'?'bg-slate-900 text-white dark:bg-white dark:text-slate-900':''"
+                class="px-3 py-1.5 rounded-full border border-slate-300 dark:border-white/10">Telegram</button>
       </div>
-      <div class="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/50 p-6">
-        <div class="text-2xl">🛍️</div>
-        <div class="font-semibold mt-2">Магазин призов</div>
-        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Коины за результат → реальные призы, скидки и мерч от партнёров.</p>
+
+      <div class="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Геймификация -->
+        <template x-if="tab==='gamify'">
+          <div class="md:col-span-2 lg:col-span-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🏅</div>
+              <div class="font-semibold mt-2">Ачивки и события</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Действия сотрудников → ScoreEvent → XP/коины → ачивки.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">📈</div>
+              <div class="font-semibold mt-2">Лиги и лидерборды</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Сезоны/лиги с наградами, общие и по отделам.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🧩</div>
+              <div class="font-semibold mt-2">Аватар и инвентарь</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">SVG-слои, коллекции предметов, визуальный прогресс.</p>
+            </div>
+          </div>
+        </template>
+
+        <!-- Обучение -->
+        <template x-if="tab==='training'">
+          <div class="md:col-span-2 lg:col-span-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">📚</div>
+              <div class="font-semibold mt-2">Курсы и попытки</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Контент + квизы, прогресс, баллы, отчёты по курсам.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">📝</div>
+              <div class="font-semibold mt-2">Задачи и ревью</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Назначение, сдача, проверка, XP за выполнение.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🏁</div>
+              <div class="font-semibold mt-2">Онбординг</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Конструктор шагов/вопросов, награды, аналитика сессий.</p>
+            </div>
+          </div>
+        </template>
+
+        <!-- Конкурсы -->
+        <template x-if="tab==='contests'">
+          <div class="md:col-span-2 lg:col-span-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🎯</div>
+              <div class="font-semibold mt-2">KPI → квесты</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Конверсии, звонки, встречи — как миссии с очками.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🥇</div>
+              <div class="font-semibold mt-2">Главный приз</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Сезонные награды и внутренняя лига продаж.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🧮</div>
+              <div class="font-semibold mt-2">Анти-накрутка</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Аудит событий и ручные корректировки в админке.</p>
+            </div>
+          </div>
+        </template>
+
+        <!-- Магазин -->
+        <template x-if="tab==='store'">
+          <div class="md:col-span-2 lg:col-span-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🛍️</div>
+              <div class="font-semibold mt-2">Каталог призов</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Коины за результат → мерч, бонусы, скидки партнёров.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🔒</div>
+              <div class="font-semibold mt-2">Доступ по уровню</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Требования по XP/левелу для редких предметов.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">💳</div>
+              <div class="font-semibold mt-2">Учёт и инвентарь</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Покупки → Inventory, связь с аватаром.</p>
+            </div>
+          </div>
+        </template>
+
+        <!-- Telegram -->
+        <template x-if="tab==='telegram'">
+          <div class="md:col-span-2 lg:col-span-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">🤖</div>
+              <div class="font-semibold mt-2">Линк профиля</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Глубокая ссылка, код, статус связки, уведомления.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">📣</div>
+              <div class="font-semibold mt-2">Пуш-ивенты</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Новые ачивки, результаты квизов, победы в конкурсах.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+              <div class="text-2xl">⚙️</div>
+              <div class="font-semibold mt-2">API бота</div>
+              <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Aiogram 3 + REST API проекта, гибкая конфигурация.</p>
+            </div>
+          </div>
+        </template>
       </div>
-      <div class="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/50 p-6">
-        <div class="text-2xl">🏢</div>
-        <div class="font-semibold mt-2">Дешборд для компании</div>
-        <p class="text-slate-600 dark:text-slate-300 text-sm mt-2">Топ-списки, сводки по отделам, внутренняя лига продаж и конкурсы.</p>
+    </div>
+
+    <!-- =================== Таймлайн запуска =================== -->
+    <div class="mt-20 reveal" data-reveal>
+      <h2 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Запуск за 1 день</h2>
+      <ol class="mt-6 relative border-l border-slate-200 dark:border-white/10 pl-6 space-y-6">
+        <li>
+          <div class="absolute -left-2 top-0 w-3 h-3 rounded-full bg-indigo-500"></div>
+          <div class="font-semibold">Создай компанию и роли</div>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Добавь участников, отделы, правила начислений.</p>
+        </li>
+        <li>
+          <div class="absolute -left-2 top-[76px] w-3 h-3 rounded-full bg-cyan-500"></div>
+          <div class="font-semibold">Собери онбординг и KPI-квесты</div>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Конструктор шагов + миссии по звонкам/встречам/сделкам.</p>
+        </li>
+        <li>
+          <div class="absolute -left-2 top-[152px] w-3 h-3 rounded-full bg-emerald-500"></div>
+          <div class="font-semibold">Запусти лигу и магазин</div>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Призы, сезоны, редкие предметы, лидерборды.</p>
+        </li>
+      </ol>
+    </div>
+
+    <!-- =================== Сравнение ролей =================== -->
+    <div class="mt-16 grid md:grid-cols-2 gap-6">
+      <div class="reveal" data-reveal>
+        <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+          <div class="text-sm uppercase tracking-widest text-slate-500 dark:text-slate-400">Для компании</div>
+          <h3 class="mt-2 font-bold text-lg">Дашборды, контроль, аналитика</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+            <li>• Статусы обучения, задачи, результаты квизов</li>
+            <li>• Лидерборды отделов и сезонные отчёты</li>
+            <li>• Админка: пользователи, призы, курсы, конкурсы</li>
+          </ul>
+        </div>
+      </div>
+      <div class="reveal" data-reveal>
+        <div class="rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white dark:bg-slate-900/50">
+          <div class="text-sm uppercase tracking-widest text-slate-500 dark:text-slate-400">Для сотрудников</div>
+          <h3 class="mt-2 font-bold text-lg">Игровой прогресс и мотивация</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+            <li>• XP/коины за действия и ачивки</li>
+            <li>• Сезонные награды и магазин призов</li>
+            <li>• Аватар, инвентарь, Telegram-уведомления</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== CTA =================== -->
+    <div class="mt-16 reveal" data-reveal>
+      <div class="rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 p-8 md:p-10 text-center">
+        <h3 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Готовы сыграть сезон?</h3>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">Запусти первую лигу, подключи KPI и выдай призы — мотивация взлетит уже на старте.</p>
+        <div class="mt-6 flex flex-wrap gap-3 justify-center">
+          <a href="/register" class="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 px-5 py-3 font-semibold text-white transition" @click="tryConfetti()">✨ Создать аккаунт</a>
+          <a href="/contests" class="inline-flex items-center gap-2 rounded-2xl border border-slate-300 hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5 px-5 py-3 transition">Посмотреть конкурсы</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== FAQ =================== -->
+    <div class="mt-14 reveal" data-reveal>
+      <h3 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">Частые вопросы</h3>
+      <div class="mt-4 grid md:grid-cols-2 gap-4">
+        <details class="rounded-xl border border-slate-200 dark:border-white/10 p-4 open:bg-slate-50/50 dark:open:bg-white/5">
+          <summary class="cursor-pointer font-semibold">Как начисляются XP и коины?</summary>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">События (обучение, задачи, конкурсы, онбординг) → ScoreEvent → XP/coins. Вес и правила настраиваются в админке.</p>
+        </details>
+        <details class="rounded-xl border border-slate-200 dark:border-white/10 p-4 open:bg-slate-50/50 dark:open:bg-white/5">
+          <summary class="cursor-pointer font-semibold">Можно ли проводить сезонные лиги?</summary>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Да, с призами и рейтингами. Работают общие и по подразделениям.</p>
+        </details>
+        <details class="rounded-xl border border-slate-200 dark:border-white/10 p-4 open:bg-slate-50/50 dark:open:bg-white/5">
+          <summary class="cursor-pointer font-semibold">Что с Telegram?</summary>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Линк профиля, уведомления, быстрые действия бота. Управляется на странице профиля.</p>
+        </details>
+        <details class="rounded-xl border border-slate-200 dark:border-white/10 p-4 open:bg-slate-50/50 dark:open:bg-white/5">
+          <summary class="cursor-pointer font-semibold">Как развернуть?</summary>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Flask + SQLAlchemy (SQLite → PostgreSQL), шаблоны Jinja, Tailwind + Alpine, Telegram-бот на aiogram 3.</p>
+        </details>
       </div>
     </div>
   </div>
 </section>
+
+<!-- ====== вспомогательные скрипты: демка KPI, reveal-on-scroll, безопасное confetti ====== -->
+<script>
+  // безопасный конфетти вызов (если в app.js есть Alpine.store('fx').confetti)
+  window.tryConfetti = function(){
+    try{
+      if (window.Alpine && Alpine.store && Alpine.store('fx') && Alpine.store('fx').confetti){
+        Alpine.store('fx').confetti();
+      }
+    }catch(_e){}
+  };
+
+  // Компонент демки KPI→XP/Coins/Level
+  function kpiDemo(){
+    return {
+      calls: 40,
+      meets: 8,
+      deals: 4,
+      // веса можно подправить под прод-правила:
+      get xp(){ return Math.round(this.calls*2 + this.meets*5 + this.deals*22); },
+      get coins(){ return Math.round(this.deals*10 + this.meets*2); },
+      get level(){ return 1 + Math.floor(this.xp / 120); },
+      get progress(){ return Math.min(99, Math.round((this.xp % 120) / 120 * 100)); },
+      get conversion(){
+        // простая визуальная метрика: сделки от встреч (или от звонков если встреч нет)
+        const base = this.meets>0 ? (this.deals/this.meets) : (this.deals/Math.max(1,this.calls));
+        const pct = Math.max(3, Math.min(96, Math.round(base*100)));
+        return pct;
+      }
+    }
+  }
+
+  // Reveal on scroll
+  (function(){
+    const items = Array.from(document.querySelectorAll('[data-reveal]'));
+    if(!('IntersectionObserver' in window)){ items.forEach(el=>el.classList.add('in')); return; }
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {rootMargin: '0px 0px -10% 0px', threshold: .08});
+    items.forEach(el=>io.observe(el));
+  })();
+</script>
 
 {% endblock %}

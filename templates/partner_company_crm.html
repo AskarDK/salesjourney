@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+{% set title = "Настройки CRM — Sales Journey" %}
+
+{% block content %}
+<style>
+  .spinner{
+    width:18px;height:18px;border:3px solid rgba(100,116,139,.25);
+    border-top-color:var(--sj-primary); border-radius:50%;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
+
+  .tag{font-size:.72rem}
+</style>
+
+<section class="max-w-6xl mx-auto px-4 py-8"
+         x-data="crmPage({{ company_id if company_id is not none else 'null' }})"
+         x-init="init()"
+         x-cloak>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Настройки CRM</h1>
+      <p class="text-sm mt-1 text-slate-500 dark:text-[var(--sj-muted)]">Привязка amo/Kommo, синхронизация и статистика.</p>
+    </div>
+    <div class="flex gap-2">
+      <a :href="`/partner/company`"
+         class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]">
+        ← В компанию
+      </a>
+      <a :href="`/partner/company/${companyId}/crm/dashboard`"
+         class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">
+        Дэшборд
+      </a>
+      <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+              @click="toggleTheme()" title="Сменить тему">🌓</button>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="rounded-2xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-4 mb-4">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <div class="font-semibold">Статус привязки</div>
+        <div class="text-sm text-slate-500 dark:text-[var(--sj-muted)]">
+          <template x-if="!loading.status && crm.connected">
+            <span>
+              Подключено к <b x-text="crm.base_domain"></b>.
+              <span x-show="crm.token_expires_at"> Токен истекает: <b x-text="human(crm.token_expires_at)"></b>.</span>
+              <span> Обновлено: <b x-text="crm.last_sync_at||'—'"></b></span>
+            </span>
+          </template>
+          <span x-show="!loading.status && !crm.connected">Не подключено.</span>
+          <span x-show="loading.status" class="inline-flex items-center gap-2"><span class="spinner"></span> Проверяем…</span>
+        </div>
+      </div>
+      <div class="shrink-0 flex gap-2">
+        <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+                @click="refreshCrmStatus()" :disabled="loading.status">
+          <span x-show="!loading.status">Проверить</span>
+          <span x-show="loading.status" class="inline-flex items-center gap-2"><span class="spinner"></span> Ждём</span>
+        </button>
+        <form x-show="crm.connected" @submit.prevent="unlinkCrm()">
+          <button type="submit"
+                  class="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white"
+                  :disabled="loading.unlink">
+            <span x-show="!loading.unlink">Сбросить привязку</span>
+            <span x-show="loading.unlink" class="inline-flex items-center gap-2"><span class="spinner"></span> Сбрасываем</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connect -->
+  <div class="rounded-2xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-4 mb-4">
+    <template x-if="!crm.connected">
+      <form method="POST"
+            :action="`/api/partners/company/${companyId}/crm/amocrm/connect`"
+            class="grid sm:grid-cols-[1fr_auto] gap-3">
+        <div class="space-y-2">
+          <label class="text-sm text-slate-500 dark:text-[var(--sj-muted)]" for="amo_base_domain">Домен Amo/Kommo</label>
+          <input id="amo_base_domain" name="base_domain" required x-model="crm.domain"
+                 placeholder="example.amocrm.ru или mycorp.kommo.com"
+                 class="w-full rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-3 py-2
+                        focus:outline-none focus:ring-4 focus:ring-[var(--sj-primary)]/25 focus:border-[var(--sj-primary)]">
+          <div class="text-xs text-slate-500 dark:text-[var(--sj-muted)]">После «Подключить» появится окно авторизации на amoCRM.</div>
+        </div>
+        <div class="flex sm:self-end gap-2">
+          <button type="submit"
+                  class="px-3 py-2 rounded-xl bg-[var(--sj-primary)] hover:opacity-90 text-white"
+                  :disabled="loading.connect">
+            <span x-show="!loading.connect">Подключить</span>
+            <span x-show="loading.connect" class="inline-flex items-center gap-2"><span class="spinner"></span> Открываем…</span>
+          </button>
+          <button type="button"
+                  class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+                  @click="refreshCrmStatus()" :disabled="loading.status">Проверить</button>
+        </div>
+      </form>
+    </template>
+    <template x-if="crm.connected">
+      <div class="text-sm text-slate-500 dark:text-[var(--sj-muted)]">Привязка активна — форма скрыта. Используйте инструменты ниже.</div>
+    </template>
+  </div>
+
+  <!-- Tools & Stats -->
+  <div class="rounded-2xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-4 mb-4" x-show="crm.connected">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="font-semibold">Синхронизация и статистика</div>
+      <div class="flex flex-wrap items-center gap-2">
+
+        <!-- Период -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-500 dark:text-[var(--sj-muted)]">Период:</label>
+          <div class="flex items-center gap-1">
+            <button type="button"
+                    class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)]"
+                    :class="{'bg-slate-100 dark:bg-[var(--sj-bg)]': ui.mode==='today'}"
+                    @click="ui.mode='today'; applyFilters(); fetchCrmStats();">
+              Сегодня
+            </button>
+            <button type="button"
+                    class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)]"
+                    :class="{'bg-slate-100 dark:bg-[var(--sj-bg)]': ui.mode==='days'}"
+                    @click="ui.mode='days'; applyFilters(); fetchCrmStats();">
+              За N дней
+            </button>
+          </div>
+
+          <select class="w-28 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-2 py-2 disabled:opacity-50"
+                  :disabled="ui.mode==='today'"
+                  x-model.number="ui.days" @change="applyFilters(); fetchCrmStats();">
+            <option :value="7">7</option>
+            <option :value="14">14</option>
+            <option :value="30">30</option>
+            <option :value="90">90</option>
+          </select>
+
+          <label class="text-xs text-slate-500 dark:text-[var(--sj-muted)] ml-2">Сортировка:</label>
+          <select class="w-40 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-2 py-2"
+                  x-model="ui.sort" @change="applyFilters()">
+            <option value="won_desc">Успешно реализовано ↓</option>
+            <option value="conv_desc">Конверсия ↓</option>
+            <option value="lost_asc">Не реализовано ↑</option>
+            <option value="name_asc">Имя A→Z</option>
+          </select>
+          <label class="text-xs text-slate-500 dark:text-[var(--sj-muted)] ml-2">Порог:</label>
+          <input class="w-24 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-3 py-2"
+                 type="number" min="0" step="1" x-model.number="ui.minTotal" @input="applyFilters()" placeholder="мин. сделок">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input class="w-48 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-3 py-2"
+                 placeholder="Поиск по имени" x-model.trim="ui.query" @input="onQueryInput">
+          <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+                  @click="resetFilters()">Сброс</button>
+        </div>
+
+        <!-- Actions -->
+        <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+                @click="syncNow()" :disabled="loading.sync">
+          <span x-show="!loading.sync">Синхронизировать</span>
+          <span x-show="loading.sync" class="inline-flex items-center gap-2"><span class="spinner"></span> Синхро…</span>
+        </button>
+        <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+                @click="openMapping()" :disabled="loading.users">Сопоставление</button>
+
+        <a :href="`/partner/company/${companyId}/crm/dashboard`"
+           class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">
+          Дэшборд
+        </a>
+
+        <button class="px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white"
+                @click="exportExcel()" :disabled="!crm.stats?.by_user?.length">Экспорт Excel</button>
+        <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-100 dark:hover:bg-[var(--sj-elev)]"
+                @click="exportCSV()" :disabled="!crm.stats?.by_user?.length">CSV</button>
+      </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="grid md:grid-cols-3 gap-3 mt-3">
+      <template x-if="!loading.stats">
+        <div class="rounded-xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-4">
+          <div class="text-sm text-slate-500 dark:text-[var(--sj-muted)]">Успешно</div>
+          <div class="text-2xl font-bold" x-text="(filtered.kpi?.won ?? crm.stats?.won_count ?? 0)"></div>
+        </div>
+      </template>
+      <template x-if="loading.stats"><div class="skeleton h-20 rounded-xl"></div></template>
+
+      <template x-if="!loading.stats">
+        <div class="rounded-xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-4">
+          <div class="text-sm text-slate-500 dark:text-[var(--sj-muted)]">Не реализовано</div>
+          <div class="text-2xl font-bold" x-text="(filtered.kpi?.lost ?? crm.stats?.lost_count ?? 0)"></div>
+        </div>
+      </template>
+      <template x-if="loading.stats"><div class="skeleton h-20 rounded-xl"></div></template>
+
+      <template x-if="!loading.stats">
+        <div class="rounded-xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-4">
+          <div class="text-sm text-slate-500 dark:text-[var(--sj-muted)]">Конверсия</div>
+          <div class="text-2xl font-bold" x-text="(filtered.kpi?.conv ?? crm.stats?.conversion ?? 0) + '%'"></div>
+        </div>
+      </template>
+      <template x-if="loading.stats"><div class="skeleton h-20 rounded-xl"></div></template>
+    </div>
+
+    <!-- Table -->
+    <div class="mt-3">
+      <div class="font-semibold">
+        Сотрудники · <span x-text="ui.mode==='today' ? 'за сегодня' : ('за ' + ui.days + ' дн.')"></span>
+      </div>
+
+      <template x-if="loading.stats">
+        <div class="space-y-2 mt-2">
+          <div class="skeleton h-12 rounded-lg"></div>
+          <div class="skeleton h-12 rounded-lg"></div>
+          <div class="skeleton h-12 rounded-lg"></div>
+        </div>
+      </template>
+
+      <template x-if="!loading.stats">
+        <div class="overflow-x-auto mt-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)]">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 dark:bg-[var(--sj-bg)]">
+              <tr class="border-b border-slate-200 dark:border-[var(--sj-border)]">
+                <th class="text-left py-2 px-3 text-slate-500 dark:text-[var(--sj-muted)]">Пользователь (amo)</th>
+                <th class="text-left px-3 py-2">Успешно реализовано</th>
+                <th class="text-left px-3 py-2">Не реализовано</th>
+                <th class="text-right px-3 py-2">Конверсия</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="row in filtered.rows" :key="row.user_id">
+                <tr class="border-t border-slate-200 dark:border-[var(--sj-border)] hover:bg-slate-50 dark:hover:bg-[var(--sj-bg)]">
+                  <td class="px-3 py-2">
+                    <div class="flex items-center gap-2">
+                      <span class="tag inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-slate-200 dark:border-[var(--sj-border)] text-slate-500 dark:text-[var(--sj-muted)]">
+                        ID: <span x-text="row.user_id"></span>
+                      </span>
+                      <span class="font-semibold" x-text="row.display_name"></span>
+                    </div>
+                  </td>
+                  <td class="px-3 py-2" x-text="row.won"></td>
+                  <td class="px-3 py-2" x-text="row.lost"></td>
+                  <td class="px-3 py-2 text-right font-semibold" x-text="row.conv + '%'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <div x-show="!filtered.rows.length" class="text-sm p-3 text-slate-500 dark:text-[var(--sj-muted)]">Нет данных.</div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Mapping Modal -->
+  <div x-show="crm.mapOpen" x-transition.opacity x-cloak>
+    <div class="fixed inset-0 bg-black/55" @click="crm.mapOpen=false"></div>
+    <div class="fixed inset-x-0 top-[8%] mx-auto max-w-5xl z-50 rounded-2xl border border-slate-200 dark:border-[var(--sj-border)] bg-white dark:bg-[var(--sj-elev)] p-5"
+         @click.stop>
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Сопоставление пользователей</h3>
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)]"
+                  @click="autoMap()">Автосопоставить <span class="text-slate-400" x-show="auto.suggestionsCount">(<span x-text="auto.suggestionsCount"></span>)</span></button>
+          <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)]"
+                  @click="crm.mapOpen=false">✕</button>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4 mt-4">
+        <!-- Platform people -->
+        <div>
+          <div class="text-sm mb-2 text-slate-500 dark:text-[var(--sj-muted)]">Сотрудники платформы</div>
+          <input class="w-full mb-2 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-3 py-2"
+                 placeholder="Поиск…" x-model.trim="ui.mapLeft" />
+          <div class="p-2 max-h-[60vh] overflow-auto rounded-lg border border-slate-200 dark:border-[var(--sj-border)]">
+            <template x-for="u in people.items.filter(p => filterText(p.display_name||p.email, ui.mapLeft))" :key="u.id">
+              <div class="py-2 border-b last:border-0 border-slate-100 dark:border-[var(--sj-border)]">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="font-semibold truncate" x-text="u.display_name || u.email"></div>
+                    <div class="text-xs text-slate-500 dark:text-[var(--sj-muted)]">ID: <span x-text="u.id"></span></div>
+                  </div>
+                  <div class="w-64 shrink-0">
+                    <select class="w-full rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-2 py-2"
+                            :value="crm.mapping[String(u.id)] || auto.guess[String(u.id)] || ''"
+                            @change="mapUser(u.id, Number($event.target.value))">
+                      <option value="">— Выберите amoCRM пользователя —</option>
+                      <template x-for="au in crm.users" :key="au.id">
+                        <option :value="au.id" x-text="au.name + (au.email?' · '+au.email:'')"></option>
+                      </template>
+                    </select>
+                    <div class="text-[11px] mt-1 text-slate-500 dark:text-[var(--sj-muted)]" x-show="auto.guess[String(u.id)] && !crm.mapping[String(u.id)]">
+                      Предложено: <b x-text="nameByAmoId(auto.guess[String(u.id)])"></b>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div x-show="!(people.items?.length)" class="p-3 text-sm text-slate-500 dark:text-[var(--sj-muted)]">Нет сотрудников.</div>
+          </div>
+        </div>
+
+        <!-- amoCRM users -->
+        <div>
+          <div class="text-sm mb-2 text-slate-500 dark:text-[var(--sj-muted)]">Пользователи amoCRM</div>
+          <input class="w-full mb-2 rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-3 py-2"
+                 placeholder="Поиск…" x-model.trim="ui.mapRight" />
+          <div class="p-2 max-h-[60vh] overflow-auto rounded-lg border border-slate-200 dark:border-[var(--sj-border)]">
+            <template x-for="au in crm.users.filter(x => filterText(x.name + ' ' + (x.email||''), ui.mapRight))" :key="au.id">
+              <div class="py-2 border-b last:border-0 border-slate-100 dark:border-[var(--sj-border)] flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="font-semibold truncate" x-text="au.name"></div>
+                  <div class="text-xs text-slate-500 dark:text-[var(--sj-muted)]">
+                    ID: <span x-text="au.id"></span>
+                    <span x-show="au.email"> · <span x-text="au.email"></span></span>
+                  </div>
+                </div>
+                <div class="w-64 shrink-0">
+                  <select class="w-full rounded-xl border border-slate-300 dark:border-[var(--sj-border)] bg-white/70 dark:bg-white/5 px-2 py-2"
+                          @change="mapUser(Number($event.target.value.split('|')[1]), Number($event.target.value.split('|')[0]))">
+                    <option value="">Сопоставить с…</option>
+                    <template x-for="u in people.items" :key="u.id">
+                      <option :value="au.id + '|' + u.id" x-text="(u.display_name||u.email)"></option>
+                    </template>
+                  </select>
+                </div>
+              </div>
+            </template>
+            <div x-show="!(crm.users?.length)" class="p-3 text-sm text-slate-500 dark:text-[var(--sj-muted)]">Не удалось загрузить пользователей amoCRM.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-3 mt-3 border-t border-slate-200 dark:border-[var(--sj-border)]">
+        <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-[var(--sj-border)]"
+                @click="crm.mapOpen=false">Готово</button>
+      </div>
+    </div>
+  </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function createApi(){
+  const withCreds = { credentials:'same-origin' };
+  async function parse(r){ let j=null; try{ j=await r.json(); }catch(_){}
+    if(!r.ok){ throw new Error(j?.description || j?.detail || j?.message || `HTTP ${r.status}`); }
+    return j ?? {};
+  }
+  async function get(u){ return parse(await fetch(u, withCreds)); }
+  async function post(u, body){
+    const opts={...withCreds, method:'POST'};
+    if(body instanceof FormData){ opts.body=body; }
+    else { opts.headers={'Content-Type':'application/json'}; opts.body=JSON.stringify(body||{}); }
+    return parse(await fetch(u, opts));
+  }
+  return {get, post};
+}
+const API = createApi();
+
+function norm(s){
+  if(!s) return '';
+  return String(s)
+    .toLowerCase()
+    .replaceAll('ё','е')
+    .replace(/[^\p{L}\p{N}]+/gu,'')
+}
+
+function crmPage(initialCompanyId){
+  return {
+    toggleTheme(){ window.__setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark'); },
+
+    companyId: initialCompanyId,
+    crm: {
+      connected:false, base_domain:'', token_expires_at:null, last_sync_at:null, domain:'',
+      stats:null, mapOpen:false, users:[], mapping:{}   // mapping: { platform_id: amocrm_id }
+    },
+    auto:{ guess:{}, suggestionsCount:0 },
+    people:{ items:[], total:0 },
+    loading: { status:false, stats:false, sync:false, unlink:false, users:false, connect:false },
+    ui: { mode:'days', days:30, sort:'won_desc', minTotal:0, query:'', mapLeft:'', mapRight:'' },
+    filtered: { rows:[], kpi:null },
+
+    filterText(s,q){ if(!q?.trim()) return true; s = (s||'')+''; return s.toLowerCase().includes(q.toLowerCase()); },
+    human(ts){ try{ const d=new Date((typeof ts==='number' && ts<4e9)? ts*1000 : ts); return d.toLocaleString(); }catch(e){ return ts || '—'; } },
+
+    toastOk(text){ Alpine.store('toasts').push({ title: 'Успешно', text, icon:'bi bi-check-circle-fill' }); },
+    toastErr(text){ Alpine.store('toasts').push({ title: 'Ошибка', text, icon:'bi bi-exclamation-triangle-fill' }); },
+
+    async init(){
+      await this.refreshCrmStatus();
+      if(this.crm.connected){
+        await this.fetchCrmStats();
+        await this.loadPeople();
+      }
+    },
+
+    async refreshCrmStatus(){
+      this.loading.status = true;
+      try{
+        const s = await API.get(`/api/partners/company/${this.companyId}/crm/amocrm/status`);
+        this.crm.connected = !!(s.connected ?? s.linked);
+        this.crm.base_domain = s.base_domain || s.account?.domain || '';
+        this.crm.last_sync_at = s.last_sync_at || null;
+        this.crm.token_expires_at = s.token_expires_at || null;
+      }catch(e){ this.toastErr(e.message); }
+      finally{ this.loading.status = false; }
+    },
+
+    async syncNow(){
+      if(!this.crm.connected) return;
+      this.loading.sync = true;
+      try{
+        await API.post(`/api/partners/company/${this.companyId}/crm/amocrm/sync`,{});
+        await this.refreshCrmStatus();
+        await this.fetchCrmStats();
+        this.toastOk('Синхронизация завершена');
+      }catch(e){ this.toastErr(e.message); }
+      finally{ this.loading.sync = false; }
+    },
+
+    statsQuery(){ return this.ui.mode === 'today' ? 'range=today' : `days=${this.ui.days}`; },
+
+    async fetchCrmStats(){
+      if(!this.crm.connected) return;
+      this.loading.stats = true;
+      try{
+        const stats = await API.get(`/api/partners/company/${this.companyId}/crm/stats?${this.statsQuery()}`);
+        this.crm.stats = stats || {};
+        this.applyFilters();
+      }catch(e){ this.toastErr(e.message); }
+      finally{ this.loading.stats = false; }
+    },
+
+    async unlinkCrm(){
+      this.loading.unlink = true;
+      try{
+        await API.post(`/api/partners/company/${this.companyId}/crm/amocrm/unlink`,{});
+        this.crm = { connected:false, base_domain:'', token_expires_at:null, last_sync_at:null, domain:'', stats:null, mapOpen:false, users:[], mapping:{} };
+        this.filtered = { rows:[], kpi:null };
+        this.toastOk('Привязка сброшена');
+      }catch(e){ this.toastErr(e.message); }
+      finally{ this.loading.unlink = false; }
+    },
+
+    async openMapping(){
+      if(!this.crm.connected) return this.toastErr('Сначала подключите amoCRM');
+      this.loading.users = true;
+      try{
+        const [jUsers, jMap] = await Promise.all([
+          API.get(`/api/partners/company/${this.companyId}/crm/users`),
+          API.get(`/api/partners/company/${this.companyId}/crm/map/list`),
+        ]);
+        if(!jUsers.connected) return this.toastErr('Нет доступа к amoCRM');
+        this.crm.users = jUsers.users || [];
+        this.crm.mapping = jMap.map || {};
+        this.crm.mapOpen = true;
+        this.buildAutoGuesses();
+      }catch(e){ this.toastErr(e.message); }
+      finally{ this.loading.users = false; }
+    },
+
+    nameByAmoId(id){
+      const u = this.crm.users.find(x=> Number(x.id)===Number(id));
+      return u ? (u.name + (u.email ? ' · ' + u.email : '')) : ('#'+id);
+    },
+
+    buildAutoGuesses(){
+      const guess = {};
+      const amoIndexByName = {};
+      const amoIndexByEmail = {};
+      for(const au of this.crm.users){
+        amoIndexByName[norm(au.name)] = au.id;
+        if(au.email) amoIndexByEmail[norm(au.email)] = au.id;
+      }
+      let cnt = 0;
+      for(const p of (this.people.items || [])){
+        const pid = String(p.id);
+        if(this.crm.mapping[pid]) continue; // уже есть сохранённая привязка
+        const nDisp = norm(p.display_name || '');
+        const nEmail = norm(p.email || '');
+        let g = null;
+        if(nEmail && amoIndexByEmail[nEmail]) g = amoIndexByEmail[nEmail];
+        else if(nDisp && amoIndexByName[nDisp]) g = amoIndexByName[nDisp];
+        if(g){ guess[pid] = g; cnt++; }
+      }
+      this.auto.guess = guess;
+      this.auto.suggestionsCount = cnt;
+    },
+
+    async autoMap(){
+      const entries = Object.entries(this.auto.guess || {}).filter(([pid, amoId]) => !this.crm.mapping[pid] && amoId);
+      if(!entries.length) return;
+      for(const [pid, amoId] of entries){
+        await this.mapUser(Number(pid), Number(amoId));
+      }
+      this.toastOk('Автосопоставление выполнено');
+      this.buildAutoGuesses();
+    },
+
+    async mapUser(platformId, amocrmId){
+      if(!amocrmId) return;
+      try{
+        await API.post(`/api/partners/company/${this.companyId}/crm/map`, {
+          platform_user_id: Number(platformId),
+          amocrm_user_id: Number(amocrmId)
+        });
+        this.crm.mapping[String(platformId)] = Number(amocrmId); // локально фиксируем
+        this.toastOk('Сопоставлено');
+      }catch(e){ this.toastErr(e.message); }
+    },
+
+    async loadPeople(){
+      try{
+        const r = await API.get(`/api/partners/company/${this.companyId}/members?page=1&per_page=500`);
+        this.people.items = r.members || r.items || [];
+        this.people.total = r.total || this.people.items.length;
+      }catch(_){ /* ignore */ }
+    },
+
+    /* ===== Filters / Sort / Search ===== */
+    onQueryInput(){ clearTimeout(this._qTimer); this._qTimer = setTimeout(()=> this.applyFilters(), 200); },
+    resetFilters(){ this.ui = {...this.ui, sort:'won_desc', minTotal:0, query:'', mode:this.ui.mode, days:this.ui.days}; this.applyFilters(); },
+
+    applyFilters(){
+      const src = (this.crm.stats?.by_user || []).slice();
+      const q = this.ui.query?.trim().toLowerCase() || '';
+      let rows = q ? src.filter(r => (r.display_name||'').toLowerCase().includes(q)) : src;
+
+      const minT = Number(this.ui.minTotal||0);
+      if(minT>0){ rows = rows.filter(r => (r.won + r.lost) >= minT); }
+
+      switch(this.ui.sort){
+        case 'won_desc': rows.sort((a,b)=> (b.won - a.won) || (a.lost - b.lost)); break;
+        case 'conv_desc': rows.sort((a,b)=> (b.conv - a.conv) || (b.won - a.won)); break;
+        case 'lost_asc': rows.sort((a,b)=> (a.lost - b.lost) || (b.won - a.won)); break;
+        case 'name_asc': rows.sort((a,b)=> String(a.display_name||'').localeCompare(String(b.display_name||''))); break;
+      }
+
+      const won = rows.reduce((s,r)=> s+r.won, 0);
+      const lost = rows.reduce((s,r)=> s+r.lost, 0);
+      const total = won+lost; const conv = total? Math.round(100*won/total):0;
+      this.filtered = { rows, kpi:{ won, lost, conv } };
+
+      if(this.crm.stats && ((this.ui.mode==='today' && this.crm.stats.range!=='today') || (this.ui.mode==='days' && this.crm.stats.days !== this.ui.days))){
+        this.fetchCrmStats();
+      }
+    },
+
+    exportCSV(){
+      const rows = this.filtered.rows.length ? this.filtered.rows : (this.crm.stats?.by_user || []);
+      if(!rows.length) return;
+      const headers = ['user_id','display_name','won','lost','conv'];
+      const lines = [headers.join(';')].concat(
+        rows.map(r => [r.user_id, `"${String(r.display_name||'').replaceAll('"','""')}"`, r.won, r.lost, r.conv].join(';'))
+      );
+      const blob = new Blob(["\ufeff" + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `crm_stats_${this.companyId}_${this.ui.mode==='today'?'today':(this.ui.days+'d')}.csv`; a.click();
+      URL.revokeObjectURL(a.href);
+    },
+
+    exportExcel(){
+      const params = new URLSearchParams();
+      if(this.ui.mode === 'today') params.set('range','today'); else params.set('days', String(this.ui.days));
+      params.set('sort', this.ui.sort);
+      params.set('min_total', String(this.ui.minTotal||0));
+      if(this.ui.query?.trim()) params.set('q', this.ui.query.trim());
+      const url = `/api/partners/company/${this.companyId}/crm/stats.xlsx?` + params.toString();
+      window.open(url, '_blank');
+    },
+  }
+}
+</script>
+{% endblock %}

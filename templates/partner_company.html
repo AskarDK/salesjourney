@@ -3,152 +3,95 @@
 
 {% block content %}
 
-<!-- ===== Design tokens (light/dark via .dark) ===== -->
 <style>
-  :root{
-    /* surfaces */
-    --sj-bg:            #f7fafc;
-    --sj-card:          #ffffff;
-    --sj-muted:         #f1f5f9;
-    --sj-border:        rgba(2,6,23,.10);
-    --sj-border-strong: rgba(2,6,23,.16);
-    --sj-glass:         rgba(255,255,255,.75);
-    --sj-overlay:       rgba(0,0,0,.55);
-
-    /* text */
-    --sj-text:          #0f172a;
-    --sj-muted-text:    #475569;
-
-    /* rings */
-    --sj-ring: 79, 70, 229;   /* indigo-600 */
-
-    /* palette (tailwind rgb) */
-    --indigo: 79 70 229;
-    --emerald: 16 185 129;
-    --sky: 14 165 233;
-    --amber: 217 119 6;
-    --rose: 225 29 72;
-    --slate: 100 116 139;
-
-    --sj-radius: 14px;
-    --sj-radius-lg: 18px;
-    --sj-radius-xl: 24px;
-  }
-  .dark{
-    --sj-bg:            #0b1220;
-    --sj-card:          rgba(15,23,42,.88);
-    --sj-muted:         rgba(15,23,42,.68);
-    --sj-border:        rgba(255,255,255,.10);
-    --sj-border-strong: rgba(255,255,255,.16);
-    --sj-glass:         rgba(15,23,42,.78);
-    --sj-overlay:       rgba(0,0,0,.6);
-
-    --sj-text:          #e5e7eb;
-    --sj-muted-text:    #94a3b8;
-  }
-
+  /* Используем токены из base.html: --sj-bg, --sj-elev, --sj-border, --sj-text, --sj-muted, --sj-primary */
   [x-cloak]{ display:none !important; }
 
-  /* cards / glass */
   .card{
-    background: var(--sj-card);
+    background: var(--sj-elev);
     color: var(--sj-text);
     border:1px solid var(--sj-border);
-    border-radius: var(--sj-radius-lg);
-  }
-  .glass{
-    position:relative;
-    background: var(--sj-glass);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--sj-border);
-    border-radius: var(--sj-radius-xl);
-    box-shadow: 0 12px 40px rgba(2,6,23,.10);
+    border-radius: 18px;
   }
   .muted{
-    background: var(--sj-muted);
-    border: 1px solid var(--sj-border);
-    border-radius: var(--sj-radius);
+    background: color-mix(in oklab, var(--sj-bg) 88%, transparent);
+    border:1px solid var(--sj-border);
+    border-radius: 14px;
+  }
+  .glass{
+    position:relative; background: color-mix(in oklab, var(--sj-elev) 86%, transparent);
+    backdrop-filter: blur(10px);
+    border:1px solid var(--sj-border); border-radius: 24px; box-shadow: var(--shadow, 0 10px 30px -12px rgba(0,0,0,.25));
   }
 
-  /* inputs */
-  .input, .select, .textarea{
-    width:100%;
-    background: color-mix(in oklab, var(--sj-card) 94%, transparent);
-    color: var(--sj-text);
-    border:1px solid var(--sj-border);
-    border-radius: 12px;
-    padding:.6rem .8rem;
+  .input,.select,.textarea{
+    width:100%; background: color-mix(in oklab, var(--sj-elev) 96%, transparent);
+    color: var(--sj-text); border:1px solid var(--sj-border); border-radius: 12px; padding:.6rem .8rem;
     transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
   }
   .textarea{ min-height: 3.5rem; }
-  .input:focus, .select:focus, .textarea:focus{
-    outline:none; border-color: rgb(var(--sj-ring));
-    box-shadow: 0 0 0 3px rgba(var(--sj-ring), .25);
-    background: color-mix(in oklab, var(--sj-card) 98%, transparent);
+  .input:focus,.select:focus,.textarea:focus{
+    outline:none; border-color: var(--sj-primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--sj-primary) 35%, transparent);
+    background: color-mix(in oklab, var(--sj-elev) 98%, transparent);
   }
 
-  /* buttons */
   .btn{
     display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
-    font-weight:700; border-radius:12px;
-    padding:.6rem .9rem; border:1px solid var(--sj-border);
+    font-weight:700; border-radius:12px; padding:.6rem .9rem; border:1px solid var(--sj-border);
     transition: transform .06s ease, filter .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
   }
   .btn:hover{ filter:brightness(.98); }
   .btn:active{ transform: translateY(1px); }
-  .btn:focus-visible{ outline:none; box-shadow: 0 0 0 3px rgba(var(--sj-ring), .28); }
-
+  .btn:focus-visible{ outline:none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--sj-primary) 35%, transparent); }
   .btn-outline{ background:transparent; }
-  .btn-ghost{ background:transparent; border-color: transparent; color: var(--sj-muted-text); }
+  .btn-ghost{ background:transparent; border-color: transparent; color: var(--sj-muted); }
+  .btn-indigo{ background: var(--sj-primary); border-color: var(--sj-primary); color: #fff; }
+  .btn-emerald{ background: rgb(16 185 129); border-color: rgb(16 185 129); color:#fff; }
+  .btn-sky{ background: rgb(14 165 233); border-color: rgb(14 165 233); color:#fff; }
+  .btn-amber{ background: rgb(217 119 6); border-color: rgb(217 119 6); color:#000; }
+  .btn-rose{ background: rgb(225 29 72); border-color: rgb(225 29 72); color:#fff; }
 
-  .btn-indigo{  background: rgb(var(--indigo));  border-color: rgb(var(--indigo));  color:white; }
-  .btn-emerald{ background: rgb(var(--emerald)); border-color: rgb(var(--emerald)); color:white; }
-  .btn-sky{     background: rgb(var(--sky));     border-color: rgb(var(--sky));     color:white; }
-  .btn-amber{   background: rgb(var(--amber));   border-color: rgb(var(--amber));   color:black; }
-  .btn-rose{    background: rgb(var(--rose));    border-color: rgb(var(--rose));    color:white; }
-  .btn-slate{   background: rgb(var(--slate));   border-color: rgb(var(--slate));   color:white; }
+  .pill{ padding:.4rem .8rem; border:1px solid var(--sj-border); border-radius: 999px; cursor:pointer; }
+  .pill.active{ background: color-mix(in oklab, var(--sj-primary) 18%, var(--sj-elev)); border-color: color-mix(in oklab, var(--sj-primary) 45%, var(--sj-border)); color: white; }
 
-  /* table */
   .table-wrap{ overflow-x:auto; border:1px solid var(--sj-border); border-radius: 14px; }
   table{ width:100%; border-collapse: separate; border-spacing:0; }
   thead th{
-    text-align:left; font-weight:700; font-size:.85rem;
-    color: var(--sj-muted-text);
-    background: var(--sj-muted);
-    border-bottom: 1px solid var(--sj-border);
-    padding:.6rem .75rem;
-    position: sticky; top:0; z-index:1;
+    text-align:left; font-weight:700; font-size:.85rem; color: var(--sj-muted);
+    background: color-mix(in oklab, var(--sj-elev) 85%, transparent);
+    border-bottom: 1px solid var(--sj-border); padding:.6rem .75rem; position: sticky; top:0; z-index:1;
+    backdrop-filter: blur(4px);
   }
   tbody td{ padding:.6rem .75rem; border-top:1px solid var(--sj-border); }
-  tbody tr:hover{ background: color-mix(in oklab, var(--sj-muted) 70%, transparent); }
-
-  /* pills (tabs) */
-  .pill{ padding:.4rem .8rem; border:1px solid var(--sj-border); border-radius: 999px; }
-  .pill.active{ background: color-mix(in oklab, rgb(var(--indigo)) 14%, var(--sj-card)); border-color: rgba(var(--indigo), .45); color: white; }
+  tbody tr:hover{ background: color-mix(in oklab, var(--sj-elev) 70%, transparent); }
 
   .toggle{
-    --w: 40px; --h: 24px;
-    width:var(--w); height:var(--h);
-    background: color-mix(in oklab, var(--sj-muted) 70%, transparent);
-    border:1px solid var(--sj-border);
-    border-radius: var(--h); position:relative; cursor:pointer;
+    --w: 40px; --h: 24px; width:var(--w); height:var(--h);
+    background: color-mix(in oklab, var(--sj-bg) 75%, transparent);
+    border:1px solid var(--sj-border); border-radius: var(--h); position:relative; cursor:pointer;
     transition: background .2s ease, border-color .2s ease;
   }
   .toggle::after{
     content:""; position:absolute; top:2px; left:2px;
     width: calc(var(--h) - 4px); height: calc(var(--h) - 4px);
-    background: #fff; border-radius: 999px;
-    box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    background: #fff; border-radius: 999px; box-shadow: 0 3px 10px rgba(0,0,0,.25);
     transition: transform .2s cubic-bezier(.22,.61,.36,1);
   }
   .toggle.is-on{ background: rgba(16,185,129,.35); border-color: rgba(16,185,129,.6); }
   .toggle.is-on::after{ transform: translateX(calc(var(--w) - var(--h))); }
 
-  .badge{ display:inline-flex; gap:.35rem; align-items:center; font-size:.72rem; border-radius: 999px; padding:.15rem .55rem; border:1px solid var(--sj-border); color: var(--sj-muted-text); }
+  .badge{ display:inline-flex; gap:.35rem; align-items:center; font-size:.72rem; border-radius: 999px; padding:.15rem .55rem; border:1px solid var(--sj-border); color: var(--sj-muted); }
+
+  /* упругие появления */
+  .fade-enter[x-cloak]{ opacity:0; transform: translateY(4px); }
 </style>
 
 <section class="max-w-7xl mx-auto px-4 py-8"
-         x-data="window.partnerCompanyPage({{ company_id if company_id is not none else 'null' }})"
+x-data='window.partnerCompanyPageEnh(
+  {{ company_id if company_id is not none else "null" }},
+  {{ company_slug|default(none)|tojson }}
+)'
          x-init="init()"
          x-cloak>
 
@@ -157,11 +100,18 @@
     <div class="flex items-start sm:items-center justify-between gap-4">
       <div class="min-w-0">
         <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Моя компания</h1>
-        <p class="text-sm mt-1" style="color:var(--sj-muted-text)" x-text="headerSubtitle"></p>
+        <p class="text-sm mt-1 text-[color:var(--sj-muted)]" x-text="headerSubtitle"></p>
       </div>
       <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <button class="btn btn-outline" @click="toggleTheme()" :aria-label="theme==='dark'?'Включить светлую тему':'Включить тёмную тему'">
+          <i class="bi bi-moon-stars-fill dark:hidden"></i>
+          <i class="bi bi-sun-fill hidden dark:inline"></i>
+          <span class="hidden sm:inline">Тема</span>
+        </button>
+
         {% if company_id %}
           <a class="btn btn-indigo" href="/partner/company/{{ company_id }}/onboarding">Редактор онбординга</a>
+          <button @click="setTab('crm'); loadCrm()" class="btn btn-indigo">CRM</button>
         {% else %}
           <button class="btn btn-indigo opacity-60 cursor-not-allowed" disabled>Редактор онбординга</button>
         {% endif %}
@@ -179,464 +129,489 @@
     </div>
   </div>
 
-  <!-- Layout -->
-  <div class="grid md:grid-cols-[1fr,360px] gap-5">
-    <!-- MAIN -->
-    <div class="space-y-4">
+  <!-- Tabs -->
+  <div class="flex flex-wrap items-center gap-2 mb-4">
+    <button :class="['pill', tab==='feed'?'active':'']"  @click="setTab('feed')">Лента</button>
+    <button :class="['pill', tab==='tasks'?'active':'']" @click="setTab('tasks')">Задачи</button>
+    <button :class="['pill', tab==='people'?'active':'']" @click="setTab('people'); loadPeople(people.page,true)">Сотрудники</button>
+    <button :class="['pill', tab==='store'?'active':'']"  @click="setTab('store'); loadStore(true)">Магазин</button>
+    <button :class="['pill', tab==='crm'?'active':'']"   @click="setTab('crm'); loadCrm()">CRM</button>
+  </div>
 
-      <!-- Tabs -->
-      <div class="flex flex-wrap items-center gap-2">
-        <button :class="['pill', tab==='feed'?'active':'']"  @click="tab='feed'">Лента</button>
-        <button :class="['pill', tab==='tasks'?'active':'']" @click="tab='tasks'">Задачи</button>
-        <button :class="['pill', tab==='people'?'active':'']" @click="tab='people'">Сотрудники</button>
-        <button :class="['pill', tab==='store'?'active':'']"  @click="tab='store'">Магазин</button>
+  <!-- ===== FEED ===== -->
+  <div x-show="tab==='feed'" x-transition.opacity class="space-y-4 fade-enter">
+    <div class="card p-4" x-show="canPost">
+      <div class="font-semibold mb-2">Новый пост</div>
+      <textarea x-model="newPost" class="textarea" placeholder="Текст объявления..."></textarea>
+
+      <div class="mt-2">
+        <input type="file" accept="image/*" x-ref="newPostImageInput"
+               class="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-[var(--sj-border)] file:bg-[color-mix(in_oklab,var(--sj-elev)_96%,transparent)] file:px-3 file:py-1.5 hover:file:brightness-95"
+               @change="onNewPostFile($event)">
+        <div x-show="newPostPreview" class="mt-2">
+          <img :src="newPostPreview" alt="" class="max-h-56 rounded-xl border border-[var(--sj-border)] object-contain">
+          <button type="button" class="mt-2 text-xs underline text-[color:var(--sj-muted)]" @click="clearNewPostFile()">Убрать изображение</button>
+        </div>
       </div>
 
-      <!-- FEED -->
-      <div x-show="tab==='feed'" x-transition.opacity class="space-y-4">
-        <div class="card p-4" x-show="canPost">
-          <div class="font-semibold mb-2">Новый пост</div>
-          <textarea x-model="newPost" class="textarea" placeholder="Текст объявления..."></textarea>
+      <label class="inline-flex items-center gap-2 text-sm mt-2 text-[color:var(--sj-muted)]">
+        <input type="checkbox" x-model="newPinned" class="rounded"> Закрепить
+      </label>
 
-          <div class="mt-2">
-            <input type="file" accept="image/*" x-ref="newPostImageInput"
-                   class="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-[var(--sj-border)] file:bg-[var(--sj-muted)] file:px-3 file:py-1.5 hover:file:brightness-95"
-                   @change="onNewPostFile($event)">
-            <div x-show="newPostPreview" class="mt-2">
-              <img :src="newPostPreview" alt="" class="max-h-56 rounded-xl border border-[var(--sj-border)] object-contain">
-              <button type="button" class="mt-2 text-xs underline" style="color:var(--sj-muted-text)" @click="clearNewPostFile()">Убрать изображение</button>
+      <button class="mt-3 w-full btn btn-indigo" :disabled="posting" @click="createPost()">
+        <span x-show="!posting">Опубликовать</span>
+        <span x-show="posting" class="inline-flex items-center gap-2"><i class="bi bi-arrow-repeat animate-spin"></i> Публикуем…</span>
+      </button>
+    </div>
+
+    <!-- Лента -->
+    <template x-if="loading.feed">
+      <div class="space-y-3">
+        <div class="card p-4 skeleton h-28 rounded-xl"></div>
+        <div class="card p-4 skeleton h-24 rounded-xl"></div>
+        <div class="card p-4 skeleton h-36 rounded-xl"></div>
+      </div>
+    </template>
+
+    <div class="space-y-3" x-show="!loading.feed">
+      <template x-for="p in feed" :key="p.id">
+        <div class="card p-4 group">
+          <div class="text-xs text-[color:var(--sj-muted)]" x-text="fmtDateTime(p.created_at)"></div>
+          <div class="font-semibold mt-1 flex items-center gap-2">
+            <span class="text-emerald-400" x-text="p.author"></span>
+            <span class="text-xs text-[color:var(--sj-muted)]" x-text="p.type==='partner'?'(партнёр)':'(менеджер)'"></span>
+            <span x-show="p.pinned" class="ml-2 text-amber-400">📌</span>
+          </div>
+          <div class="mt-1 whitespace-pre-line" x-text="p.text"></div>
+          <template x-if="(p.image_url || p.photo_url || p.image)">
+            <img :src="p.image_url || p.photo_url || p.image"
+                 class="mt-2 rounded-xl border border-[var(--sj-border)] max-h-80 object-contain"
+                 loading="lazy" alt="">
+          </template>
+        </div>
+      </template>
+      <div x-show="feed.length===0" class="text-sm text-[color:var(--sj-muted)]">Пока пусто.</div>
+    </div>
+  </div>
+
+  <!-- ===== TASKS ===== -->
+  <div x-show="tab==='tasks'" x-transition.opacity class="space-y-3 fade-enter">
+    <template x-if="loading.tasks">
+      <div class="space-y-3">
+        <div class="card p-4 skeleton h-24 rounded-xl"></div>
+        <div class="card p-4 skeleton h-24 rounded-xl"></div>
+      </div>
+    </template>
+
+    <div x-show="!loading.tasks">
+      <template x-for="t in tasks" :key="t.id">
+        <div class="card p-4 flex items-start justify-between gap-4">
+          <div>
+            <div class="font-semibold" x-text="t.title"></div>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-[11px] px-2 py-0.5 rounded-full border border-[var(--sj-border)]"
+                    :class="priorityClass(t.priority)"
+                    x-text="'приоритет: ' + (t.priority || 'normal')"></span>
+              <span class="text-[11px] text-[color:var(--sj-muted)]" x-text="t.require_proof ? 'требуется отчёт' : 'без отчёта'"></span>
+            </div>
+
+            <div class="text-sm mt-1" x-text="t.description"></div>
+
+            <div class="text-xs mt-1 text-[color:var(--sj-muted)]">
+              Награда:
+              <b class="text-emerald-400" x-text="t.points_xp + ' XP'"></b>,
+              <b class="text-amber-400"   x-text="t.coins + ' 🪙'"></b>
+              <span x-show="t.due_at"> · дедлайн:
+                <span x-text="fmtDate(t.due_at)"></span>
+              </span>
+              <span x-show="t.due_at" class="ml-2"
+                    :class="t.is_due_passed ? 'text-rose-400' : 'text-emerald-400'"
+                    x-text="t.is_due_passed ? 'срок истёк' : 'срок не истёк'"></span>
+            </div>
+
+            <div class="text-xs mt-1"
+                 :class="assignClass(t.assign_status)"
+                 x-show="t.assign_status"
+                 x-text="assignText(t.assign_status)">
             </div>
           </div>
 
-          <label class="inline-flex items-center gap-2 text-sm mt-2" style="color:var(--sj-muted-text)">
-            <input type="checkbox" x-model="newPinned" class="rounded"> Закрепить
-          </label>
+          <div class="shrink-0 flex items-center gap-2">
+            <template x-if="canCreateTasks">
+              <button class="btn btn-outline" @click="openTaskModal('edit', t)">Изменить</button>
+            </template>
 
-          <button class="mt-3 w-full btn btn-indigo" @click="createPost()">Опубликовать</button>
-        </div>
-
-        <div class="space-y-3">
-          <template x-for="p in feed" :key="p.id">
-            <div class="card p-4 group">
-              <div class="text-xs" style="color:var(--sj-muted-text)" x-text="new Date(p.created_at).toLocaleString()"></div>
-              <div class="font-semibold mt-1 flex items-center gap-2">
-                <span class="text-emerald-600 dark:text-emerald-300" x-text="p.author"></span>
-                <span class="text-xs" style="color:var(--sj-muted-text)" x-text="p.type==='partner'?'(партнёр)':'(менеджер)'"></span>
-                <span x-show="p.pinned" class="ml-2" style="color:rgb(var(--amber))">📌</span>
+            <template x-if="t.submittable">
+              <div class="flex items-center gap-2">
+                <input type="file" class="hidden" :id="'proof_'+t.id" @change="submitProof(t.id, $event)">
+                <button class="btn btn-sky" @click="document.getElementById('proof_'+t.id).click()">Отправить отчёт</button>
               </div>
-              <div class="mt-1 whitespace-pre-line" x-text="p.text"></div>
-              <template x-if="(p.image_url || p.photo_url || p.image)">
-                <img :src="p.image_url || p.photo_url || p.image"
-                     class="mt-2 rounded-xl border border-[var(--sj-border)] max-h-80 object-contain"
-                     loading="lazy" alt="">
-              </template>
-            </div>
-          </template>
-          <div x-show="feed.length===0" class="text-sm" style="color:var(--sj-muted-text)">Пока пусто.</div>
+            </template>
+          </div>
+        </div>
+      </template>
+      <div x-show="tasks.length===0" class="text-sm text-[color:var(--sj-muted)]">Активных задач нет.</div>
+
+      <div class="flex justify-end" x-show="canCreateTasks">
+        <button class="btn btn-indigo" @click="openTaskModal('create')">+ Создать задачу</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PEOPLE ===== -->
+  <div x-show="tab==='people'" x-transition.opacity class="space-y-4 fade-enter">
+    <div class="card p-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 class="text-lg font-semibold">Сотрудники</h3>
+        <span class="badge" x-text="people.items?.length ? ('всего: '+people.total) : '—'"></span>
+
+        <div class="ml-auto flex flex-wrap items-center gap-2">
+          <input x-model.debounce.250ms="filters.query" @input="applyPeopleFilters()"
+                 class="input" placeholder="поиск по имени или email" style="min-width:240px">
+
+          <select class="select" x-model="filters.role" @change="applyPeopleFilters()">
+            <option value="all">все роли</option>
+            <option value="admin">только админы</option>
+            <option value="user">только сотрудники</option>
+          </select>
+
+          <select class="select" x-model="filters.sort" @change="applyPeopleFilters()">
+            <option value="name_asc">имя ↑</option>
+            <option value="name_desc">имя ↓</option>
+            <option value="level_desc">уровень ↓</option>
+            <option value="level_asc">уровень ↑</option>
+          </select>
+
+          <select class="select" x-model.number="people.per_page" @change="loadPeople(1,true)">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+
+          <button class="btn btn-emerald" @click="openCreateAdmin()">+ Админ</button>
         </div>
       </div>
 
-      <!-- TASKS -->
-      <div x-show="tab==='tasks'" x-transition.opacity class="space-y-3">
-        <template x-for="t in tasks" :key="t.id">
-          <div class="card p-4 flex items-start justify-between gap-4">
-            <div>
-              <div class="font-semibold" x-text="t.title"></div>
-              <div class="flex items-center gap-2 mt-1">
-                <span class="text-[11px] px-2 py-0.5 rounded-full border border-[var(--sj-border)]"
-                      :class="{
-                        'text-emerald-600 dark:text-emerald-300': t.priority==='low',
-                        'text-sky-600 dark:text-sky-300':     t.priority==='normal',
-                        'text-amber-600 dark:text-amber-300':   t.priority==='high',
-                        'text-rose-600 dark:text-rose-300':    t.priority==='critical',
-                      }"
-                      x-text="'приоритет: ' + (t.priority || 'normal')"></span>
-                <span class="text-[11px]" style="color:var(--sj-muted-text)" x-text="t.require_proof ? 'требуется отчёт' : 'без отчёта'"></span>
+      <!-- Таблица -->
+      <template x-if="loading.people">
+        <div class="mt-3 space-y-2">
+          <div class="skeleton h-12 rounded-lg"></div>
+          <div class="skeleton h-12 rounded-lg"></div>
+          <div class="skeleton h-12 rounded-lg"></div>
+        </div>
+      </template>
+
+      <div class="table-wrap mt-3" x-show="!loading.people">
+        <table class="text-sm">
+          <thead>
+            <tr>
+              <th>ID</th><th>Имя</th><th>Email</th><th>Роль</th><th>Уровень</th><th class="text-right">Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="u in people.items" :key="u.id">
+              <tr>
+                <td x-text="u.id"></td>
+                <td><div class="font-medium" x-text="u.display_name || '—'"></div></td>
+                <td x-text="u.email"></td>
+                <td>
+                  <span class="badge" :class="u.is_admin ? 'border-emerald-500/40' : ''" x-text="u.is_admin ? 'админ' : 'сотрудник'"></span>
+                </td>
+                <td x-text="u.level != null ? u.level : '—'"></td>
+                <td class="text-right">
+                  <div class="flex justify-end gap-2">
+                    <button class="btn btn-sky"   x-show="!u.is_admin" @click="setCompanyAdmin(u.id,true)">Сделать админом</button>
+                    <button class="btn btn-amber" x-show="u.is_admin"  @click="setCompanyAdmin(u.id,false)">Снять админа</button>
+                    <button class="btn btn-rose"  @click="removeFromCompany(u.id)">Удалить</button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div x-show="!people.items?.length" class="text-sm p-4 text-[color:var(--sj-muted)]">Ничего не найдено.</div>
+      </div>
+
+      <!-- Пагинация -->
+      <div class="flex items-center justify-between mt-3" x-show="(people.total||0) > (people.per_page||20)">
+        <button class="btn btn-ghost text-sm py-1.5" :disabled="people.page<=1" @click="loadPeople(people.page-1,true)">← Назад</button>
+        <div class="text-xs text-[color:var(--sj-muted)]">
+          Стр. <b x-text="people.page||1"></b> / <b x-text="Math.ceil((people.total||0)/(people.per_page||20))"></b>
+        </div>
+        <button class="btn btn-ghost text-sm py-1.5"
+                :disabled="(people.page||1) >= Math.ceil((people.total||0)/(people.per_page||20))"
+                @click="loadPeople(people.page+1,true)">Вперёд →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STORE ===== -->
+  <div x-show="tab==='store'" x-transition.opacity class="space-y-4 fade-enter">
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold">Магазин компании</h3>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-sky" @click="openStoreModal('create')">＋ Товар</button>
+          <button class="btn btn-outline" @click="loadStore(true)">Обновить</button>
+        </div>
+      </div>
+
+      <template x-if="loading.store">
+        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div class="card p-3 skeleton h-28 rounded-xl"></div>
+          <div class="card p-3 skeleton h-28 rounded-xl"></div>
+          <div class="card p-3 skeleton h-28 rounded-xl"></div>
+        </div>
+      </template>
+
+      <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-3" x-show="!loading.store">
+        <template x-for="i in store.items" :key="i.id">
+          <div class="card p-3 hover-lift">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="font-semibold truncate" x-text="i.title"></div>
+                <div class="text-xs mt-0.5 text-[color:var(--sj-muted)]">
+                  тип: <b x-text="i.type"></b> • цена: <b x-text="i.cost_coins"></b> • мин. ур.: <b x-text="i.min_level"></b>
+                </div>
+                <div class="text-xs mt-0.5 text-[color:var(--sj-muted)]">
+                  stock: <b x-text="i.stock ?? '∞'"></b>
+                </div>
               </div>
-
-              <div class="text-sm mt-1" x-text="t.description"></div>
-
-              <div class="text-xs mt-1" style="color:var(--sj-muted-text)">
-                Награда:
-                <b class="text-emerald-600 dark:text-emerald-300" x-text="t.points_xp + ' XP'"></b>,
-                <b class="text-amber-600 dark:text-amber-300"   x-text="t.coins + ' 🪙'"></b>
-                <span x-show="t.due_at"> · дедлайн:
-                  <span x-text="new Date(t.due_at).toLocaleDateString()"></span>
-                </span>
-                <span x-show="t.due_at" class="ml-2"
-                      :class="t.is_due_passed ? 'text-rose-600 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'"
-                      x-text="t.is_due_passed ? 'срок истёк' : 'срок не истёк'"></span>
-              </div>
-
-              <div class="text-xs mt-1"
-                   :class="{'text-sky-600 dark:text-sky-300': t.assign_status==='assigned', 'text-emerald-600 dark:text-emerald-300': t.assign_status==='approved', 'text-rose-600 dark:text-rose-300': t.assign_status==='rejected'}"
-                   x-show="t.assign_status"
-                   x-text="t.assign_status==='assigned' ? 'Назначена' : (t.assign_status==='approved' ? 'Зачтена' : 'Отклонена')">
+              <div class="shrink-0">
+                <div class="toggle" role="switch" :aria-checked="i.is_active?'true':'false'"
+                     :class="i.is_active ? 'is-on' : ''" @click="toggleStoreItem(i)"></div>
               </div>
             </div>
 
-            <div class="shrink-0 flex items-center gap-2">
-              <template x-if="canCreateTasks">
-                <button class="btn btn-outline" @click="openTaskModal('edit', t)">Изменить</button>
-              </template>
-
-              <template x-if="t.submittable">
-                <div class="flex items-center gap-2">
-                  <input type="file" class="hidden" :id="'proof_'+t.id" @change="submitProof(t.id, $event)">
-                  <button class="btn btn-sky" @click="document.getElementById('proof_'+t.id).click()">Отправить отчёт</button>
-                </div>
-              </template>
+            <div class="mt-2 flex gap-2">
+              <button class="btn btn-outline" @click="openStoreModal('edit', i)">Редакт.</button>
+              <button class="btn btn-rose" @click="deleteStoreItem(i.id)">Удалить</button>
             </div>
           </div>
         </template>
-        <div x-show="tasks.length===0" class="text-sm" style="color:var(--sj-muted-text)">Активных задач нет.</div>
-
-        <div class="flex justify-end" x-show="canCreateTasks">
-          <button class="btn btn-indigo" @click="openTaskModal('create')">+ Создать задачу</button>
-        </div>
       </div>
 
-      <!-- PEOPLE -->
-      <div x-show="tab==='people'" x-transition.opacity class="space-y-4">
-        <div class="card p-4">
-          <div class="flex flex-wrap items-center gap-2">
-            <h3 class="text-lg font-semibold">Сотрудники</h3>
-            <span class="badge" x-text="people.items?.length ? ('всего: '+people.total) : '—'"></span>
-            <div class="ml-auto flex flex-wrap items-center gap-2">
-              <input x-model.debounce.300ms="people.query" @input="loadPeople(1)" class="input" placeholder="поиск по имени или email" style="min-width:260px">
-              <button class="btn btn-outline" @click="openInviteModal()">Инвайт-ссылка</button>
-              <button class="btn btn-emerald" @click="openCreateAdmin()">+ Админ</button>
-            </div>
-          </div>
+      <div x-show="!loading.store && !store.items?.length" class="text-sm text-[color:var(--sj-muted)]">Товаров пока нет.</div>
+    </div>
+  </div>
 
-          <div class="table-wrap mt-3">
-            <table class="text-sm">
-              <thead>
-                <tr>
-                  <th>ID</th><th>Имя</th><th>Email</th><th>Роль</th><th>Уровень</th><th class="text-right">Действия</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="u in people.items" :key="u.id">
-                  <tr>
-                    <td x-text="u.id"></td>
-                    <td>
-                      <div class="font-medium" x-text="u.display_name || '—'"></div>
-                    </td>
-                    <td x-text="u.email"></td>
-                    <td>
-                      <span class="badge" :class="u.is_admin ? 'border-emerald-500/40' : ''" x-text="u.is_admin ? 'админ' : 'сотрудник'"></span>
-                    </td>
-                    <td x-text="u.level != null ? u.level : '—'"></td>
-                    <td class="text-right">
-                      <div class="flex justify-end gap-2">
-                        <button class="btn btn-sky"    x-show="!u.is_admin" @click="setCompanyAdmin(u.id,true)">Сделать админом</button>
-                        <button class="btn btn-amber"  x-show="u.is_admin"  @click="setCompanyAdmin(u.id,false)">Снять админа</button>
-                        <button class="btn btn-rose"   @click="removeFromCompany(u.id)">Удалить</button>
-                      </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-            <div x-show="!people.items?.length" class="text-sm p-4" style="color:var(--sj-muted-text)">Ничего не найдено.</div>
-          </div>
-
-          <!-- pagination -->
-          <div class="flex items-center justify-between mt-3" x-show="(people.total||0) > (people.per_page||20)">
-            <button class="btn btn-ghost text-sm py-1.5" :disabled="people.page<=1" @click="loadPeople(people.page-1)">← Назад</button>
-            <div class="text-xs" style="color:var(--sj-muted-text)">
-              Стр. <b x-text="people.page||1"></b> / <b x-text="Math.ceil((people.total||0)/(people.per_page||20))"></b>
-            </div>
-            <button class="btn btn-ghost text-sm py-1.5"
-                    :disabled="(people.page||1) >= Math.ceil((people.total||0)/(people.per_page||20))"
-                    @click="loadPeople(people.page+1)">Вперёд →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- STORE -->
-      <div x-show="tab==='store'" x-transition.opacity class="space-y-4">
-        <div class="card p-4">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg font-semibold">Магазин компании</h3>
-            <div class="flex items-center gap-2">
-              <button class="btn btn-sky" @click="openStoreModal('create')">＋ Товар</button>
-              <button class="btn btn-outline" @click="loadStore()">Обновить</button>
-            </div>
-          </div>
-
-          <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-            <template x-for="i in store.items" :key="i.id">
-              <div class="card p-3">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="min-w-0">
-                    <div class="font-semibold truncate" x-text="i.title"></div>
-                    <div class="text-xs mt-0.5" style="color:var(--sj-muted-text)">
-                      тип: <b x-text="i.type"></b> • цена: <b x-text="i.cost_coins"></b> • мин. ур.: <b x-text="i.min_level"></b>
-                    </div>
-                    <div class="text-xs mt-0.5" style="color:var(--sj-muted-text)">
-                      stock: <b x-text="i.stock ?? '∞'"></b>
-                    </div>
-                  </div>
-                  <div class="shrink-0">
-                    <div class="toggle" :class="i.is_active ? 'is-on' : ''" @click="toggleStoreItem(i)"></div>
-                  </div>
-                </div>
-
-                <div class="mt-2 flex gap-2">
-                  <button class="btn btn-outline" @click="openStoreModal('edit', i)">Редакт.</button>
-                  <button class="btn btn-rose" @click="deleteStoreItem(i.id)">Удалить</button>
-                </div>
-              </div>
+  <!-- ===== CRM (статус + кнопка) ===== -->
+  <div x-show="tab==='crm'" x-transition.opacity class="space-y-4 fade-enter">
+    <div class="card p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-semibold">Интеграция amo/Kommo</div>
+          <div class="text-sm text-[color:var(--sj-muted)]">
+            <template x-if="crm.loading">
+              <span class="inline-flex items-center gap-2"><i class="bi bi-arrow-repeat animate-spin"></i> Проверяем статус…</span>
             </template>
-          </div>
-
-          <div x-show="!store.items?.length" class="text-sm" style="color:var(--sj-muted-text)">Товаров пока нет.</div>
-        </div>
-      </div>
-
-      <!-- TASK MODAL -->
-      <div x-show="taskModal.open" x-transition.opacity x-cloak>
-        <div class="fixed inset-0" :style="{background: 'var(--sj-overlay)'}" @click="closeTaskModal()"></div>
-
-        <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 card p-5" @click.stop>
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold" x-text="taskModal.mode==='create' ? 'Новая задача' : 'Изменить задачу'"></h3>
-            <button class="btn btn-ghost px-3" @click="closeTaskModal()">✕</button>
-          </div>
-
-          <div class="px-1 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
-            <div class="mt-2 grid gap-3">
-              <input x-model="taskModal.form.title" class="input" placeholder="Заголовок">
-              <textarea x-model="taskModal.form.description" class="textarea h-28" placeholder="Описание"></textarea>
-
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="text-xs" style="color:var(--sj-muted-text)">XP</label>
-                  <input x-model.number="taskModal.form.points_xp" type="number" class="input">
-                </div>
-                <div>
-                  <label class="text-xs" style="color:var(--sj-muted-text)">Коины</label>
-                  <input x-model.number="taskModal.form.coins" type="number" class="input">
-                </div>
-              </div>
-
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="text-xs" style="color:var(--sj-muted-text)">Приоритет</label>
-                  <select x-model="taskModal.form.priority" class="select">
-                    <option value="low">low</option>
-                    <option value="normal">normal</option>
-                    <option value="high">high</option>
-                    <option value="critical">critical</option>
-                  </select>
-                </div>
-                <div class="flex items-end">
-                  <label class="inline-flex items-center gap-2 text-xs" style="color:var(--sj-muted-text)">
-                    <input type="checkbox" x-model="taskModal.form.require_proof" class="rounded"> Требуется отчёт с фото
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label class="text-xs" style="color:var(--sj-muted-text)">Дедлайн (дата, опционально)</label>
-                <input type="date" x-model="taskModal.form._due_date" class="input">
-              </div>
-
-              <div>
-                <label class="text-xs" style="color:var(--sj-muted-text)">ID ачивки (опционально)</label>
-                <input x-model.number="taskModal.form.reward_achievement_id" type="number" class="input" placeholder="Напр., 3">
-              </div>
-            </div>
-
-            <!-- Members select -->
-            <div class="mt-5">
-              <div class="text-sm font-semibold">Назначить сотрудникам</div>
-
-              <div class="mt-2 flex flex-wrap gap-2" x-show="taskModal.selectedIds.length">
-                <template x-for="uid in taskModal.selectedIds" :key="uid">
-                  <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border border-[var(--sj-border)] bg-[var(--sj-muted)]">
-                    <span x-text="nameById(uid)"></span>
-                    <button class="hover:text-rose-600 dark:hover:text-rose-300" @click="tmUnselect(uid)">✕</button>
+            <template x-if="!crm.loading">
+              <span>
+                <template x-if="crm.connected">
+                  <span>
+                    Подключено к <b x-text="crm.base_domain"></b>.
+                    <span x-show="crm.token_expires_at"> Токен истекает: <b x-text="human(crm.token_expires_at)"></b>.</span>
+                    <span> Обновлено: <b x-text="crm.last_sync_at||'—'"></b></span>
                   </span>
                 </template>
-              </div>
-
-              <div class="mt-2">
-                <input x-model="taskModal.query" @input="tmSearchMembers" placeholder="Поиск по имени или email" class="input">
-              </div>
-
-              <div class="mt-3 max-h-64 overflow-auto divide-y" style="border-color:var(--sj-border)">
-                <template x-for="m in taskModal.members" :key="m.id">
-                  <label class="flex items-center gap-3 py-2 px-1 cursor-pointer">
-                    <input type="checkbox"
-                           :value="String(m.id)"
-                           :checked="taskModal.selectedIds.includes(String(m.id))"
-                           @change="tmToggleSelect(m.id)">
-                    <div class="leading-tight">
-                      <div class="font-medium" x-text="m.display_name"></div>
-                      <div class="text-xs" style="color:var(--sj-muted-text)" x-text="m.email"></div>
-                    </div>
-                  </label>
-                </template>
-                <div class="text-sm py-6 text-center" style="color:var(--sj-muted-text)" x-show="!taskModal.members.length">Ничего не найдено</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
-            <button class="btn btn-ghost" @click="closeTaskModal()">Отмена</button>
-            <button class="btn btn-indigo disabled:opacity-50"
-                    :disabled="!taskModal.form.title?.trim()"
-                    @click="saveTask()"
-                    x-text="taskModal.mode==='create' ? 'Создать' : 'Сохранить'">
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- STORE MODAL -->
-      <div x-show="storeModal.open" x-transition.opacity x-cloak>
-        <div class="fixed inset-0" :style="{background: 'var(--sj-overlay)'}" @click="closeStoreModal()"></div>
-
-        <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 card p-5" @click.stop>
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold" x-text="storeModal.mode==='create' ? 'Новый товар' : 'Изменить товар'"></h3>
-            <button class="btn btn-ghost px-3" @click="closeStoreModal()">✕</button>
-          </div>
-
-          <div class="px-1 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
-            <div class="grid gap-3">
-              <select x-model="storeModal.form.type" class="select">
-                <option value="skin">skin</option>
-                <option value="coupon">coupon</option>
-                <option value="merch">merch</option>
-              </select>
-              <input x-model="storeModal.form.title" class="input" placeholder="Название">
-              <div class="grid grid-cols-3 gap-2">
-                <input x-model.number="storeModal.form.cost_coins" type="number" class="input" placeholder="Цена 🪙">
-                <input x-model.number="storeModal.form.min_level"  type="number" class="input" placeholder="Мин. уровень">
-                <input x-model="storeModal.form.stock" class="input" placeholder="stock (пусто = ∞)">
-              </div>
-              <textarea x-model="storeModal.form.payload" class="textarea" rows="4" placeholder='JSON payload, напр. {"slot":"frame","key":"frame_gold","auto_equip":true}'></textarea>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
-            <button class="btn btn-ghost" @click="closeStoreModal()">Отмена</button>
-            <button class="btn btn-sky" @click="saveStoreItem()">Сохранить</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- CREATE ADMIN MODAL -->
-      <div x-show="adminModal.open" x-transition.opacity x-cloak>
-        <div class="fixed inset-0" :style="{background:'var(--sj-overlay)'}" @click="closeAdminModal()"></div>
-        <div class="fixed inset-x-0 top-[12%] mx-auto max-w-md z-50 card p-5" @click.stop>
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold">Создать админа компании</h3>
-            <button class="btn btn-ghost px-3" @click="closeAdminModal()">✕</button>
-          </div>
-          <div class="px-1 py-4 grid gap-3">
-            <input class="input" placeholder="email" x-model="adminModal.form.email">
-            <input class="input" type="password" placeholder="пароль" x-model="adminModal.form.password">
-            <input class="input" placeholder="имя (опционально)" x-model="adminModal.form.display_name">
-          </div>
-          <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
-            <button class="btn btn-ghost" @click="closeAdminModal()">Отмена</button>
-            <button class="btn btn-emerald" @click="createCompanyAdmin()">Создать</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- INVITE MODAL -->
-      <div x-show="inviteModal" x-transition.opacity x-cloak>
-        <div class="fixed inset-0" :style="{background:'var(--sj-overlay)'}" @click="inviteModal=false"></div>
-        <div class="fixed inset-x-0 top-[12%] mx-auto max-w-lg z-50 card p-5" @click.stop>
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold">Инвайт-ссылка</h3>
-            <button class="btn btn-ghost px-3" @click="inviteModal=false">✕</button>
-          </div>
-          <div class="px-1 py-4">
-            <template x-if="invite">
-              <div class="space-y-2">
-                <div class="text-sm" style="color:var(--sj-muted-text)">Передайте ссылку сотрудникам:</div>
-                <div class="muted p-2 rounded-lg">
-                  <code class="text-xs break-all" x-text="invite.url || invite.invite_url || ''"></code>
-                </div>
-                <div class="flex gap-2">
-                  <button class="btn btn-indigo" @click="copy(invite.url || invite.invite_url)">Скопировать</button>
-                  <button class="btn btn-amber" @click="regenerateInvite()">Перегенерировать</button>
-                  <button class="btn btn-rose" @click="deactivateInvite()">Деактивировать</button>
-                </div>
-              </div>
+                <span x-show="!crm.connected">Не подключено.</span>
+              </span>
             </template>
-            <div x-show="!invite" class="text-sm" style="color:var(--sj-muted-text)">Ссылка не активна.</div>
           </div>
         </div>
+        <div class="shrink-0 flex flex-wrap items-center gap-2">
+          <a class="btn btn-indigo" :href="`/partner/company/${companyId}/crm`">Перейти в настройки CRM</a>
+          <button class="btn btn-outline" @click="loadCrm()">Обновить статус</button>
+        </div>
       </div>
-
     </div>
 
-    <!-- ASIDE -->
-    <aside class="space-y-4 md:pt-1">
-      <div class="card p-5">
-        <div class="flex items-center gap-4">
-          <div class="h-16 w-16 rounded-2xl border border-[var(--sj-border)] bg-[rgba(79,70,229,.12)] flex items-center justify-center text-xl font-bold shadow-inner text-indigo-700 dark:text-indigo-300">
-            <span x-text="(company && company.name ? company.name.charAt(0).toUpperCase() : 'C')"></span>
+    <div class="card p-4">
+      <div class="text-sm text-[color:var(--sj-muted)]">
+        Управляйте привязкой и синхронизацией на странице «Настройки CRM».
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Модалки (tasks/store/admin/invite) — без изменений по логике, только стилистика осталась прежней ===== -->
+  <!-- TASK MODAL -->
+  <div x-show="taskModal.open" x-transition.opacity x-cloak>
+    <div class="fixed inset-0" style="background:rgba(0,0,0,.55)" @click="closeTaskModal()"></div>
+    <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 card p-5" @click.stop>
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold" x-text="taskModal.mode==='create' ? 'Новая задача' : 'Изменить задачу'"></h3>
+        <button class="btn btn-ghost px-3" @click="closeTaskModal()">✕</button>
+      </div>
+
+      <div class="px-1 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
+        <div class="mt-2 grid gap-3">
+          <input x-model="taskModal.form.title" class="input" placeholder="Заголовок">
+          <textarea x-model="taskModal.form.description" class="textarea h-28" placeholder="Описание"></textarea>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-[color:var(--sj-muted)]">XP</label>
+              <input x-model.number="taskModal.form.points_xp" type="number" class="input">
+            </div>
+            <div>
+              <label class="text-xs text-[color:var(--sj-muted)]">Коины</label>
+              <input x-model.number="taskModal.form.coins" type="number" class="input">
+            </div>
           </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-[color:var(--sj-muted)]">Приоритет</label>
+              <select x-model="taskModal.form.priority" class="select">
+                <option value="low">low</option>
+                <option value="normal">normal</option>
+                <option value="high">high</option>
+                <option value="critical">critical</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <label class="inline-flex items-center gap-2 text-xs text-[color:var(--sj-muted)]">
+                <input type="checkbox" x-model="taskModal.form.require_proof" class="rounded"> Требуется отчёт с фото
+              </label>
+            </div>
+          </div>
+
           <div>
-            <div class="text-lg font-bold" x-text="company?.name || 'Компания'"></div>
-            <div class="text-xs" style="color:var(--sj-muted-text)" x-text="company ? '@' + company.slug : ''"></div>
+            <label class="text-xs text-[color:var(--sj-muted)]">Дедлайн (дата, опционально)</label>
+            <input type="date" x-model="taskModal.form._due_date" class="input">
+          </div>
+
+          <div>
+            <label class="text-xs text-[color:var(--sj-muted)]">ID ачивки (опционально)</label>
+            <input x-model.number="taskModal.form.reward_achievement_id" type="number" class="input" placeholder="Напр., 3">
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-3 gap-2">
-          <div class="muted p-3 text-center">
-            <div class="text-[11px]" style="color:var(--sj-muted-text)">Участники</div>
-            <div class="text-lg font-bold" x-text="kpi.members ?? '—'"></div>
+        <!-- Members -->
+        <div class="mt-5">
+          <div class="text-sm font-semibold">Назначить сотрудникам</div>
+
+          <div class="mt-2 flex flex-wrap gap-2" x-show="taskModal.selectedIds.length">
+            <template x-for="uid in taskModal.selectedIds" :key="uid">
+              <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border border-[var(--sj-border)] bg-[color-mix(in_oklab,var(--sj-elev)_92%,transparent)]">
+                <span x-text="nameById(uid)"></span>
+                <button class="hover:text-rose-400" @click="tmUnselect(uid)">✕</button>
+              </span>
+            </template>
           </div>
-          <div class="muted p-3 text-center">
-            <div class="text-[11px]" style="color:var(--sj-muted-text)">Уровень</div>
-            <div class="text-lg font-bold" x-text="kpi.avg_level ?? '—'"></div>
+
+          <div class="mt-2">
+            <input x-model="taskModal.query" @input="tmSearchMembers" placeholder="Поиск по имени или email" class="input">
           </div>
-          <div class="muted p-3 text-center">
-            <div class="text-[11px]" style="color:var(--sj-muted-text)">Событ.30д</div>
-            <div class="text-lg font-bold" x-text="kpi.events_30d ?? '—'"></div>
+
+          <div class="mt-3 max-h-64 overflow-auto divide-y" style="border-color:var(--sj-border)">
+            <template x-for="m in taskModal.members" :key="m.id">
+              <label class="flex items-center gap-3 py-2 px-1 cursor-pointer">
+                <input type="checkbox"
+                       :value="String(m.id)"
+                       :checked="taskModal.selectedIds.includes(String(m.id))"
+                       @change="tmToggleSelect(m.id)">
+                <div class="leading-tight">
+                  <div class="font-medium" x-text="m.display_name"></div>
+                  <div class="text-xs text-[color:var(--sj-muted)]" x-text="m.email"></div>
+                </div>
+              </label>
+            </template>
+            <div class="text-sm py-6 text-center text-[color:var(--sj-muted)]" x-show="!taskModal.members.length">Ничего не найдено</div>
           </div>
         </div>
       </div>
 
-      <div class="card p-4 text-sm" style="color:var(--sj-muted-text)">
-        «Лента» — объявления, «Задачи» — микро-квесты, «Сотрудники» — роли и состав, «Магазин» — призы и мерч, «Лидерборд» — прогресс за 30 дней.
+      <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
+        <button class="btn btn-ghost" @click="closeTaskModal()">Отмена</button>
+        <button class="btn btn-indigo disabled:opacity-50"
+                :disabled="!taskModal.form.title?.trim()"
+                @click="saveTask()"
+                x-text="taskModal.mode==='create' ? 'Создать' : 'Сохранить'">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STORE MODAL -->
+  <div x-show="storeModal.open" x-transition.opacity x-cloak>
+    <div class="fixed inset-0" style="background:rgba(0,0,0,.55)" @click="closeStoreModal()"></div>
+    <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 card p-5" @click.stop>
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold" x-text="storeModal.mode==='create' ? 'Новый товар' : 'Изменить товар'"></h3>
+        <button class="btn btn-ghost px-3" @click="closeStoreModal()">✕</button>
       </div>
 
-      <div class="card p-4">
-        <div class="text-sm mb-2" style="color:var(--sj-muted-text)">Лидерборд · 30 дней</div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr>
-                <th class="text-left py-2">#</th>
-                <th class="text-left">Сотрудник</th>
-                <th class="text-right">XP</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="(row,idx) in leaderboard" :key="row.user_id || row.id">
-                <tr class="hover:bg-[color-mix(in_ol, var(--sj-muted)_70%, transparent)]">
-                  <td class="py-2" x-text="idx+1"></td>
-                  <td x-text="row.display_name"></td>
-                  <td class="text-right font-semibold" x-text="row.xp_30d"></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-          <div x-show="leaderboard.length===0" class="text-sm" style="color:var(--sj-muted-text)">Пока нет данных.</div>
+      <div class="px-1 py-4 max-h-[75vh] overflow-y-auto overscroll-contain">
+        <div class="grid gap-3">
+          <select x-model="storeModal.form.type" class="select">
+            <option value="skin">skin</option>
+            <option value="coupon">coupon</option>
+            <option value="merch">merch</option>
+          </select>
+          <input x-model="storeModal.form.title" class="input" placeholder="Название">
+          <div class="grid grid-cols-3 gap-2">
+            <input x-model.number="storeModal.form.cost_coins" type="number" class="input" placeholder="Цена 🪙">
+            <input x-model.number="storeModal.form.min_level"  type="number" class="input" placeholder="Мин. уровень">
+            <input x-model="storeModal.form.stock" class="input" placeholder="stock (пусто = ∞)">
+          </div>
+          <textarea x-model="storeModal.form.payload" class="textarea" rows="4" placeholder='JSON payload, напр. {"slot":"frame","key":"frame_gold","auto_equip":true}'></textarea>
         </div>
       </div>
-    </aside>
+
+      <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
+        <button class="btn btn-ghost" @click="closeStoreModal()">Отмена</button>
+        <button class="btn btn-sky" @click="saveStoreItem()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE ADMIN MODAL -->
+  <div x-show="adminModal.open" x-transition.opacity x-cloak>
+    <div class="fixed inset-0" style="background:rgba(0,0,0,.55)" @click="closeAdminModal()"></div>
+    <div class="fixed inset-x-0 top-[12%] mx-auto max-w-md z-50 card p-5" @click.stop>
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Создать админа компании</h3>
+        <button class="btn btn-ghost px-3" @click="closeAdminModal()">✕</button>
+      </div>
+      <div class="px-1 py-4 grid gap-3">
+        <input class="input" placeholder="email" x-model="adminModal.form.email">
+        <input class="input" type="password" placeholder="пароль" x-model="adminModal.form.password">
+        <input class="input" placeholder="имя (опционально)" x-model="adminModal.form.display_name">
+      </div>
+      <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
+        <button class="btn btn-ghost" @click="closeAdminModal()">Отмена</button>
+        <button class="btn btn-emerald" @click="createCompanyAdmin()">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVITE MODAL -->
+  <div x-show="inviteModal" x-transition.opacity x-cloak>
+    <div class="fixed inset-0" style="background:rgba(0,0,0,.55)" @click="inviteModal=false"></div>
+    <div class="fixed inset-x-0 top-[12%] mx-auto max-w-lg z-50 card p-5" @click.stop>
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Инвайт-ссылка</h3>
+        <button class="btn btn-ghost px-3" @click="inviteModal=false">✕</button>
+      </div>
+      <div class="px-1 py-4">
+        <template x-if="invite">
+          <div class="space-y-2">
+            <div class="text-sm text-[color:var(--sj-muted)]">Передайте ссылку сотрудникам:</div>
+            <div class="muted p-2 rounded-lg">
+              <code class="text-xs break-all" x-text="invite.url || invite.invite_url || ''"></code>
+            </div>
+            <div class="flex gap-2">
+              <button class="btn btn-indigo" @click="copy(invite.url || invite.invite_url)">Скопировать</button>
+              <button class="btn btn-amber" @click="regenerateInvite()">Перегенерировать</button>
+              <button class="btn btn-rose" @click="deactivateInvite()">Деактивировать</button>
+            </div>
+          </div>
+        </template>
+        <div x-show="!invite" class="text-sm text-[color:var(--sj-muted)]">Ссылка не активна.</div>
+      </div>
+    </div>
   </div>
 
 </section>
@@ -644,15 +619,23 @@
 
 {% block scripts %}
 <script>
-/* ========= API client with safe fallbacks ========= */
+/* ===== API client with abort support for fast filters ===== */
 function createApi(){
   const withCreds = { credentials:'same-origin' };
+  const ctrls = new Map(); // key -> AbortController
   async function parse(r){
     let j=null; try{ j=await r.json(); }catch(_){}
     if(!r.ok){ throw new Error(j?.description || j?.detail || j?.message || `HTTP ${r.status}`); }
     return j ?? {};
   }
-  async function get(u){ return parse(await fetch(u, withCreds)); }
+  async function get(u, key=null){
+    const opts={...withCreds};
+    if(key){
+      if(ctrls.has(key)) ctrls.get(key).abort();
+      const ac=new AbortController(); ctrls.set(key, ac); opts.signal=ac.signal;
+    }
+    return parse(await fetch(u, opts));
+  }
   async function del(u){ return parse(await fetch(u, {...withCreds, method:'DELETE'})); }
   async function post(u, body){
     const opts={...withCreds, method:'POST'};
@@ -668,37 +651,83 @@ function createApi(){
 }
 const API = createApi();
 
-/* ========= helpers ========= */
+/* ===== Helpers ===== */
 function isoFromLocalDateEnd(s){ if(!s) return null; const dt=new Date(`${s}T23:59:59`); return dt.toISOString(); }
 
-window.partnerCompanyPage = function(initialCompanyId){
+window.partnerCompanyPageEnh = function(initialCompanyId, companySlug){
   return {
-    /* ===== base ===== */
+    /* theme (используем глобальный __setTheme из base.html) */
+    theme: (document.documentElement.dataset.theme || (document.documentElement.classList.contains('dark')?'dark':'light')),
+    toggleTheme(){ window.__setTheme(this.theme==='dark'?'light':'dark'); this.theme = document.documentElement.dataset.theme; },
+
+    /* state */
     companyId: initialCompanyId, company:null, kpi:{}, feed:[], tasks:[], leaderboard:[], tab:'feed',
-    canPost:false, canCreateTasks:false, saving:false,
+    canPost:false, canCreateTasks:false, posting:false,
+    loading:{ page:true, feed:true, tasks:true, people:false, store:false, crm:false },
+    netError:false,
 
+    // FEED form
     newPost:'', newPinned:false, newPostFile:null, newPostPreview:'',
-    inviteModal:false, invite:null,
 
+    // dialogs
+    inviteModal:false, invite:null,
     adminModal:{ open:false, form:{ email:'', password:'', display_name:'' } },
     storeModal:{ open:false, mode:'create', id:null, form:{ type:'skin', title:'', cost_coins:0, min_level:0, stock:'', payload:'' } },
 
+    // tasks modal
     taskModal:{ open:false, mode:'create', taskId:null,
       form:{ title:'', description:'', points_xp:20, coins:5, due_at:'', priority:'normal', require_proof:true, reward_achievement_id:null, _due_date:'' },
       query:'', members:[], selectedIds:[], _byId:Object.create(null)
     },
 
-    people:{ items:[], page:1, per_page:20, total:0, query:'' },
+    // people + filters (persist)
+    people:{ items:[], page:1, per_page:20, total:0 },
+    filters:{ query:'', role:'all', sort:'name_asc' },
+
+    // store
     store:{ items:[] },
 
-    get headerSubtitle(){ return this.company ? `${this.company.name} (${this.company.slug})` : 'Нет компаний' },
+    // crm
+    crm:{ connected:false, base_domain:'', last_sync_at:null, token_expires_at:null, loading:false },
+
+    get headerSubtitle(){ return this.company ? `${this.company.name} (${this.company.slug||''})` : 'Нет компаний'; },
 
     toast(msg, emoji='ℹ️'){ const s=Alpine.store?.('toasts'); if(s?.push) s.push({title:String(msg), emoji}); else alert(msg); },
     copy(v){ navigator.clipboard?.writeText(v).then(()=> Alpine.store('toasts')?.push?.({title:'Скопировано', emoji:'📋'})); },
+    human(ts){ try{ const d=new Date((typeof ts==='number' && ts<4e9)? ts*1000 : ts); return d.toLocaleString(); }catch(e){ return ts || '—'; } },
+    fmtDate(s){ const d=new Date(s); return isNaN(d)?'':d.toLocaleDateString(); },
+    fmtDateTime(s){ const d=new Date(s); return isNaN(d)?'':d.toLocaleString(); },
+    priorityClass(p){ return {'text-emerald-400':p==='low','text-sky-400':p==='normal','text-amber-400':p==='high','text-rose-400':p==='critical'}; },
+    assignClass(st){ return {'text-sky-400':st==='assigned','text-emerald-400':st==='approved','text-rose-400':st==='rejected'}; },
+    assignText(st){ return st==='assigned'?'Назначена':(st==='approved'?'Зачтена':'Отклонена'); },
 
-    /* ===== init & dashboard ===== */
-    async init(){ if(!this.companyId) return; await this.loadDashboard(); this.loadPeople().catch(()=>{}); this.loadStore().catch(()=>{}); },
+    setTab(t){ this.tab=t; localStorage.setItem(this._ls('tab'), t); },
+
+    _ls(suffix){ return `sj:company:${this.companyId || 'none'}:${suffix}`; },
+
+    async init(){
+      // восстановить таб/фильтры
+      try{
+        const savedTab = localStorage.getItem(this._ls('tab')); if(savedTab) this.tab = savedTab;
+        const pf = localStorage.getItem(this._ls('peopleFilters')); if(pf){ Object.assign(this.filters, JSON.parse(pf)); }
+        const per = Number(localStorage.getItem(this._ls('peoplePerPage'))||'0'); if(per>0) this.people.per_page = per;
+      }catch(_){}
+
+      await this.loadDashboard();
+      this.loading.page=false;
+
+      // если вернулись после OAuth
+      try{ const p = new URLSearchParams(location.search); if(p.get('crm')==='connected'){ this.setTab('crm'); await this.loadCrm(); } }catch(_){}
+
+      // авто-загрузка для активной вкладки
+      if(this.tab==='people') this.loadPeople(1,true);
+      if(this.tab==='store') this.loadStore(true);
+      if(this.tab==='crm')   this.loadCrm();
+    },
+
+    /* DASHBOARD */
     async loadDashboard(){
+      this.netError=false; this.loading.feed=true; this.loading.tasks=true;
       try{
         const d=await API.get(`/api/partners/company/${this.companyId}/dashboard`);
         const dd=d.dashboard || d.data || d;
@@ -710,12 +739,14 @@ window.partnerCompanyPage = function(initialCompanyId){
         const perms=dd.permissions || dd.perms || {};
         this.canPost=!!(perms.can_create_feed ?? perms.can_manage ?? false);
         this.canCreateTasks=!!(perms.can_create_tasks ?? perms.can_manage ?? false);
-      }catch(e){ this.toast(e.message,'⛔'); }
+      }catch(e){ this.netError=true; this.toast(e.message,'⛔'); }
+      finally{ this.loading.feed=false; this.loading.tasks=false; }
     },
 
-    /* ===== feed ===== */
+    /* FEED */
     async createPost(){
       if(!this.newPost.trim() && !this.newPostFile) return;
+      this.posting=true;
       try{
         if(this.newPostFile){
           const fd=new FormData(); fd.append('text', this.newPost||''); fd.append('pinned', this.newPinned ? '1':'0'); fd.append('photo', this.newPostFile);
@@ -723,13 +754,15 @@ window.partnerCompanyPage = function(initialCompanyId){
         }else{
           await API.post(`/api/partners/company/${this.companyId}/feed`, {text:this.newPost, pinned:this.newPinned});
         }
-        this.newPost=''; this.newPinned=false; this.clearNewPostFile(); await this.loadDashboard();
+        this.newPost=''; this.newPinned=false; this.clearNewPostFile();
+        await this.loadDashboard();
       }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.posting=false; }
     },
     onNewPostFile(ev){ const f=ev.target.files?.[0]; if(!f){ this.clearNewPostFile(); return; } if(this.newPostPreview) URL.revokeObjectURL(this.newPostPreview); this.newPostFile=f; this.newPostPreview=URL.createObjectURL(f); },
     clearNewPostFile(){ this.newPostFile=null; if(this.newPostPreview){ URL.revokeObjectURL(this.newPostPreview); this.newPostPreview=''; } this.$refs?.newPostImageInput && (this.$refs.newPostImageInput.value=''); },
 
-    /* ===== tasks ===== */
+    /* TASKS */
     async submitProof(taskId, ev){
       const input=ev.target; const file=input.files?.[0]; if(!file) return;
       const fd=new FormData(); fd.append('photo', file);
@@ -765,7 +798,7 @@ window.partnerCompanyPage = function(initialCompanyId){
     async tmFetchMembers(){
       try{
         const q=this.taskModal.query?`?query=${encodeURIComponent(this.taskModal.query)}`:'';  // supports ?query or ?q
-        const d=await API.get(`/api/partners/company/${this.companyId}/members${q}`);
+        const d=await API.get(`/api/partners/company/${this.companyId}/members${q}`, 'members');
         this.taskModal.members=d.members||d.items||[]; this.taskModal._byId=Object.create(null);
         for(const m of this.taskModal.members){ this.taskModal._byId[String(m.id)]=m; }
       }catch(e){ this.toast(e.message,'⛔'); }
@@ -797,18 +830,45 @@ window.partnerCompanyPage = function(initialCompanyId){
       this.closeTaskModal(); await this.loadDashboard();
     },
 
-    /* ===== people ===== */
-    async loadPeople(page=1){
+    /* PEOPLE + filters */
+    applyPeopleFilters(){
+      localStorage.setItem(this._ls('peopleFilters'), JSON.stringify(this.filters));
+      this.loadPeople(1, true);
+    },
+    sortLocal(items){
+      const s=this.filters.sort;
+      const byName = (a,b)=> (a.display_name||'').localeCompare(b.display_name||'', 'ru', {sensitivity:'base'});
+      const byLevel = (a,b)=> (Number(b.level||0) - Number(a.level||0));
+      if(s==='name_asc') items.sort(byName);
+      if(s==='name_desc') items.sort((a,b)=>-byName(a,b));
+      if(s==='level_desc') items.sort(byLevel);
+      if(s==='level_asc') items.sort((a,b)=>-byLevel(a,b));
+      return items;
+    },
+    filterLocal(items){
+      const q=(this.filters.query||'').trim().toLowerCase();
+      let arr = !q ? items : items.filter(u => (u.display_name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q));
+      if(this.filters.role==='admin') arr = arr.filter(u=>!!u.is_admin);
+      if(this.filters.role==='user')  arr = arr.filter(u=>!u.is_admin);
+      return this.sortLocal(arr);
+    },
+    async loadPeople(page=1, showLoader=false){
       try{
+        if(showLoader) this.loading.people=true;
         const params = new URLSearchParams();
         params.set('page', String(page)); params.set('per_page', String(this.people.per_page));
-        if(this.people.query?.trim()) params.set('query', this.people.query.trim());
-        const r = await API.get(`/api/partners/company/${this.companyId}/members?`+params.toString());
-        this.people.items = r.members || r.items || r.data || [];
+        if(this.filters.query?.trim()) params.set('query', this.filters.query.trim());
+        const r = await API.get(`/api/partners/company/${this.companyId}/members?`+params.toString(), 'people');
+        let items = r.members || r.items || r.data || [];
+        // локальная фильтрация/сортировка для универсальности
+        items = this.filterLocal(items);
+        this.people.items = items;
         this.people.page = r.page || page;
-        this.people.per_page = r.per_page || r.limit || 20;
-        this.people.total = r.total || r.count || this.people.items.length;
+        this.people.per_page = r.per_page || r.limit || this.people.per_page;
+        this.people.total = r.total || r.count || items.length;
+        localStorage.setItem(this._ls('peoplePerPage'), String(this.people.per_page));
       }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.loading.people=false; }
     },
     async setCompanyAdmin(userId, makeAdmin){
       const cid=this.companyId;
@@ -832,7 +892,7 @@ window.partnerCompanyPage = function(initialCompanyId){
           ok=true; break;
         }catch(e){ err=e; }
       }
-      if(ok){ this.toast(makeAdmin?'Назначен админом':'Снят с админов','✅'); this.loadPeople(this.people.page); }
+      if(ok){ this.toast(makeAdmin?'Назначен админом':'Снят с админов','✅'); this.loadPeople(this.people.page,true); }
       else { this.toast(err?.message||'Не удалось изменить роль','⛔'); }
     },
     async removeFromCompany(userId){
@@ -847,7 +907,7 @@ window.partnerCompanyPage = function(initialCompanyId){
       for(const u of tries){
         try{ await API.del(u); ok=true; break; }catch(e){ err=e; }
       }
-      if(ok){ this.toast('Удалён','🗑️'); this.loadPeople(this.people.page); }
+      if(ok){ this.toast('Удалён','🗑️'); this.loadPeople(this.people.page,true); }
       else { this.toast(err?.message||'Не удалось удалить','⛔'); }
     },
     openCreateAdmin(){ this.adminModal.open=true; },
@@ -860,21 +920,22 @@ window.partnerCompanyPage = function(initialCompanyId){
       ];
       let ok=false, err=null;
       for(const fn of tries){ try{ await fn(); ok=true; break; }catch(e){ err=e; } }
-      if(ok){ this.toast('Админ создан','✨'); this.closeAdminModal(); this.loadPeople(); }
+      if(ok){ this.toast('Админ создан','✨'); this.closeAdminModal(); this.loadPeople(1,true); }
       else { this.toast(err?.message||'Не удалось создать админа','⛔'); }
     },
 
-    /* ===== store ===== */
-    async loadStore(){
+    /* STORE */
+    async loadStore(showLoader=false){
       try{
-        const r = await API.get(`/api/partners/company/${this.companyId}/store`);
+        if(showLoader) this.loading.store=true;
+        const r = await API.get(`/api/partners/company/${this.companyId}/store`, 'store');
         this.store.items = r.items || r.store || r.data || r || [];
       }catch(e){
         try{
-          const r2 = await API.get(`/api/partners/company/${this.companyId}/shop`);
+          const r2 = await API.get(`/api/partners/company/${this.companyId}/shop`, 'store');
           this.store.items = r2.items || r2.store || r2.data || r2 || [];
         }catch(err){ this.toast(err.message,'⛔'); }
-      }
+      }finally{ this.loading.store=false; }
     },
     openStoreModal(mode, item=null){
       this.storeModal.open=true; this.storeModal.mode=mode; this.storeModal.id=null;
@@ -898,7 +959,7 @@ window.partnerCompanyPage = function(initialCompanyId){
           await API.put(`/api/partners/company/${cid}/store/${id}`, payload);
           this.toast('Товар обновлён','💾');
         }
-        this.closeStoreModal(); this.loadStore();
+        this.closeStoreModal(); this.loadStore(true);
       }catch(e){
         try{
           if(this.storeModal.mode==='create'){
@@ -907,7 +968,7 @@ window.partnerCompanyPage = function(initialCompanyId){
             await API.put(`/api/partners/company/${cid}/shop/items/${this.storeModal.id}`, payload);
           }
           this.toast(this.storeModal.mode==='create'?'Товар создан':'Товар обновлён','✅');
-          this.closeStoreModal(); this.loadStore();
+          this.closeStoreModal(); this.loadStore(true);
         }catch(err){ this.toast(err.message,'⛔'); }
       }
     },
@@ -933,20 +994,28 @@ window.partnerCompanyPage = function(initialCompanyId){
       ];
       let ok=false, err=null;
       for(const u of tries){ try{ await API.del(u); ok=true; break; }catch(e){ err=e; } }
-      if(ok){ this.toast('Удалено','🗑️'); this.loadStore(); }
+      if(ok){ this.toast('Удалено','🗑️'); this.loadStore(true); }
       else { this.toast(err?.message||'Не удалось удалить','⛔'); }
     },
 
-    /* ===== invites ===== */
+    /* INVITES */
     async openInviteModal(){ this.inviteModal=true; try{ this.invite = await API.get(`/api/partners/company/${this.companyId}/invite`);}catch(e){ this.toast(e.message,'⛔'); } },
     async regenerateInvite(){ try{ this.invite = await API.post(`/api/partners/company/${this.companyId}/invite/regenerate`,{});}catch(e){ this.toast(e.message,'⛔'); } },
     async deactivateInvite(){ try{ this.invite = await API.post(`/api/partners/company/${this.companyId}/invite/deactivate`,{});}catch(e){ this.toast(e.message,'⛔'); } },
+
+    /* CRM */
+    async loadCrm(){
+      this.crm.loading=true;
+      try{
+        const s = await API.get(`/api/partners/company/${this.companyId}/crm/amocrm/status`, 'crm');
+        this.crm.connected = !!(s.connected ?? s.linked);
+        this.crm.base_domain = s.base_domain || s.account?.domain || '';
+        this.crm.last_sync_at = s.last_sync_at || null;
+        this.crm.token_expires_at = s.token_expires_at || null;
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.crm.loading=false; }
+    },
   }
 }
-</script>
-
-<script>
-  window.SJ_COMPANY_ID = {{ company_id|default('null') }};
-  window.SJ_COMPANY_SLUG = {{ company_slug|tojson|safe }};
 </script>
 {% endblock %}

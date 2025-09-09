@@ -6,18 +6,20 @@ from datetime import datetime, timedelta, date
 from functools import wraps
 from typing import Optional, Dict, Any
 from werkzeug.exceptions import HTTPException
-import requests  # для _send_telegram_message
+import requests  # для _send_telegram_messageimport requests  # для _send_telegram_message
 
 from flask import (
     Flask, request, jsonify, session, redirect, url_for, abort, render_template, make_response
 )
 
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy  # можно оставить
+from extensions import db  # <-- добавили
+
 from sqlalchemy import UniqueConstraint, Index, func, and_, or_, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import pathlib, hashlib, re
 import random, string, secrets
-
+# Регистрация CRM-блюпринта после инициализации приложения
 
 # -----------------------------------------------------------------------------
 # Config
@@ -49,9 +51,15 @@ app.config.update(
 app.logger.warning("DB URI -> %s", app.config["SQLALCHEMY_DATABASE_URI"])
 app.logger.warning("DB FILE -> %s", DB_FILE)
 
-db = SQLAlchemy(app)
+db.init_app(app)
+# Регистрация CRM-блюпринта ПОСЛЕ создания app и db.init_app(app)
+from amocrm_integration import bp_amocrm_company_api, bp_amocrm_pages
 
 ASSETS_DIR = pathlib.Path("static/avatars/layers")  # как выше в структуре
+
+# ... другие регистрации ...
+app.register_blueprint(bp_amocrm_company_api)  # даёт /api/partners/company/<id>/crm/...
+app.register_blueprint(bp_amocrm_pages)        # даёт /partner/company/<id>/crm
 
 # -----------------------------------------------------------------------------
 # Helpers / Auth
@@ -164,6 +172,45 @@ def safe_int(v, default=0):
 def now_utc():
     # Наивный UTC (как и было), просто через fromtimestamp(… , tz=None)
     return datetime.utcfromtimestamp(datetime.utcnow().timestamp())
+
+
+
+def upgrade():
+    op.create_table(
+        "amocrm_connections",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("company_id", sa.Integer, nullable=False, unique=True, index=True),
+        sa.Column("base_domain", sa.String(255), nullable=False),
+        sa.Column("access_token", sa.Text, nullable=False),
+        sa.Column("refresh_token", sa.Text, nullable=False),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("last_sync_at", sa.DateTime(timezone=True)),
+    )
+    op.create_table(
+        "amocrm_user_map",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("company_id", sa.Integer, index=True, nullable=False),
+        sa.Column("platform_user_id", sa.Integer, index=True, nullable=False),
+        sa.Column("amocrm_user_id", sa.Integer, index=True, nullable=False),
+    )
+    op.create_table(
+        "amocrm_metrics_daily",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("company_id", sa.Integer, index=True, nullable=False),
+        sa.Column("amocrm_user_id", sa.Integer, index=True, nullable=False),
+        sa.Column("date", sa.Date, index=True, nullable=False),
+        sa.Column("won_count", sa.Integer, server_default="0"),
+        sa.Column("won_sum", sa.Numeric(14, 2), server_default="0"),
+        sa.Column("lost_count", sa.Integer, server_default="0"),
+        sa.Column("lost_sum", sa.Numeric(14, 2), server_default="0"),
+        sa.UniqueConstraint("company_id", "amocrm_user_id", "date", name="uq_metrics_scope"),
+    )
+    op.create_table(
+        "amocrm_sync_cursor",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("company_id", sa.Integer, index=True, unique=True, nullable=False),
+        sa.Column("updated_since", sa.DateTime(timezone=True)),
+    )
 
 # -----------------------------------------------------------------------------
 # Models
@@ -5708,6 +5755,7 @@ def api_partner_task_report_reject(assign_id):
 
     db.session.commit()
     return as_json({"ok": True, "status": a.status})
+
 
 # -----------------------------------------------------------------------------
 # Run

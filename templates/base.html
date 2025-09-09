@@ -32,6 +32,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
   <style>
+
+
     body{font-family:'Inter',sans-serif}
     [x-cloak]{display:none!important}
 
@@ -78,45 +80,258 @@
     }
   </style>
 
-  <!-- Тёмная тема: токены -->
-  <script>
-    (function(){
-      try{
-        const KEY='sj_theme';
-        const saved = localStorage.getItem(KEY);
-        const mode = saved || 'dark';
-        const root = document.documentElement;
-        const meta = document.getElementById('themeColorMeta');
+<!-- Темизация: выставляем токены под конкретную тему -->
+<script>
+  (function(){
+    try{
+      const KEY = 'sj_theme';
+      const saved = localStorage.getItem(KEY);
+      const mode  = saved || 'dark';
 
-        const DARK_BG      = '#0c1222';
-        const DARK_ELEV    = '#121a30';
-        const DARK_BORDER  = '#1c2a4a';
-        const DARK_TEXT    = '#e9eeff';
-        const DARK_MUTED   = '#a6b1cf';
-        const DARK_PRIMARY = '#7c6cff';
+      const TOKENS = {
+        dark:  { bg:'#0c1222', elev:'#121a30', border:'#1c2a4a', text:'#e9eeff', muted:'#a6b1cf', primary:'#7c6cff' },
+        light: { bg:'#f7f8fc', elev:'#ffffff', border:'#e6e8f0', text:'#0b1220', muted:'#667085', primary:'#6366f1' }
+      };
 
-        root.style.setProperty('--sj-bg',      DARK_BG);
-        root.style.setProperty('--sj-elev',    DARK_ELEV);
-        root.style.setProperty('--sj-border',  DARK_BORDER);
-        root.style.setProperty('--sj-text',    DARK_TEXT);
-        root.style.setProperty('--sj-muted',   DARK_MUTED);
-        root.style.setProperty('--sj-primary', DARK_PRIMARY);
+      const root = document.documentElement;
+      const meta = document.getElementById('themeColorMeta');
 
-        root.classList.toggle('dark', mode==='dark');
-        root.dataset.theme = mode;
-        if (meta) meta.setAttribute('content', mode==='dark' ? DARK_BG : '#ffffff');
+      function applyTokens(m){
+        const t = TOKENS[m];
+        root.style.setProperty('--sj-bg',      t.bg);
+        root.style.setProperty('--sj-elev',    t.elev);
+        root.style.setProperty('--sj-border',  t.border);
+        root.style.setProperty('--sj-text',    t.text);
+        root.style.setProperty('--sj-muted',   t.muted);
+        root.style.setProperty('--sj-primary', t.primary);
+        root.classList.toggle('dark', m==='dark');
+        root.dataset.theme = m;
+        if (meta) meta.setAttribute('content', m==='dark' ? t.bg : '#ffffff');
+      }
 
-        window.__setTheme = function(m){
-          const dark = m==='dark';
-          root.classList.toggle('dark', dark);
-          root.dataset.theme = m;
-          localStorage.setItem(KEY, m);
-          if (meta) meta.setAttribute('content', dark ? DARK_BG : '#ffffff');
-          window.dispatchEvent(new CustomEvent('sj:theme', { detail:{ mode:m } }));
-        };
-      }catch(e){}
-    })();
-  </script>
+      // начальная инициализация
+      applyTokens(mode);
+
+      // глобальный переключатель
+      window.__setTheme = function(m){
+        localStorage.setItem(KEY, m);
+        applyTokens(m);
+        window.dispatchEvent(new CustomEvent('sj:theme', { detail:{ mode:m } }));
+      };
+    }catch(e){}
+  })();
+</script>
+
+  <style>
+    /* === LIGHT THEME OVERRIDES (drop-in) === */
+:root[data-theme='light'], :root:not(.dark){
+  /* безопасные дефолты токенов на случай, если их нет в base.html */
+  --sj-bg: var(--sj-bg, #f7f8fc);
+  --sj-elev: var(--sj-elev, #ffffff);
+  --sj-border: var(--sj-border, #e6e8f0);
+  --sj-text: var(--sj-text, #0b1220);
+  --sj-muted: var(--sj-muted, #667085);
+  --sj-primary: var(--sj-primary, #6366f1);
+}
+
+/* Карточки/контейнеры */
+:root[data-theme='light'] .card,
+:root:not(.dark) .card{
+  background: var(--sj-elev);
+  color: var(--sj-text);
+  border-color: var(--sj-border);
+}
+
+:root[data-theme='light'] .muted,
+:root:not(.dark) .muted{
+  /* мягкий светлый фон */
+  background: rgba(255,255,255,.9);
+  background: color-mix(in oklab, var(--sj-elev) 96%, transparent);
+  border-color: var(--sj-border);
+}
+
+:root[data-theme='light'] .glass,
+:root:not(.dark) .glass{
+  /* стеклянный белый слой + мягкая тень */
+  background: rgba(255,255,255,.72);
+  background: color-mix(in oklab, var(--sj-elev) 94%, transparent);
+  border-color: var(--sj-border);
+  box-shadow: 0 10px 30px -14px rgba(0,0,0,.15);
+}
+
+/* Инпуты / селекты / текстареа */
+:root[data-theme='light'] .input,
+:root:not(.dark) .input,
+:root[data-theme='light'] .select,
+:root:not(.dark) .select,
+:root[data-theme='light'] .textarea,
+:root:not(.dark) .textarea{
+  background: color-mix(in oklab, var(--sj-elev) 98%, transparent);
+  color: var(--sj-text);
+  border-color: var(--sj-border);
+}
+:root[data-theme='light'] .input:focus,
+:root:not(.dark) .input:focus,
+:root[data-theme='light'] .select:focus,
+:root:not(.dark) .select:focus,
+:root[data-theme='light'] .textarea:focus,
+:root:not(.dark) .textarea:focus{
+  background: #fff;
+  border-color: var(--sj-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--sj-primary) 30%, transparent);
+}
+:root[data-theme='light'] .input::placeholder,
+:root:not(.dark) .input::placeholder,
+:root[data-theme='light'] .textarea::placeholder,
+:root:not(.dark) .textarea::placeholder{
+  color: color-mix(in oklab, var(--sj-text) 45%, transparent);
+}
+
+/* Кнопки */
+:root[data-theme='light'] .btn,
+:root:not(.dark) .btn{
+  border-color: var(--sj-border);
+  color: var(--sj-text);
+  background: color-mix(in oklab, var(--sj-elev) 98%, transparent);
+}
+:root[data-theme='light'] .btn-outline,
+:root:not(.dark) .btn-outline{
+  background: transparent;
+  color: var(--sj-text);
+  border-color: var(--sj-border);
+}
+:root[data-theme='light'] .btn-ghost,
+:root:not(.dark) .btn-ghost{
+  background: transparent;
+  border-color: transparent;
+  color: var(--sj-muted);
+}
+:root[data-theme='light'] .btn-indigo,
+:root:not(.dark) .btn-indigo{ background: var(--sj-primary); border-color: var(--sj-primary); color:#fff; }
+:root[data-theme='light'] .btn-emerald,
+:root:not(.dark) .btn-emerald{ background: rgb(16 185 129); border-color: rgb(16 185 129); color:#fff; }
+:root[data-theme='light'] .btn-sky,
+:root:not(.dark) .btn-sky{ background: rgb(14 165 233); border-color: rgb(14 165 233); color:#fff; }
+:root[data-theme='light'] .btn-amber,
+:root:not(.dark) .btn-amber{ background: rgb(217 119 6); border-color: rgb(217 119 6); color:#000; }
+:root[data-theme='light'] .btn-rose,
+:root:not(.dark) .btn-rose{ background: rgb(225 29 72); border-color: rgb(225 29 72); color:#fff; }
+
+/* Пилюли (табы) */
+:root[data-theme='light'] .pill,
+:root:not(.dark) .pill{
+  background: var(--sj-elev);
+  color: var(--sj-text);
+  border-color: var(--sj-border);
+}
+:root[data-theme='light'] .pill.active,
+:root:not(.dark) .pill.active{
+  background: color-mix(in oklab, var(--sj-primary) 18%, #fff);
+  border-color: color-mix(in oklab, var(--sj-primary) 45%, var(--sj-border));
+  color: #111827; /* чтобы контраст не падал на светлом фоне */
+}
+
+/* Таблицы */
+:root[data-theme='light'] .table-wrap,
+:root:not(.dark) .table-wrap{ border-color: var(--sj-border); }
+:root[data-theme='light'] thead th,
+:root:not(.dark) thead th{
+  background: color-mix(in oklab, var(--sj-elev) 96%, transparent);
+  color: var(--sj-muted);
+  border-bottom-color: var(--sj-border);
+}
+:root[data-theme='light'] tbody td,
+:root:not(.dark) tbody td{ border-top-color: var(--sj-border); }
+:root[data-theme='light'] tbody tr:hover,
+:root:not(.dark) tbody tr:hover{
+  background: color-mix(in oklab, var(--sj-elev) 92%, transparent);
+}
+
+/* Тумблер */
+:root[data-theme='light'] .toggle,
+:root:not(.dark) .toggle{
+  background: color-mix(in oklab, var(--sj-elev) 88%, transparent);
+  border-color: var(--sj-border);
+}
+:root[data-theme='light'] .toggle::after,
+:root:not(.dark) .toggle::after{ background:#fff; }
+:root[data-theme='light'] .toggle.is-on,
+:root:not(.dark) .toggle.is-on{
+  background: color-mix(in oklab, #10b981 28%, var(--sj-elev));
+  border-color: color-mix(in oklab, #10b981 55%, var(--sj-border));
+}
+
+/* Бейджи */
+:root[data-theme='light'] .badge,
+:root:not(.dark) .badge{
+  background: color-mix(in oklab, var(--sj-elev) 96%, transparent);
+  color: var(--sj-muted);
+  border-color: var(--sj-border);
+}
+
+/* Скелетоны (если используешь) — делаем светлее в лайте */
+:root[data-theme='light'] .skeleton,
+:root:not(.dark) .skeleton{
+  background: color-mix(in oklab, var(--sj-elev) 92%, transparent);
+}
+/* Light-only tweaks for .card / .glass */
+:root[data-theme='light'] .card,
+:root:not(.dark) .card{
+  /* белая карточка без «грязно-серого» оттенка */
+  background: var(--sj-elev, #fff);
+  color: var(--sj-text, #0b1220);
+  border-color: var(--sj-border, #e6e8f0);
+}
+
+:root[data-theme='light'] .glass,
+:root:not(.dark) .glass{
+  /* fallback для браузеров без color-mix */
+  background: rgba(255,255,255,.72);
+  /* основной слой — чуть светлее, чем у .card, чтобы «стекло» читалось */
+  background: color-mix(in oklab, var(--sj-elev, #fff) 94%, transparent);
+  border-color: var(--sj-border, #e6e8f0);
+  box-shadow: 0 10px 30px -14px rgba(0,0,0,.18); /* мягче в лайте */
+}
+
+    /* === Select dropdown fixes (оба режима) === */
+
+/* Подсказываем системе, как рисовать нативные контролы */
+:root[data-theme='light'], :root:not(.dark){ color-scheme: light; }
+:root.dark, :root[data-theme='dark'], .dark{ color-scheme: dark; }
+
+/* Базовый цвет текста селекта (на всякий случай) */
+select, .select{ color: var(--sj-text); }
+
+/* Цвета элементов выпадающего списка */
+:root[data-theme='light'] select option,
+:root[data-theme='light'] select optgroup,
+:root:not(.dark) select option,
+:root:not(.dark) select optgroup{
+  color: var(--sj-text);
+  background: var(--sj-elev); /* фактич. белый */
+}
+
+/* Тёмная тема: тёмный фон, светлый текст */
+:root.dark select option,
+:root.dark select optgroup,
+.dark select option,
+.dark select optgroup{
+  color: var(--sj-text);
+  background: var(--sj-elev);
+}
+
+/* Мультиселекты/size-списки тоже красим */
+select[multiple], select[size]{
+  color: var(--sj-text);
+  background: var(--sj-elev);
+  border-color: var(--sj-border);
+}
+
+/* Если где-то выпадающее меню сделано через role="menu" — гарантируем контраст */
+:root[data-theme='light'] [role="menu"]{ background:#fff; color:#0b1220; }
+:root.dark [role="menu"], .dark [role="menu"]{ background: var(--sj-elev); color: var(--sj-text); }
+
+  </style>
 
   <!-- Приложение -->
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
@@ -139,11 +354,17 @@
           <i x-show="mobileOpen" x-cloak class="bi bi-x-lg text-xl"></i>
         </button>
 
-        <a href="/" class="text-xl font-extrabold tracking-tight hover:opacity-90 transition">
-          <span class="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 text-transparent bg-clip-text">
-            Sales Journey
-          </span>
-        </a>
+<a href="/" class="block hover:opacity-90 transition" aria-label="Sales Journey">
+  <img src="/static/brand/logo.png"
+       width="500" height="200"
+    class="h-10 w-auto select-none brand-logo-light block dark:hidden"
+    decoding="async" fetchpriority="high">
+  <img src="/static/brand/logo-dark.png"
+       width="500" height="200"
+    class="h-10 w-auto select-none h-10 brand-logo-dark hidden dark:block"
+    decoding="async" fetchpriority="high">
+</a>
+
       </div>
 
       {% set is_user = current_user is not none %}

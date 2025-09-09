@@ -3999,6 +3999,15 @@ def page_partner_company():
     # не залогинен или без компании — показываем пустую страницу
     return render_template("partner_company.html", company_id=None, company_slug=None)
 
+
+@app.get("/partner/company/<int:company_id>/onboarding")
+@company_manager_or_admin_required
+def page_partner_company_onboarding(company_id):
+    c = db.session.get(Company, company_id)
+    if not c:
+        abort(404)
+    return render_template("partner_onboarding.html", company_id=company_id, company_slug=c.slug)
+
 @app.get("/company/requests")
 @login_required_page
 def page_company_requests():

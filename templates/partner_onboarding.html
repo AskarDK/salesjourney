@@ -1,0 +1,1100 @@
+{% extends "base.html" %}
+{% set title = "Онбординг — Sales Journey" %}
+
+{% block content %}
+
+<style>
+  :root{
+    --sj-bg:            #f7fafc;
+    --sj-card:          #ffffff;
+    --sj-muted:         #f1f5f9;
+    --sj-border:        rgba(2,6,23,.10);
+    --sj-border-strong: rgba(2,6,23,.16);
+    --sj-glass:         rgba(255,255,255,.75);
+    --sj-overlay:       rgba(0,0,0,.55);
+
+    --sj-text:          #0f172a;
+    --sj-muted-text:    #475569;
+
+    --sj-ring: 79, 70, 229;
+
+    --indigo: 79 70 229;
+    --emerald: 16 185 129;
+    --sky: 14 165 233;
+    --amber: 217 119 6;
+    --rose: 225 29 72;
+
+    --sj-radius: 14px;
+    --sj-radius-lg: 18px;
+    --sj-radius-xl: 24px;
+  }
+  .dark{
+    --sj-bg:            #0b1220;
+    --sj-card:          rgba(15,23,42,.88);
+    --sj-muted:         rgba(15,23,42,.68);
+    --sj-border:        rgba(255,255,255,.10);
+    --sj-border-strong: rgba(255,255,255,.16);
+    --sj-glass:         rgba(15,23,42,.78);
+    --sj-overlay:       rgba(0,0,0,.6);
+
+    --sj-text:          #e5e7eb;
+    --sj-muted-text:    #94a3b8;
+  }
+
+  [x-cloak]{ display:none !important; }
+
+  .glass{
+    position:relative;
+    background: var(--sj-glass);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--sj-border);
+    border-radius: var(--sj-radius-xl);
+    box-shadow: 0 12px 40px rgba(2,6,23,.10);
+  }
+  .card{
+    background: var(--sj-card);
+    border:1px solid var(--sj-border);
+    border-radius: var(--sj-radius-lg);
+  }
+  .muted{ background: var(--sj-muted); border:1px solid var(--sj-border); border-radius:12px; }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+    font-weight:700; border-radius:12px; padding:.6rem .9rem; border:1px solid var(--sj-border);
+    transition: transform .06s ease, filter .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ filter:brightness(.98); }
+  .btn:active{ transform: translateY(1px); }
+  .btn:focus-visible{ outline:none; box-shadow: 0 0 0 3px rgba(var(--sj-ring), .28); }
+  .btn-outline{ background:transparent; }
+  .btn-ghost{ background:transparent; border-color: transparent; color: var(--sj-muted-text); }
+  .btn-indigo{  background: rgb(var(--indigo));  border-color: rgb(var(--indigo));  color:white; }
+  .btn-emerald{ background: rgb(var(--emerald)); border-color: rgb(var(--emerald)); color:white; }
+  .btn-sky{     background: rgb(var(--sky));     border-color: rgb(var(--sky));     color:white; }
+  .btn-amber{   background: rgb(var(--amber));   border-color: rgb(var(--amber));   color:black; }
+  .btn-rose{    background: rgb(var(--rose));    border-color: rgb(var(--rose));    color:white; }
+
+  .input, .select, .textarea{
+    width:100%;
+    background: color-mix(in oklab, var(--sj-card) 94%, transparent);
+    color: var(--sj-text);
+    border:1px solid var(--sj-border);
+    border-radius: 12px;
+    padding:.6rem .8rem;
+    transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .input:focus, .select:focus, .textarea:focus{
+    outline:none; border-color: rgb(var(--sj-ring));
+    box-shadow: 0 0 0 3px rgba(var(--sj-ring), .25);
+    background: color-mix(in oklab, var(--sj-card) 98%, transparent);
+  }
+  .toggle{
+    --w: 44px; --h: 26px;
+    width:var(--w); height:var(--h);
+    background: color-mix(in oklab, var(--sj-muted) 70%, transparent);
+    border:1px solid var(--sj-border);
+    border-radius: var(--h); position:relative; cursor:pointer;
+    transition: background .2s ease, border-color .2s ease;
+  }
+  .toggle::after{
+    content:""; position:absolute; top:2px; left:2px;
+    width: calc(var(--h) - 4px); height: calc(var(--h) - 4px);
+    background: #fff; border-radius: 999px; box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    transition: transform .2s cubic-bezier(.22,.61,.36,1);
+  }
+  .toggle.is-on{ background: rgba(16,185,129,.35); border-color: rgba(16,185,129,.6); }
+  .toggle.is-on::after{ transform: translateX(calc(var(--w) - var(--h))); }
+
+  .pill{ padding:.45rem .9rem; border:1px solid var(--sj-border); border-radius:999px; }
+  .pill.active{ background: color-mix(in oklab, rgb(var(--indigo)) 14%, var(--sj-card)); border-color: rgba(var(--indigo), .45); color:white; }
+
+  .badge{ display:inline-flex; gap:.35rem; align-items:center; font-size:.72rem; border-radius: 999px; padding:.15rem .55rem; border:1px solid var(--sj-border); color: var(--sj-muted-text); }
+
+  .kpi{ display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:.75rem; }
+  @media (max-width: 640px){ .kpi{ grid-template-columns:1fr; } }
+</style>
+
+<section class="max-w-[120rem] mx-auto px-4 py-6"
+         x-data="window.onboardingFullPage({{ company_id if company_id is not none else 'null' }})"
+         x-init="init()"
+         x-cloak>
+
+  <!-- Header -->
+  <div class="glass px-5 py-5 sm:px-6 sm:py-6 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <div class="text-xs mb-1" style="color:var(--sj-muted-text)">
+          <a href="/partner/company" class="underline">Моя компания</a> · Онбординг
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          Редактор онбординга
+        </h1>
+        <div class="text-sm mt-1" style="color:var(--sj-muted-text)">
+          Компания: <b x-text="company?.name || ('#'+company_id)"></b>
+          <span x-show="activeFlow"> · Текущий флоу: <b x-text="activeFlow?.name"></b></span>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button class="btn btn-outline" @click="loadFlows()">Обновить</button>
+        <button class="btn btn-emerald" @click="createFlowQuick()">Быстрый флоу</button>
+        <button class="btn btn-indigo" @click="createFlow()">Пустой флоу</button>
+        <button class="btn btn-rose" x-show="activeFlow" @click="deleteFlow(activeFlow.id)">Удалить флоу</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="grid lg:grid-cols-[310px,1fr] gap-5">
+
+    <!-- Sidebar: Flows -->
+    <aside class="card p-4 h-max sticky top-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-semibold">Флоу компании</div>
+        <span x-show="loading" class="text-xs" style="color:var(--sj-muted-text)">Загрузка…</span>
+      </div>
+
+      <input class="input mb-3" placeholder="поиск по названию"
+             x-model.debounce.200ms="flowsQuery">
+
+      <div class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+        <template x-for="f in filteredFlows" :key="f.id">
+          <div class="p-3 rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_60%, transparent)] hover:brightness-95 transition flex items-center justify-between gap-3"
+               :class="activeFlow?.id===f.id ? 'ring-2 ring-[rgba(var(--sj-ring),.25)]' : ''">
+            <button class="min-w-0 text-left" @click="openFlow(f.id)">
+              <div class="font-medium truncate" x-text="f.name || ('Флоу #'+f.id)"></div>
+              <div class="text-xs" style="color:var(--sj-muted-text)">
+                Бонус: <b x-text="f.final_bonus_coins || 0"></b>
+                <span class="mx-2">•</span>
+                <span x-text="f.is_active ? 'активен' : 'не активен'"></span>
+              </div>
+            </button>
+            <div class="shrink-0 flex items-center gap-2">
+              <div class="toggle" :class="f.is_active ? 'is-on' : ''" @click="setFlowActive(f, !f.is_active)"></div>
+            </div>
+          </div>
+        </template>
+
+        <div x-show="!filteredFlows.length && !loading" class="text-sm py-6 text-center" style="color:var(--sj-muted-text)">Флоу не найдены.</div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="space-y-5">
+
+      <!-- Tabs -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button :class="['pill', tab==='meta'?'active':'']"  @click="tab='meta'">Флоу</button>
+        <button :class="['pill', tab==='steps'?'active':'']" @click="tab='steps'" :disabled="!activeFlow">Шаги</button>
+        <button :class="['pill', tab==='stats'?'active':'']" @click="tab='stats'" :disabled="!activeFlow">Статистика</button>
+      </div>
+
+      <!-- Meta -->
+      <section x-show="tab==='meta'" x-transition.opacity class="space-y-5">
+        <div class="card p-5">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="text-sm font-semibold mb-2">Настройки флоу</div>
+              <div class="grid md:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs" style="color:var(--sj-muted-text)">Название</label>
+                  <input class="input mt-1" placeholder="Название флоу" x-model="activeFlow.name">
+                </div>
+                <div>
+                  <label class="text-xs" style="color:var(--sj-muted-text)">Финальный бонус (монеты)</label>
+                  <input class="input mt-1" type="number" x-model.number="activeFlow.final_bonus_coins">
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="toggle" :class="activeFlow?.is_active ? 'is-on' : ''" @click="setFlowActive(activeFlow, !activeFlow.is_active)"></div>
+                  <span class="text-sm" style="color:var(--sj-muted-text)">Активен</span>
+                </div>
+              </div>
+            </div>
+            <div class="shrink-0">
+              <button class="btn btn-emerald" :disabled="saving || !activeFlow" @click="saveFlowMeta()">
+                <span x-show="!saving">Сохранить</span>
+                <span x-show="saving">Сохранение…</span>
+              </button>
+            </div>
+          </div>
+          <div class="text-xs mt-3" style="color:var(--sj-muted-text)">
+            «Регистрационная секция» всегда второй шаг и не редактируется/не удаляется.
+          </div>
+        </div>
+
+        <!-- Links -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold">Ссылки на флоу</div>
+            <button class="btn btn-outline text-sm py-1.5" @click="generateLink()" :disabled="!activeFlow">Создать ссылку</button>
+          </div>
+
+          <div class="grid gap-2" x-show="onb.links.length">
+            <template x-for="l in onb.links" :key="l.id">
+              <div class="flex items-center justify-between rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_60%, transparent)] px-3 py-2 hover:brightness-95 transition">
+                <div class="min-w-0">
+                  <div class="font-medium"><b>/r/<span x-text="l.slug"></span></b></div>
+                  <div class="text-xs" style="color:var(--sj-muted-text)">
+                    Исп.: <span x-text="l.uses_count || 0"></span>
+                    · Макс: <span x-text="l.max_uses ?? '—'"></span>
+                    · До: <span x-text="l.expires_at || '—'"></span>
+                  </div>
+                </div>
+                <div class="shrink-0 flex items-center gap-2">
+                  <a class="btn btn-indigo text-sm py-1.5" :href="`/r/${l.slug}`" target="_blank">Открыть</a>
+                  <button class="btn btn-rose text-sm py-1.5" @click="deleteLink(l.id)">Удалить</button>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div class="text-sm" style="color:var(--sj-muted-text)" x-show="!onb.links.length">Ссылок пока нет.</div>
+        </div>
+      </section>
+
+      <!-- Steps -->
+      <section x-show="tab==='steps'" x-transition.opacity class="space-y-5" x-cloak>
+
+        <!-- Add step -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold">Добавить шаг</div>
+            <button class="btn btn-emerald text-sm py-1.5" @click="saveNewStep()" :disabled="saving"><span x-show="!saving">Сохранить шаг</span><span x-show="saving">Создание…</span></button>
+          </div>
+
+          <div class="grid lg:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Тип</label>
+              <select class="select mt-1" x-model="formStep.type">
+                <option value="intro_page">intro_page</option>
+                <option value="interest_selector">interest_selector</option>
+                <option value="ask_input">ask_input</option>
+                <option value="choice_one">choice_one</option>
+                <option value="interview_invite">interview_invite</option>
+                <option value="assignment">assignment</option>
+                <option value="first_assignment">first_assignment</option>
+                <option value="reward_shop">reward_shop</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Заголовок</label>
+              <input class="input mt-1" placeholder="Заголовок шага" x-model="formStep.title">
+            </div>
+
+            <div x-show="formStep.type==='ask_input'">
+              <label class="text-xs" style="color:var(--sj-muted-text)">Поле</label>
+              <select class="select mt-1" x-model="formStep.ask_field">
+                <option value="first_name">first_name</option>
+                <option value="last_name">last_name</option>
+                <option value="phone">phone</option>
+                <option value="email">email</option>
+                <option value="name">name</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Награда (coins/xp)</label>
+              <div class="flex gap-2 mt-1">
+                <input type="number" class="input w-28" x-model.number="formStep.coins_award" placeholder="coins">
+                <input type="number" class="input w-28" x-model.number="formStep.xp_award" placeholder="xp">
+              </div>
+            </div>
+
+            <div class="lg:col-span-2">
+              <label class="text-xs" style="color:var(--sj-muted-text)">Текст (Markdown)</label>
+              <textarea class="textarea mt-1" rows="4" x-model="formStep.body_md" placeholder="Описание шага"></textarea>
+            </div>
+
+            <div class="lg:col-span-2">
+              <label class="text-xs" style="color:var(--sj-muted-text)">Видео (YouTube URL или mp4)</label>
+              <input type="text" class="input mt-1" placeholder="https://youtu.be/..." x-model="formStep.media_url">
+            </div>
+
+            <div class="lg:col-span-2 grid md:grid-cols-3 gap-2" x-show="formStep.type==='interview_invite'">
+              <div>
+                <label class="text-xs" style="color:var(--sj-muted-text)">Дата/время</label>
+                <input type="datetime-local" class="input mt-1" x-model="formStep.cfg_date_time">
+              </div>
+              <div>
+                <label class="text-xs" style="color:var(--sj-muted-text)">Локация</label>
+                <input type="text" class="input mt-1" x-model="formStep.cfg_location" placeholder="Офис / Zoom">
+              </div>
+              <div>
+                <label class="text-xs" style="color:var(--sj-muted-text)">Сообщение</label>
+                <input type="text" class="input mt-1" x-model="formStep.cfg_message" placeholder="Короткое сообщение">
+              </div>
+            </div>
+
+            <div class="lg:col-span-2" x-show="formStep.type==='interest_selector'">
+              <label class="text-xs" style="color:var(--sj-muted-text)">Лимит выбора интересов</label>
+              <input type="number" min="1" class="input mt-1 w-28" x-model.number="formStep.cfg_select_limit" placeholder="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Steps list -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold">Шаги флоу</div>
+            <button class="btn btn-emerald text-sm py-1.5" @click="saveOrder()" :disabled="saving || !onb.steps.length">
+              <span x-show="!saving">Сохранить порядок</span>
+              <span x-show="saving">Сохранение…</span>
+            </button>
+          </div>
+
+          <template x-if="!onb.steps.length">
+            <div class="text-sm" style="color:var(--sj-muted-text)">Шагов пока нет.</div>
+          </template>
+
+          <div class="space-y-3">
+            <template x-for="(s,idx) in onb.steps" :key="s.id">
+              <div class="p-4 rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_60%, transparent)] group transition hover:brightness-95">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-xs mb-0.5" style="color:var(--sj-muted-text)">
+                      #<span x-text="s.order_index"></span> • <span x-text="s.type"></span>
+                      <span class="badge" x-show="s.type==='registration_section'">фикс.</span>
+                    </div>
+                    <div class="font-semibold truncate" x-text="s.title || '(без названия)'"></div>
+
+                    <!-- Media preview -->
+                    <template x-if="s.media_url">
+                      <div class="mt-2">
+                        <template x-if="/youtube\.com|youtu\.be/.test(s.media_url)">
+                          <div class="rounded-xl overflow-hidden border border-[var(--sj-border)]">
+                            <iframe class="w-full aspect-video" :src="youtubeEmbed(s.media_url)" frameborder="0" allowfullscreen></iframe>
+                          </div>
+                        </template>
+                        <template x-if="!/youtube\.com|youtu\.be/.test(s.media_url)">
+                          <video class="w-full rounded-xl border border-[var(--sj-border)]" controls :src="s.media_url"></video>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                  <div class="shrink-0 flex items-center gap-2">
+                    <div class="toggle" :class="s.is_active ? 'is-on' : ''" @click="toggleStepActive(s, !s.is_active)"></div>
+                    <button @click="moveStep(idx,-1)" :disabled="s.is_immutable" class="btn btn-ghost px-3 disabled:opacity-40">↑</button>
+                    <button @click="moveStep(idx, 1)" :disabled="s.is_immutable" class="btn btn-ghost px-3 disabled:opacity-40">↓</button>
+                    <button x-show="!s.is_immutable" @click="editStep(s)" class="btn btn-indigo text-sm py-1.5">Редакт.</button>
+                    <button x-show="!s.is_immutable" @click="deleteStep(s.id)" class="btn btn-rose text-sm py-1.5">Удалить</button>
+                    <span x-show="s.is_immutable" class="text-xs px-2 py-1 border border-[var(--sj-border)] rounded-lg" style="color:var(--sj-muted-text)">неизменяемый</span>
+                  </div>
+                </div>
+
+                <!-- Inline edit panel -->
+                <div x-show="editStepDialog && formStep.id===s.id" x-transition.opacity class="mt-4 p-4 rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_70%, transparent)]">
+                  <div class="grid lg:grid-cols-2 gap-3">
+                    <div>
+                      <label class="text-xs" style="color:var(--sj-muted-text)">Тип</label>
+                      <select class="select mt-1" x-model="formStep.type" :disabled="formStep.is_immutable || formStep.type==='registration_section'">
+                        <option value="intro_page">intro_page</option>
+                        <option value="interest_selector">interest_selector</option>
+                        <option value="ask_input">ask_input</option>
+                        <option value="choice_one">choice_one</option>
+                        <option value="interview_invite">interview_invite</option>
+                        <option value="assignment">assignment</option>
+                        <option value="reward_shop">reward_shop</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="text-xs" style="color:var(--sj-muted-text)">Заголовок</label>
+                      <input class="input mt-1" x-model="formStep.title" placeholder="Заголовок шага">
+                    </div>
+
+                    <div x-show="formStep.type==='ask_input'">
+                      <label class="text-xs" style="color:var(--sj-muted-text)">Поле</label>
+                      <select class="select mt-1" x-model="formStep.ask_field">
+                        <option value="first_name">first_name</option>
+                        <option value="last_name">last_name</option>
+                        <option value="name">name</option>
+                        <option value="phone">phone</option>
+                        <option value="email">email</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="text-xs" style="color:var(--sj-muted-text)">Награда</label>
+                      <div class="flex gap-2 mt-1">
+                        <input type="number" class="input w-28" x-model.number="formStep.coins_award">
+                        <input type="number" class="input w-28" x-model.number="formStep.xp_award">
+                      </div>
+                    </div>
+
+                    <div class="lg:col-span-2">
+                      <label class="text-xs" style="color:var(--sj-muted-text)">Текст (Markdown)</label>
+                      <textarea class="textarea mt-1" rows="4" x-model="formStep.body_md" placeholder="Описание шага"></textarea>
+                    </div>
+
+                    <div class="lg:col-span-2">
+                      <label class="text-xs" style="color:var(--sj-muted-text)">Видео (YouTube URL или mp4)</label>
+                      <input type="text" class="input mt-1" placeholder="https://youtu.be/..." x-model="formStep.media_url">
+                    </div>
+
+                    <div class="lg:col-span-2 grid md:grid-cols-3 gap-2" x-show="formStep.type==='interview_invite'">
+                      <input type="datetime-local" class="input" x-model="formStep.cfg_date_time">
+                      <input type="text" class="input" placeholder="Локация" x-model="formStep.cfg_location">
+                      <input type="text" class="input" placeholder="Сообщение" x-model="formStep.cfg_message">
+                    </div>
+
+                    <div class="lg:col-span-2" x-show="formStep.type==='interest_selector'">
+                      <label class="text-xs" style="color:var(--sj-muted-text)">Лимит выбора интересов</label>
+                      <input type="number" min="1" class="input mt-1 w-28" x-model.number="formStep.cfg_select_limit" placeholder="1">
+                    </div>
+
+                    <div class="lg:col-span-2 flex items-center justify-end gap-2">
+                      <button class="btn btn-ghost" @click="editStepDialog=false">Отмена</button>
+                      <button class="btn btn-indigo" :disabled="saving" @click="updateStep()">
+                        <span x-show="!saving">Обновить</span>
+                        <span x-show="saving">Сохранение…</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Options -->
+                <div x-show="s.type==='interest_selector' || s.type==='choice_one'" class="mt-4">
+                  <div class="text-sm font-semibold">Опции</div>
+
+                  <div class="space-y-2 mt-2" x-show="s.options && s.options.length">
+                    <template x-for="o in s.options" :key="o.id || o.key">
+                      <div class="flex items-start justify-between rounded-lg border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_75%, transparent)] px-3 py-2 gap-3 hover:brightness-95 transition">
+                        <button class="min-w-0 text-left" @click="openOptionModal(o, s.id)">
+                          <div class="font-medium truncate" x-text="o.title"></div>
+                          <div class="text-xs" style="color:var(--sj-muted-text)" x-text="o.key"></div>
+                          <div class="text-xs mt-1 line-clamp-2" style="color:var(--sj-muted-text)" x-show="o.body_md" x-text="o.body_md"></div>
+                          <div class="text-[11px] mt-1" style="color:var(--sj-muted-text)" x-show="o.media_url">медиа: <span class="underline" x-text="o.media_url"></span></div>
+                        </button>
+                        <div class="shrink-0 flex items-center gap-2">
+                          <button @click="openOptionModal(o, s.id)" class="btn btn-ghost text-sm py-1.5">Редакт.</button>
+                          <button @click="deleteOption(o)" class="btn btn-rose text-sm py-1.5">Удалить</button>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+
+                  <!-- Add option quick form -->
+                  <div class="mt-3 grid gap-2 md:grid-cols-[120px,1fr]">
+                    <input type="text" class="input" placeholder="key" x-model="onb.tmpOpt.key">
+                    <input type="text" class="input" placeholder="Название" x-model="onb.tmpOpt.title">
+                    <textarea class="textarea md:col-span-2" rows="2" placeholder="Описание (опционально)" x-model="onb.tmpOpt.body_md"></textarea>
+                    <div class="md:col-span-2 flex justify-end">
+                      <button @click="addOption(s.id)" class="btn btn-outline text-sm py-1.5">Добавить</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats -->
+      <section x-show="tab==='stats'" x-transition.opacity class="space-y-5" x-cloak>
+        <div class="card p-5">
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Окно (дней)</label>
+              <select class="select mt-1" x-model.number="onb.statsDays" @change="reloadStats()">
+                <option :value="7">7</option>
+                <option :value="14">14</option>
+                <option :value="30">30</option>
+                <option :value="90">90</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--sj-muted-text)">Поиск по пользователю</label>
+              <input class="input mt-1" placeholder="имя или email" x-model.debounce.400ms="onb.sessionsQuery" @input="debouncedLoadSessions()">
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi">
+          <div class="card p-4">
+            <div class="text-sm" style="color:var(--sj-muted-text)">Начали</div>
+            <div class="text-2xl font-bold" x-text="onb.stats?.started ?? 0"></div>
+          </div>
+          <div class="card p-4">
+            <div class="text-sm" style="color:var(--sj-muted-text)">Завершили</div>
+            <div class="text-2xl font-bold" x-text="onb.stats?.completed ?? 0"></div>
+          </div>
+          <div class="card p-4">
+            <div class="text-sm" style="color:var(--sj-muted-text)">Завершение</div>
+            <div class="text-2xl font-bold" x-text="(onb.stats?.completion_rate ?? 0) + '%'"></div>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <div class="text-sm mb-2" style="color:var(--sj-muted-text)">Отток по шагам (последний достигнутый шаг у незавершённых; -1 = до первого шага)</div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="text-left py-2">Шаг</th>
+                  <th class="text-left py-2">Название</th>
+                  <th class="text-right py-2">Отток</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="row in (onb.stats?.funnel || [])" :key="row.order_index">
+                  <tr>
+                    <td class="py-2">#<span x-text="row.order_index"></span></td>
+                    <td class="py-2" x-text="row.title || row.type || '—'"></td>
+                    <td class="py-2 text-right" x-text="row.drop_count"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <div class="text-xs mt-2" style="color:var(--sj-muted-text)">
+            Среднее время до завершения:
+            <b x-text="Math.round((onb.stats?.avg_time_to_complete_sec||0)/60) + ' мин'"></b>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Прохождения</div>
+            <div class="flex items-center gap-3">
+              <label class="text-xs flex items-center gap-1" style="color:var(--sj-muted-text)">
+                <input type="checkbox" class="rounded" x-model="onb.onlyActive" @change="loadFlowSessions(activeFlow.id, 1)"> Только активные
+              </label>
+              <label class="text-xs flex items-center gap-1" style="color:var(--sj-muted-text)">
+                <input type="checkbox" class="rounded" x-model="onb.onlyCompleted" @change="loadFlowSessions(activeFlow.id, 1)"> Только завершённые
+              </label>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <template x-for="it in onb.sessions?.items || []" :key="it.session_id">
+              <div class="rounded-xl border border-[var(--sj-border)] bg-[color-mix(in_ol, var(--sj-muted)_60%, transparent)] p-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="font-medium truncate" x-text="(it.user?.display_name || it.user?.email || ('Сессия #' + it.session_id))"></div>
+                    <div class="text-xs" style="color:var(--sj-muted-text)">
+                      <span>Старт: <span x-text="it.started_at ? new Date(it.started_at).toLocaleString() : '—'"></span></span>
+                      <span class="mx-2">•</span>
+                      <span>Статус: <b x-text="it.state"></b></span>
+                      <template x-if="it.finished_at">
+                        <span>
+                          <span class="mx-2">•</span> Финиш:
+                          <span x-text="new Date(it.finished_at).toLocaleString()"></span>
+                        </span>
+                      </template>
+                    </div>
+                  </div>
+                  <div class="shrink-0 text-right">
+                    <div class="text-sm">Прогресс: <b x-text="(it.progress?.percent ?? 0) + '%'"></b></div>
+                    <div class="w-40 h-2 rounded bg-[color-mix(in_ol, var(--sj-muted)_80%, transparent)] mt-1 overflow-hidden">
+                      <div class="h-2 bg-emerald-400" :style="`width:${Math.max(0, Math.min(100, it.progress?.percent||0))}%`"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <div x-show="!onb.sessions?.items?.length" class="text-sm" style="color:var(--sj-muted-text)">Нет данных за выбранный период.</div>
+          </div>
+
+          <div class="flex items-center justify-between mt-3" x-show="(onb.sessions?.total||0) > (onb.sessions?.per_page||20)">
+            <button class="btn btn-ghost text-sm py-1.5" :disabled="onb.sessions?.page<=1" @click="loadFlowSessions(activeFlow.id, onb.sessions.page-1)">← Назад</button>
+            <div class="text-xs" style="color:var(--sj-muted-text)">
+              Стр. <b x-text="onb.sessions?.page||1"></b> / <b x-text="Math.ceil((onb.sessions?.total||0)/(onb.sessions?.per_page||20))"></b>
+            </div>
+            <button class="btn btn-ghost text-sm py-1.5"
+                    :disabled="(onb.sessions?.page||1) >= Math.ceil((onb.sessions?.total||0)/(onb.sessions?.per_page||20))"
+                    @click="loadFlowSessions(activeFlow.id, onb.sessions.page+1)">Вперёд →</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Option modal -->
+  <div x-show="optModal.open" x-cloak>
+    <div class="fixed inset-0" :style="{background:'var(--sj-overlay)'}" @click="closeOptModal()"></div>
+    <div class="fixed inset-x-0 top-[6%] mx-auto max-w-2xl z-50 card p-5" @click.stop>
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Опция шага</h3>
+        <button class="btn btn-ghost px-3" @click="closeOptModal()">✕</button>
+      </div>
+      <div class="px-1 py-4 grid gap-3">
+        <div>
+          <label class="text-xs" style="color:var(--sj-muted-text)">Ключ</label>
+          <input class="input mt-1" x-model="optModal.form.key" disabled>
+        </div>
+        <div>
+          <label class="text-xs" style="color:var(--sj-muted-text)">Заголовок</label>
+          <input class="input mt-1" x-model="optModal.form.title" placeholder="Название опции">
+        </div>
+        <div>
+          <label class="text-xs" style="color:var(--sj-muted-text)">Текст (Markdown)</label>
+          <textarea class="textarea mt-1" rows="6" x-model="optModal.form.body_md" placeholder="Описание / контент опции"></textarea>
+        </div>
+        <div>
+          <label class="text-xs" style="color:var(--sj-muted-text)">Медиа (YouTube URL или mp4)</label>
+          <input class="input mt-1" x-model="optModal.form.media_url" placeholder="https://youtu.be/... или https://.../video.mp4">
+        </div>
+
+        <div class="rounded-xl border border-[var(--sj-border)] p-3 bg-[color-mix(in_ol, var(--sj-muted)_70%, transparent)]" x-show="optModal.form.media_url">
+          <div class="text-xs mb-2" style="color:var(--sj-muted-text)">Предпросмотр</div>
+          <template x-if="/youtube\.com|youtu\.be/.test(optModal.form.media_url||'')">
+            <div class="rounded-xl overflow-hidden border border-[var(--sj-border)]">
+              <iframe class="w-full aspect-video" :src="youtubeEmbed(optModal.form.media_url)" frameborder="0" allowfullscreen></iframe>
+            </div>
+          </template>
+          <template x-if="!/youtube\.com|youtu\.be/.test(optModal.form.media_url||'')">
+            <video class="w-full rounded-xl border border-[var(--sj-border)]" controls :src="optModal.form.media_url"></video>
+          </template>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-3" style="border-top:1px solid var(--sj-border)">
+        <button class="btn btn-ghost" @click="closeOptModal()">Отмена</button>
+        <button class="btn btn-indigo" :disabled="saving" @click="saveOption()">
+          <span x-show="!saving">Сохранить</span>
+          <span x-show="saving">Сохранение…</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ===== API client ===== */
+function createApi(){
+  const withCreds = { credentials:'same-origin' };
+  async function parse(r){
+    let j=null; try{ j=await r.json(); }catch(_){}
+    if(!r.ok){ throw new Error(j?.description || j?.detail || j?.message || `HTTP ${r.status}`); }
+    return j ?? {};
+  }
+  async function get(u){ return parse(await fetch(u, withCreds)); }
+  async function del(u){ return parse(await fetch(u, {...withCreds, method:'DELETE'})); }
+  async function post(u, body){
+    const opts={...withCreds, method:'POST'};
+    if(body instanceof FormData){ opts.body=body; }
+    else { opts.headers={'Content-Type':'application/json'}; opts.body=JSON.stringify(body||{}); }
+    return parse(await fetch(u, opts));
+  }
+  async function put(u, body){
+    const opts={...withCreds, method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{})};
+    return parse(await fetch(u, opts));
+  }
+  return {get, post, put, del};
+}
+const API = createApi();
+
+/* ===== helpers ===== */
+function normFlowList(raw){
+  const arr = raw?.flows || raw?.data || raw || [];
+  return Array.isArray(arr) ? arr.map(f => ({
+    id:f.id,
+    name:f.name??'',
+    is_active:!!(f.is_active??f.active),
+    final_bonus_coins:Number(f.final_bonus_coins??f.bonus??0)
+  })) : [];
+}
+function normStepsPayload(j){
+  const flow = (j?.flow || j?.data?.flow || j);
+  const stepsRaw = (j?.steps || j?.data?.steps || []);
+  const links = (j?.links||j?.data?.links||[]).map(l=>({id:l.id, slug:l.slug, uses_count:l.uses_count||0, max_uses:l.max_uses??null, expires_at:l.expires_at||null}));
+
+  const steps = stepsRaw.map(s => {
+    const options = (s.options || []).map(o => {
+      const id = o.id ?? o.option_id ?? o.pk ?? o.uuid ?? o.option?.id ?? o.option?.option_id ?? null;
+      const key = o.key ?? o.option?.key ?? o.slug ?? '';
+      return { id, key, title: o.title ?? o.option?.title ?? '', body_md: o.body_md ?? o.option?.body_md ?? '', media_url: o.media_url ?? o.option?.media_url ?? null, step_id: s.id };
+    });
+    return {
+      id: s.id, type: s.type, title: s.title || '', ask_field: s.ask_field || null,
+      body_md: s.body_md || null, media_url: s.media_url || null,
+      coins_award: Number(s.coins_award || 0), xp_award: Number(s.xp_award || 0),
+      order_index: Number(s.order_index || 0), is_active: !!(s.is_active ?? true),
+      is_immutable: !!s.is_immutable, config: s.config || {}, options
+    };
+  }).sort((a,b)=>a.order_index-b.order_index);
+
+  return {flow: flow ? { id:flow.id, name:flow.name??'', is_active:!!(flow.is_active??flow.active), final_bonus_coins:Number(flow.final_bonus_coins??flow.bonus??0)} : null, steps, links};
+}
+</script>
+
+<script>
+window.onboardingFullPage = function(company_id){
+  return {
+    company_id,
+    company:null,
+
+    loading:false,
+    saving:false,
+
+    // ui
+    tab:'meta',
+    flowsQuery:'',
+
+    // data
+    onb:{ flows:[], activeFlow:null, steps:[], links:[], stats:null, statsDays:30, sessions:null, sessionsQuery:'', onlyActive:false, onlyCompleted:false, tmpOpt:{key:'', title:'', body_md:''} },
+
+    // form state
+    formStep:{ id:null, type:'intro_page', title:'', ask_field:'', coins_award:0, xp_award:0, body_md:'', media_url:'', cfg_date_time:'', cfg_location:'', cfg_message:'', cfg_select_limit:1, is_immutable:false },
+    editStepDialog:false,
+
+    optModal:{ open:false, form:{ id:null, step_id:null, key:'', title:'', body_md:'', media_url:'' } },
+
+    get activeFlow(){ return this.onb.activeFlow; },
+    get filteredFlows(){
+      const q=(this.flowsQuery||'').trim().toLowerCase();
+      if(!q) return this.onb.flows;
+      return this.onb.flows.filter(f => (f.name||'').toLowerCase().includes(q));
+    },
+
+    // ====== init ======
+    async init(){
+      await this.loadCompany();
+      await this.loadFlows();
+    },
+    async loadCompany(){
+      try{
+        const d = await API.get(`/api/partners/company/${this.company_id}/dashboard`);
+        const dd = d.dashboard || d.data || d;
+        this.company = dd.company || dd.company_info || null;
+      }catch(_){}
+    },
+
+    // ====== flows ======
+    async loadFlows(){
+      this.loading=true;
+      try{
+        const j=await API.get(`/api/partners/company/${this.company_id}/onboarding/flows`);
+        this.onb.flows=normFlowList(j);
+        if(!this.onb.activeFlow && this.onb.flows.length){
+          await this.openFlow(this.onb.flows[0].id);
+        }
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.loading=false; }
+    },
+    async createFlow(){
+      const name=prompt('Название флоу', 'Онбординг кандидата'); if(!name) return;
+      try{
+        const flow=await API.post(`/api/partners/company/${this.company_id}/onboarding/flows`, { name, final_bonus_coins:50, is_active:true });
+        await this.ensureRegistrationStep(flow.id, true);
+        this.toast('Флоу создан','✨'); await this.loadFlows(); await this.openFlow(flow.id);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async createFlowQuick(){
+      const name=prompt('Название флоу','Онбординг (быстрый)'); if(!name) return;
+      try{
+        const flow=await API.post(`/api/partners/company/${this.company_id}/onboarding/flows`, { name, final_bonus_coins:50, is_active:true });
+        const flowId=flow.id;
+        const steps=[
+          {type:'intro_page', title:'Добро пожаловать!', body_md:'Коротко расскажем, что дальше.', is_required:false, coins_award:5, xp_award:5, order_index:0, config:{}, media_url:null},
+          {type:'choice_one', title:'Познакомимся с компанией?', body_md:'Посмотреть о компании сейчас или позже.', is_required:false, coins_award:5, xp_award:5, order_index:2, config:{}, media_url:null},
+          {type:'reward_shop', title:'Финальный бонус', body_md:'После завершения можно выбрать приз.', is_required:false, coins_award:0, xp_award:0, order_index:3, config:{}, media_url:null}
+        ];
+        for(const s of steps){ await API.post(`/api/partners/onboarding/flows/${flowId}/steps`, s); }
+        await this.ensureRegistrationStep(flowId, true);
+        this.toast('Флоу создан','✨'); await this.loadFlows(); await this.openFlow(flowId);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async openFlow(flowId){
+      try{
+        const j=await API.get(`/api/partners/onboarding/flows/${flowId}/steps`);
+        const {flow, steps, links}=normStepsPayload(j);
+        this.onb.activeFlow=flow; this.onb.steps=steps; this.onb.links=links;
+        await this.ensureRegistrationStep(flowId, false);
+        if(this.tab==='stats'){ this.reloadStats(); }
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async setFlowActive(flow, next){
+      if(!flow) return;
+      try{
+        await API.put(`/api/partners/onboarding/flows/${flow.id}`, { is_active: !!next });
+        flow.is_active = !!next;
+        if(this.activeFlow && this.activeFlow.id===flow.id){ this.onb.activeFlow.is_active=!!next; }
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async saveFlowMeta(){
+      if(!this.activeFlow) return; this.saving=true;
+      try{
+        await API.put(`/api/partners/onboarding/flows/${this.activeFlow.id}`, {
+          name:this.activeFlow.name,
+          final_bonus_coins:Number(this.activeFlow.final_bonus_coins||0),
+          is_active: !!this.activeFlow.is_active
+        });
+        this.toast('Сохранено','💾');
+        await this.loadFlows();
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
+    },
+    async deleteFlow(id){
+      if(!confirm('Удалить флоу целиком? Это действие нельзя отменить.')) return;
+      try{
+        await API.del(`/api/partners/onboarding/flows/${id}`);
+        this.toast('Флоу удалён','🗑️');
+        this.onb.activeFlow=null; this.onb.steps=[]; this.onb.links=[];
+        await this.loadFlows();
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+
+    // enforce registration step
+    async ensureRegistrationStep(flowId, createIfMissing){
+      let reg = this.onb.steps.find(s => s.type === 'registration_section');
+      if(!reg && createIfMissing){
+        try{
+          reg = await API.post(`/api/partners/onboarding/flows/${flowId}/steps`, {
+            type:'registration_section', title:'Регистрация', body_md:'Заполните контактные данные.', is_required:true,
+            coins_award:5, xp_award:5, order_index:1, config:{}
+          });
+        }catch(e){ this.toast('Не удалось создать регистрационную секцию','⛔'); }
+      }
+      try{
+        const j=await API.get(`/api/partners/onboarding/flows/${flowId}/steps?ts=${Date.now()}`);
+        const {steps}=normStepsPayload(j); this.onb.steps=steps;
+      }catch(_){}
+      const idxReg = this.onb.steps.findIndex(s => s.type==='registration_section');
+      if(idxReg === -1) return;
+      this.onb.steps[idxReg].is_immutable = true;
+      if(this.onb.steps[idxReg].order_index !== 1 || idxReg !== 1){
+        const reordered = [...this.onb.steps];
+        const regStep = reordered.splice(idxReg,1)[0];
+        reordered.splice(1,0,regStep);
+        reordered.forEach((s,i)=> s.order_index=i);
+        this.onb.steps = reordered;
+        try{
+          await API.post(`/api/partners/onboarding/flows/${flowId}/reorder`, { order: this.onb.steps.map(s=>s.id) });
+        }catch(_){}
+      }
+    },
+
+    // ====== steps ======
+    youtubeEmbed(u){ try{ if(!u) return ''; const m1=u.match(/youtu\.be\/([\w-]+)/); const m2=u.match(/[?&]v=([\w-]+)/); const id=(m1&&m1[1])||(m2&&m2[1])||''; return id?`https://www.youtube.com/embed/${id}`:u; }catch(e){ return u; } },
+    moveStep(idx, delta){
+      const a=this.onb.steps[idx], b=this.onb.steps[idx+delta];
+      if(!a || !b) return;
+      if(a.is_immutable || b.is_immutable) return;
+      [this.onb.steps[idx], this.onb.steps[idx+delta]]=[b,a];
+      this.onb.steps.forEach((s,i)=> s.order_index=i);
+    },
+    async saveOrder(){
+      if(!this.activeFlow) return; this.saving=true;
+      const idxReg = this.onb.steps.findIndex(s => s.type==='registration_section');
+      if(idxReg>-1 && idxReg!==1){
+        const reg = this.onb.steps.splice(idxReg,1)[0];
+        this.onb.steps.splice(1,0,reg);
+      }
+      this.onb.steps.forEach((s,i)=> s.order_index=i);
+      try{
+        await API.post(`/api/partners/onboarding/flows/${this.activeFlow.id}/reorder`, { order:this.onb.steps.map(s=>s.id) });
+        this.toast('Порядок сохранён','✅');
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
+    },
+    async saveNewStep(){
+      if(!this.activeFlow) return; this.saving=true;
+      try{
+        const cfg=this.formStep.type==='interview_invite' ? { date_time:this.formStep.cfg_date_time||null, location:this.formStep.cfg_location||null, message:this.formStep.cfg_message||null }
+                 : this.formStep.type==='interest_selector' ? { select_limit:Number(this.formStep.cfg_select_limit||1) } : {};
+        const body={ type:this.formStep.type, title:this.formStep.title, ask_field:this.formStep.ask_field||null, body_md:this.formStep.body_md||null, media_url:this.formStep.media_url||null, coins_award:Number(this.formStep.coins_award||0), xp_award:Number(this.formStep.xp_award||0), config:cfg };
+        await API.post(`/api/partners/onboarding/flows/${this.activeFlow.id}/steps`, body);
+        this.toast('Шаг создан','✨');
+        this.formStep={ id:null, type:'intro_page', title:'', ask_field:'', coins_award:0, xp_award:0, body_md:'', media_url:'', cfg_date_time:'', cfg_location:'', cfg_message:'', cfg_select_limit:1, is_immutable:false };
+        await this.openFlow(this.activeFlow.id);
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
+    },
+    editStep(s){
+      this.formStep = {
+        id: s.id, type: s.type, title: s.title || '', ask_field: s.ask_field || '',
+        coins_award: s.coins_award || 0, xp_award: s.xp_award || 0,
+        body_md: s.body_md || '', media_url: s.media_url || '',
+        cfg_date_time: (s.config && s.config.date_time) ? s.config.date_time : '',
+        cfg_location: (s.config && s.config.location) ? s.config.location : '',
+        cfg_message: (s.config && s.config.message) ? s.config.message : '',
+        cfg_select_limit: (s.config && s.config.select_limit) ? s.config.select_limit : 1,
+        is_immutable: (s.is_immutable || s.type==='registration_section')
+      };
+      this.editStepDialog = true;
+    },
+    async updateStep(){
+      const id=this.formStep.id; if(!id) return; this.saving=true;
+      try{
+        const cfg=this.formStep.type==='interview_invite' ? { date_time:this.formStep.cfg_date_time||null, location:this.formStep.cfg_location||null, message:this.formStep.cfg_message||null }
+                 : this.formStep.type==='interest_selector' ? { select_limit:Number(this.formStep.cfg_select_limit||1) } : {};
+        const body={ type:this.formStep.type, title:this.formStep.title, ask_field:this.formStep.ask_field||null, body_md:this.formStep.body_md||null, media_url:this.formStep.media_url||null, coins_award:Number(this.formStep.coins_award||0), xp_award:Number(this.formStep.xp_award||0), config:cfg };
+        if(this.formStep.type==='registration_section'){ delete body.type; }
+        await API.put(`/api/partners/onboarding/steps/${id}`, body);
+        this.editStepDialog=false; await this.openFlow(this.activeFlow.id);
+        this.toast('Шаг обновлён','💾');
+      }catch(e){ this.toast(e.message,'⛔'); }
+      finally{ this.saving=false; }
+    },
+    async toggleStepActive(s, checked){
+      const prev=!!s.is_active; s.is_active=!!checked;
+      try{
+        await API.put(`/api/partners/onboarding/steps/${s.id}`, { is_active:!!checked });
+        if(s.type==='registration_section' && !checked){
+          s.is_active=true;
+          await API.put(`/api/partners/onboarding/steps/${s.id}`, { is_active:true });
+          this.toast('Регистрационная секция не может быть выключена','⚠️');
+        }
+      }catch(e){ s.is_active=prev; this.toast(e.message,'⛔'); }
+    },
+    async deleteStep(stepId){
+      const s=this.onb.steps.find(x=>x.id===stepId);
+      if(s?.type==='registration_section'){ this.toast('Регистрационную секцию удалять нельзя','⛔'); return; }
+      if(!confirm('Удалить шаг?')) return;
+      try{ await API.del(`/api/partners/onboarding/steps/${stepId}`); await this.openFlow(this.activeFlow.id); }
+      catch(e){ this.toast(e.message,'⛔'); }
+    },
+
+    // ====== options ======
+    openOptionModal(o, stepId){
+      this.optModal.open = true;
+      this.optModal.form = {
+        id: o.id ?? o.option_id ?? null,
+        step_id: stepId,
+        key: o.key ?? o.slug ?? '',
+        title: o.title ?? '',
+        body_md: o.body_md ?? '',
+        media_url: o.media_url ?? '',
+      };
+    },
+    closeOptModal(){ this.optModal.open=false; this.optModal.form={ id:null, step_id:null, key:'', title:'', body_md:'', media_url:'' }; },
+    async ensureOptionId(stepId, key){
+      const norm = v => String(v ?? '').trim().toLowerCase();
+      const isEq  = (a,b) => String(a) === String(b);
+      const fromLocal = () => {
+        const step = this.onb.steps.find(s => isEq(s.id, stepId));
+        const hit  = step?.options?.find(o => norm(o.key ?? o.slug) === norm(key));
+        return hit?.id ?? hit?.option_id ?? hit?.pk ?? hit?.uuid ?? null;
+      };
+      let id = fromLocal(); if(id) return id;
+      try{
+        const j = await API.get(`/api/partners/onboarding/flows/${this.activeFlow.id}/steps?ts=${Date.now()}`);
+        const {steps} = normStepsPayload(j); this.onb.steps = steps;
+        id = fromLocal(); if(id) return id;
+      }catch(_){}
+      const cand = [
+        `/api/partners/onboarding/steps/${stepId}?ts=${Date.now()}`,
+        `/api/partners/onboarding/steps/${stepId}/options?ts=${Date.now()}`
+      ];
+      for(const u of cand){
+        try{
+          const j = await API.get(u);
+          const rawOpts = j?.options || j?.choices || j?.variants || (Array.isArray(j)?j:[]);
+          const hit = (rawOpts || []).find(o => (o.key ?? o.option?.key ?? o.slug ?? '').toLowerCase() === key.toLowerCase());
+          const got = hit?.id ?? hit?.option_id ?? hit?.pk ?? hit?.uuid ?? hit?.option?.id ?? hit?.option?.option_id ?? null;
+          if(got){ return got; }
+        }catch(_){}
+      }
+      return null;
+    },
+    async saveOption(){
+      const e = this.optModal.form;
+      if(!e?.key || !e?.step_id){ this.toast('Не заполнены обязательные поля','⚠️'); return; }
+      if(!e.id){ e.id = await this.ensureOptionId(e.step_id, e.key); }
+      if(!e.id){ this.toast('Не удалось определить ID опции (чтобы не создать дубль, сохранение остановлено)','⛔'); return; }
+
+      const payload = { title: e.title, body_md: e.body_md || null, media_url: e.media_url || null };
+      const flowId = this.activeFlow?.id;
+      const companyId = this.company_id;
+      const updUrls = [
+        `/api/partners/onboarding/options/${e.id}`,
+        `/api/partners/onboarding/steps/${e.step_id}/options/${e.id}`,
+        flowId    ? `/api/partners/onboarding/flows/${flowId}/steps/${e.step_id}/options/${e.id}` : null,
+        companyId ? `/api/partners/company/${companyId}/onboarding/options/${e.id}` : null,
+        companyId ? `/api/partners/company/${companyId}/onboarding/steps/${e.step_id}/options/${e.id}` : null,
+      ].filter(Boolean);
+
+      this.saving = true;
+      try{
+        let ok=false;
+        for(const u of updUrls){ try{ await API.put(u, payload); ok=true; break; }catch{} }
+        if(!ok){ for(const u of updUrls){ try{ await API.post(u, payload); ok=true; break; }catch{} } }
+        if(!ok) throw new Error('Не найден endpoint для обновления опции по id');
+
+        this.toast('Опция обновлена','💾'); await this.openFlow(flowId); this.closeOptModal();
+      }catch(err){ this.toast(err?.message || 'Не удалось обновить опцию','⛔'); }
+      finally{ this.saving = false; }
+    },
+    async addOption(stepId){
+      const o=this.onb.tmpOpt; if(!o.key || !o.title){ this.toast('Укажите key и название','⚠️'); return; }
+      try{
+        const res = await API.post(`/api/partners/onboarding/steps/${stepId}/options`, { key:o.key, title:o.title, body_md:o.body_md||null });
+        this.onb.tmpOpt={key:'', title:'', body_md:''};
+        await this.openFlow(this.activeFlow.id);
+        const createdId = res?.id || res?.option_id;
+        const step = this.onb.steps.find(x=>x.id===stepId);
+        const opt = step?.options?.find(x=>x.id===createdId) || step?.options?.find(x=>x.key===o.key);
+        if(opt){ this.openOptionModal(opt, stepId); }
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async deleteOption(o){
+      if(!o?.id){ this.toast('Не найдена опция','⚠️'); return; }
+      if(!confirm('Удалить опцию?')) return;
+      try{
+        await API.del(`/api/partners/onboarding/options/${o.id}`);
+        await this.openFlow(this.activeFlow.id);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+
+    // ====== links for flow ======
+    async generateLink(){
+      if(!this.activeFlow) return;
+      const urls = [
+        `/api/partners/onboarding/flows/${this.activeFlow.id}/links`,
+        `/api/partners/company/${this.company_id}/onboarding/flows/${this.activeFlow.id}/links`,
+      ];
+      let ok=false, err=null;
+      for(const u of urls){ try{ await API.post(u,{}); ok=true; break; }catch(e){ err=e; } }
+      if(ok){ this.toast('Ссылка создана','✨'); await this.openFlow(this.activeFlow.id); }
+      else { this.toast(err?.message||'Не удалось создать ссылку','⛔'); }
+    },
+    async deleteLink(id){
+      const urls = [
+        `/api/partners/onboarding/links/${id}`,
+        this.activeFlow ? `/api/partners/onboarding/flows/${this.activeFlow.id}/links/${id}` : null,
+        this.activeFlow ? `/api/partners/company/${this.company_id}/onboarding/flows/${this.activeFlow.id}/links/${id}` : null,
+      ].filter(Boolean);
+      let ok=false, err=null;
+      for(const u of urls){ try{ await API.del(u); ok=true; break; }catch(e){ err=e; } }
+      if(ok){ this.toast('Ссылка удалена','🗑️'); await this.openFlow(this.activeFlow.id); }
+      else { this.toast(err?.message||'Не удалось удалить ссылку','⛔'); }
+    },
+
+    // ====== stats ======
+    async reloadStats(){
+      if(!this.activeFlow) return;
+      await this.loadFlowStats(this.activeFlow.id);
+      await this.loadFlowSessions(this.activeFlow.id, 1);
+    },
+    async loadFlowStats(flowId){
+      try{
+        const days = this.onb.statsDays || 30;
+        this.onb.stats = await API.get(`/api/partners/onboarding/flows/${flowId}/stats?days=${days}`);
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    async loadFlowSessions(flowId, page=1){
+      try{
+        const params = new URLSearchParams();
+        params.set('days', String(this.onb.statsDays||30));
+        params.set('page', String(page||1));
+        params.set('per_page', '20');
+        if(this.onb.sessionsQuery?.trim()) params.set('q', this.onb.sessionsQuery.trim());
+        if(this.onb.onlyActive && !this.onb.onlyCompleted) params.set('only_active','1');
+        if(this.onb.onlyCompleted && !this.onb.onlyActive) params.set('only_completed','1');
+        this.onb.sessions = await API.get(`/api/partners/onboarding/flows/${flowId}/sessions?`+params.toString());
+      }catch(e){ this.toast(e.message,'⛔'); }
+    },
+    debouncedLoadSessions(){ clearTimeout(this._debSess); this._debSess = setTimeout(()=>{ if(this.activeFlow?.id) this.loadFlowSessions(this.activeFlow.id, 1); }, 350); },
+
+    // ====== ui helpers ======
+    toast(msg, emoji='ℹ️'){ const s=Alpine.store?.('toasts'); if(s?.push) s.push({title:String(msg), emoji}); else alert(`${emoji} ${msg}`); }
+  }
+}
+</script>
+
+<script>
+  window.SJ_COMPANY_ID = {{ company_id|default('null') }};
+  window.SJ_COMPANY_SLUG = {{ company_slug|tojson|safe }};
+</script>
+{% endblock %}
